@@ -1,5 +1,5 @@
 % --- LoKI_GUI.m ---
-classdef LoKI_GUI < handle
+classdef INPUT_GUI < handle
     %LoKI_GUI Class that provides a user-friendly interface for LoKI setup
 
     properties
@@ -9,8 +9,65 @@ classdef LoKI_GUI < handle
     end
 
     methods
-        function gui = LoKI_GUI(inputFile)
+        function gui = INPUT_GUI(inputFile)
             % Constructor
+            % Show loading animation with progress bar while initializing
+            % Center window on screen
+            screenSize = get(0, 'ScreenSize');
+            windowWidth = 400;
+            windowHeight = 100;
+            windowX = (screenSize(3) - windowWidth) / 2;
+            windowY = (screenSize(4) - windowHeight) / 2;
+            
+            loadingFig = uifigure('Name', 'LoKI-B', 'WindowStyle', 'modal', ...
+                'Position', [windowX, windowY, windowWidth, windowHeight], 'Resize', 'off', ...
+                'Color', [0.94 0.94 0.94]);
+            loadingGrid = uigridlayout(loadingFig, [2, 1]);
+            loadingGrid.RowHeight = {'fit', 14}; % thinner progress bar
+            loadingGrid.Padding = [30 20 30 16];
+            loadingGrid.RowSpacing = 12;
+            
+            loadingLabel = uilabel(loadingGrid, 'Text', 'LoKI-B is starting...', ...
+                'FontSize', 14, 'FontWeight', 'bold', ...
+                'HorizontalAlignment', 'center');
+            loadingLabel.Layout.Row = 1;
+
+            % Progress bar (rounded) using uihtml when available; fallback to panels otherwise
+            useHtmlProgress = exist('uihtml', 'file') == 2;
+            progressHTML = [];
+            progressContainer = [];
+            progressFill = [];
+            containerWidth = windowWidth - 60; % fallback estimate
+
+            if useHtmlProgress
+                progressHTML = uihtml(loadingGrid);
+                progressHTML.Layout.Row = 2;
+                % Initial render
+                progressHTML.HTMLSource = localProgressHtml(0);
+                drawnow;
+            else
+                % Fallback: simple panels (no rounded corners available)
+                progressContainer = uipanel(loadingGrid, 'BackgroundColor', [0.85 0.85 0.85], ...
+                    'BorderType', 'none');
+                progressContainer.Layout.Row = 2;
+                progressFill = uipanel(progressContainer, 'BackgroundColor', [0.18 0.70 0.25], ...
+                    'BorderType', 'none', 'Position', [0 0 0 14]);
+                drawnow;
+                try
+                    containerWidth = progressContainer.Position(3);
+                    if containerWidth == 0
+                        containerWidth = windowWidth - 60;
+                    end
+                catch
+                end
+            end
+
+            % Animate progress bar early so user sees movement immediately
+            for p = 1:20
+                localSetProgress(p);
+                pause(0.015);
+            end
+            
             if nargin < 1 || isempty(inputFile)
                 gui.initializeDefaultSetup(); % Initialize with defaults if no file provided
             else
@@ -25,8 +82,63 @@ classdef LoKI_GUI < handle
                 end
             end
             gui.UIControls = struct(); % Initialize empty struct for control handles
+            
+            % Update progress: 30% - Setup initialized
+            localSetProgress(30);
+            
             gui.createGUI();
+            
+            % Update progress: 80% - GUI created
+            localSetProgress(80);
+            
             gui.populateGUIFromSetup(); % Populate GUI fields with Setup data
+            
+            % Update progress: 100% - Complete
+            localSetProgress(100);
+            pause(0.1); % Brief pause to show 100%
+
+            % Show only after everything is laid out to avoid "narrow then expand" flicker
+            drawnow;
+            gui.handleFigureSizeChanged();
+            gui.Fig.Visible = 'on';
+            drawnow; % ensure grid-managed panels have final pixel sizes
+            gui.layoutTotalSccmOutFlowOverlay();
+            
+            % Close loading window
+            close(loadingFig);
+
+            function localSetProgress(pct)
+                % pct in [0,100]
+                try
+                    pct = max(0, min(100, pct));
+                catch
+                end
+                try
+                    if useHtmlProgress && ~isempty(progressHTML) && isvalid(progressHTML)
+                        progressHTML.HTMLSource = localProgressHtml(pct);
+                        drawnow;
+                        return;
+                    end
+                catch
+                end
+                % Fallback (panel fill)
+                try
+                    if ~isempty(progressFill) && isvalid(progressFill)
+                        progressFill.Position = [0 0 (pct/100)*containerWidth 14];
+                        drawnow;
+                    end
+                catch
+                end
+            end
+
+            function html = localProgressHtml(pct)
+                % Thin rounded progress bar (CSS). uihtml fills its layout cell.
+                % Use fixed height with border-radius for rounded ends.
+                html = sprintf([ ...
+                    '<div style="width:100%%;height:8px;background:rgb(217,217,217);border-radius:999px;overflow:hidden;">' ...
+                    '<div style="width:%.1f%%;height:100%%;background:rgb(46,179,67);border-radius:999px;"></div>' ...
+                    '</div>'], pct);
+            end
         end
 
         function initializeDefaultSetup(gui)
@@ -104,7 +216,7 @@ classdef LoKI_GUI < handle
 
         function createGUI(gui)
             % Create the main figure
-            iconPath = 'icon.png'; % Relative or absolute path to your icon
+            iconPath = fullfile('figs', 'icon.png'); % Relative path to icon in figs folder
             if ~isfile(iconPath)
                 warning('Icon file not found: %s. Using default icon.', iconPath);
                 iconPath = ''; % Use default if not found
@@ -115,23 +227,58 @@ classdef LoKI_GUI < handle
                 'NumberTitle', 'off', ...
                 'Resize', 'on', ... % Allow resizing
                 'Icon', iconPath, ...
-                'WindowStyle', 'normal'); % Keep window visible
+                'WindowStyle', 'normal', ... % Keep window visible
+                'WindowState', 'maximized', ... % Start maximized to avoid hidden title bar on different screens
+                'Visible', 'off'); % Prevent initial layout "snap" while building/populating UI
 
-            % Main grid layout
-            mainGrid = uigridlayout(gui.Fig, [2, 1]);
-            mainGrid.RowHeight = {'1x', 'fit'}; % Tabs take most space, buttons at bottom
+            % Allow SizeChangedFcn to execute (MATLAB suppresses it when AutoResizeChildren is on)
+            gui.Fig.AutoResizeChildren = 'off';
 
-            % Create tabs
-            tabGroup = uitabgroup(mainGrid);
-            tabGroup.Layout.Row = 1;
-            tabGroup.Layout.Column = 1;
+            % Handle responsive UI adjustments (font autoscaling, etc.)
+            gui.Fig.SizeChangedFcn = @(src, evt) gui.handleFigureSizeChanged();
 
-            % --- Working Conditions Tab ---
-            workingTab = uitab(tabGroup, 'Title', 'Working Conditions', 'Scrollable', 'on');
-            gui.createWorkingConditionsPanel(workingTab);
+            % Main grid layout: two columns side by side
+            mainGrid = uigridlayout(gui.Fig, [2, 2]);
+            mainGrid.RowHeight = {'1x', 'fit'}; % Content takes most space, buttons at bottom
+            mainGrid.ColumnWidth = {'1x', '1.5x'}; % Left (Working Conditions) narrower than right tabs
+            mainGrid.ColumnSpacing = 10;
+            mainGrid.RowSpacing = 10;
+            mainGrid.Padding = [10 10 10 10];
+
+            % --- Left Panel: Working Conditions (always visible) ---
+            leftPanel = uipanel(mainGrid, 'BorderType', 'none');
+            leftPanel.Layout.Row = 1;
+            leftPanel.Layout.Column = 1;
+
+            % Tab-style container inside left panel for visual homogeneity
+            leftGrid = uigridlayout(leftPanel, [1, 1]);
+            leftGrid.RowHeight = {'1x'};
+            leftGrid.ColumnWidth = {'1x'};
+            leftGrid.Padding = [0 0 0 0];
+
+            leftTabGroup = uitabgroup(leftGrid);
+            leftWorkingTab = uitab(leftTabGroup, 'Title', 'Working Conditions', 'Scrollable', 'on');
+
+            gui.createWorkingConditionsPanel(leftWorkingTab);
+
+            % --- Right Panel: Other tabs ---
+            rightPanel = uipanel(mainGrid, 'BorderType', 'none');
+            rightPanel.Layout.Row = 1;
+            rightPanel.Layout.Column = 2;
+
+            % Grid layout inside right panel to fill space
+            rightGrid = uigridlayout(rightPanel, [1, 1]);
+            rightGrid.RowHeight = {'1x'};
+            rightGrid.ColumnWidth = {'1x'};
+            rightGrid.Padding = [0 0 0 0];
+
+            % Create tabs in right panel
+            tabGroup = uitabgroup(rightGrid);
+            gui.UIControls.tabs.tabGroup = tabGroup;
 
             % --- Electron Kinetics Tab ---
             kineticsTab = uitab(tabGroup, 'Title', 'Electron Kinetics', 'Scrollable', 'on');
+            gui.UIControls.tabs.kineticsTab = kineticsTab;
             gui.createElectronKineticsPanel(kineticsTab);
 
             % --- Gas Properties Tab ---
@@ -150,35 +297,46 @@ classdef LoKI_GUI < handle
             outputTab = uitab(tabGroup, 'Title', 'Output', 'Scrollable', 'on');
             gui.createOutputPanel(outputTab);
 
-            % --- Button Panel ---
+            % Enforce required LXCat files when leaving Electron Kinetics tab
+            tabGroup.SelectionChangedFcn = @(src, evt) gui.handleTabChange(evt);
+
+            % --- Button Panel (spans both columns) ---
             buttonPanel = uipanel(mainGrid, 'BorderType', 'none');
             buttonPanel.Layout.Row = 2;
-            buttonPanel.Layout.Column = 1;
+            buttonPanel.Layout.Column = [1, 2]; % Span both columns
             buttonGrid = uigridlayout(buttonPanel, [1, 4]);
             % Add some padding/spacing if needed
-            buttonGrid.ColumnWidth = {'1x', 'fit', 'fit', 'fit'}; % Push buttons to right
+            buttonGrid.ColumnWidth = {'fit', 'fit', '1x', 'fit'}; % Left buttons, spacer, right button
             buttonGrid.Padding = [10 10 10 10];
             buttonGrid.ColumnSpacing = 10;
 
-            % Load Button (Placeholder)
-            uibutton(buttonGrid, 'Text', 'Load Settings (Soon...)', ...
-                'ButtonPushedFcn', @gui.loadSettings, 'Enable', 'off'); % Disabled for now
+            % Load Button
+            loadBtn = uibutton(buttonGrid, 'Text', 'Load Settings', ...
+                'ButtonPushedFcn', @gui.loadSettings);
+            loadBtn.Layout.Column = 1;
 
             % Save Button
-            uibutton(buttonGrid, 'Text', 'Save Input File', ...
+            saveBtn = uibutton(buttonGrid, 'Text', 'Save Input File', ...
                 'ButtonPushedFcn', @gui.saveInputFile);
+            saveBtn.Layout.Column = 2;
 
             % Run Button
-            uibutton(buttonGrid, 'Text', 'Generate & Run', ...
+            runBtn = uibutton(buttonGrid, 'Text', 'Generate & Run', ...
                 'FontWeight', 'bold', ...
                 'ButtonPushedFcn', @gui.runSimulation);
+            runBtn.Layout.Column = 4;
+            runBtn.BackgroundColor = [0.18 0.70 0.25];
+            runBtn.FontColor = [1 1 1];
+            gui.UIControls.runButton = runBtn;
         end
 
         function createWorkingConditionsPanel(gui, parent)
             % Use grid layout for better alignment and resizing
-            grid = uigridlayout(parent, [15, 3]); % Adjust rows as needed
-            grid.ColumnWidth = {'fit', '1x', 'fit'}; % Label, Edit, Browse/Unit
-            grid.RowHeight = repmat({'fit'}, 1, 15);
+            grid = uigridlayout(parent, [16, 2]); % 15 data rows + 1 info section row
+            % Fixed label column prevents the input column from collapsing to ~0 in narrow windows
+            % (which was causing fields like totalSccmOutFlow to "disappear").
+            grid.ColumnWidth = {220, '1x'}; % Label/checkbox, Edit field
+            grid.RowHeight = [repmat({22}, 1, 15), {'1x'}]; % 15 fixed height rows (22px) + flexible info row
             grid.Padding = [10 10 10 10];
             grid.RowSpacing = 5;
             grid.ColumnSpacing = 10;
@@ -188,173 +346,200 @@ classdef LoKI_GUI < handle
             reducedFieldLabel = uilabel(grid, 'Text', 'Reduced Field (Td):');
             reducedFieldLabel.Layout.Row = row;
             reducedFieldLabel.Layout.Column = 1;
-            gui.UIControls.workingConditions.reducedField = uieditfield(grid, 'text', 'ValueChangedFcn', @(src, evt) gui.updateField(src, 'workingConditions.reducedField', evt.Value));
+            gui.UIControls.workingConditions.reducedField = uieditfield(grid, 'text', ...
+                'Tooltip', 'e.g., 10 or logspace(1,2,10)', ...
+                'ValueChangedFcn', @(src, evt) gui.updateField(src, 'workingConditions.reducedField', evt.Value));
             gui.UIControls.workingConditions.reducedField.Layout.Row = row;
             gui.UIControls.workingConditions.reducedField.Layout.Column = 2;
-            reducedFieldHint = uilabel(grid, 'Text', '(e.g., 10 or logspace(1,2,10))'); % Hint
-            reducedFieldHint.Layout.Row = row;
-            reducedFieldHint.Layout.Column = 3;
 
             row = row + 1;
             % Electron Temperature [cite: 1]
             electronTempLabel = uilabel(grid, 'Text', 'Electron Temperature (eV):');
             electronTempLabel.Layout.Row = row;
             electronTempLabel.Layout.Column = 1;
-            gui.UIControls.workingConditions.electronTemperature = uieditfield(grid, 'text', 'ValueChangedFcn', @(src, evt) gui.updateField(src, 'workingConditions.electronTemperature', evt.Value));
+            gui.UIControls.workingConditions.electronTemperature = uieditfield(grid, 'text', ...
+                'Tooltip', 'e.g., 1.5 or linspace(0.1, 5, 20)', ...
+                'ValueChangedFcn', @(src, evt) gui.updateField(src, 'workingConditions.electronTemperature', evt.Value));
             gui.UIControls.workingConditions.electronTemperature.Layout.Row = row;
             gui.UIControls.workingConditions.electronTemperature.Layout.Column = 2;
-            electronTempHint = uilabel(grid, 'Text', '(e.g., 1.5 or linspace(0.1, 5, 20))'); % Hint
-            electronTempHint.Layout.Row = row;
-            electronTempHint.Layout.Column = 3;
 
             row = row + 1;
             % Excitation Frequency [cite: 1]
             excitationFreqLabel = uilabel(grid, 'Text', 'Excitation Frequency (Hz):');
             excitationFreqLabel.Layout.Row = row;
             excitationFreqLabel.Layout.Column = 1;
-            gui.UIControls.workingConditions.excitationFrequency = uieditfield(grid, 'numeric', 'Limits', [0, Inf], 'ValueChangedFcn', @(src, evt) gui.updateField(src, 'workingConditions.excitationFrequency', evt.Value));
+            gui.UIControls.workingConditions.excitationFrequency = uieditfield(grid, 'numeric', ...
+                'Limits', [0, Inf], ...
+                'HorizontalAlignment', 'left', ...
+                'ValueChangedFcn', @(src, evt) gui.updateField(src, 'workingConditions.excitationFrequency', evt.Value));
             gui.UIControls.workingConditions.excitationFrequency.Layout.Row = row;
             gui.UIControls.workingConditions.excitationFrequency.Layout.Column = 2;
-            excitationFreqHint = uilabel(grid, 'Text', ''); % Hint
-            excitationFreqHint.Layout.Row = row;
-            excitationFreqHint.Layout.Column = 3;
 
             row = row + 1;
             % Gas Pressure [cite: 1]
-            gasPressureLabel = uilabel(grid, 'Text', 'Gas Pressure (Pa):');
-            gasPressureLabel.Layout.Row = row;
-            gasPressureLabel.Layout.Column = 1;
-            gui.UIControls.workingConditions.gasPressure = uieditfield(grid, 'numeric', 'Limits', [0, Inf], 'ValueChangedFcn', @(src, evt) gui.updateField(src, 'workingConditions.gasPressure', evt.Value));
+            gasPressureCheckbox = uicheckbox(grid, 'Text', 'Gas Pressure (Pa):', ...
+                'ValueChangedFcn', @(src, evt) gui.toggleGasPressureEnable(evt.Value));
+            gasPressureCheckbox.Layout.Row = row;
+            gasPressureCheckbox.Layout.Column = 1;
+            gui.UIControls.workingConditions.gasPressureCheckbox = gasPressureCheckbox;
+            
+            gui.UIControls.workingConditions.gasPressure = uieditfield(grid, 'numeric', ...
+                'Limits', [0, Inf], ...
+                'Enable', 'off', ...
+                'HorizontalAlignment', 'left', ...
+                'ValueChangedFcn', @(src, evt) gui.updateField(src, 'workingConditions.gasPressure', evt.Value));
             gui.UIControls.workingConditions.gasPressure.Layout.Row = row;
             gui.UIControls.workingConditions.gasPressure.Layout.Column = 2;
-            gasPressureHint = uilabel(grid, 'Text', ''); % Hint
-            gasPressureHint.Layout.Row = row;
-            gasPressureHint.Layout.Column = 3;
 
             row = row + 1;
             % Gas Temperature [cite: 1]
-            gasTempLabel = uilabel(grid, 'Text', 'Gas Temperature (K):');
-            gasTempLabel.Layout.Row = row;
-            gasTempLabel.Layout.Column = 1;
-            gui.UIControls.workingConditions.gasTemperature = uieditfield(grid, 'numeric', 'Limits', [0, Inf], 'ValueChangedFcn', @(src, evt) gui.updateField(src, 'workingConditions.gasTemperature', evt.Value));
+            gasTempCheckbox = uicheckbox(grid, 'Text', 'Gas Temperature (K):', ...
+                'ValueChangedFcn', @(src, evt) gui.toggleGasTemperatureEnable(evt.Value));
+            gasTempCheckbox.Layout.Row = row;
+            gasTempCheckbox.Layout.Column = 1;
+            gui.UIControls.workingConditions.gasTemperatureCheckbox = gasTempCheckbox;
+            
+            gui.UIControls.workingConditions.gasTemperature = uieditfield(grid, 'numeric', ...
+                'Limits', [0, Inf], ...
+                'Enable', 'off', ...
+                'HorizontalAlignment', 'left', ...
+                'ValueChangedFcn', @(src, evt) gui.updateField(src, 'workingConditions.gasTemperature', evt.Value));
             gui.UIControls.workingConditions.gasTemperature.Layout.Row = row;
             gui.UIControls.workingConditions.gasTemperature.Layout.Column = 2;
-            gasTempHint = uilabel(grid, 'Text', ''); % Hint
-            gasTempHint.Layout.Row = row;
-            gasTempHint.Layout.Column = 3;
 
             row = row + 1;
             % Wall Temperature [cite: 2]
             wallTempLabel = uilabel(grid, 'Text', 'Wall Temperature (K):');
             wallTempLabel.Layout.Row = row;
             wallTempLabel.Layout.Column = 1;
-            gui.UIControls.workingConditions.wallTemperature = uieditfield(grid, 'numeric', 'Limits', [0, Inf], 'ValueChangedFcn', @(src, evt) gui.updateField(src, 'workingConditions.wallTemperature', evt.Value));
+            gui.UIControls.workingConditions.wallTemperature = uieditfield(grid, 'numeric', ...
+                'Limits', [0, Inf], ...
+                'HorizontalAlignment', 'left', ...
+                'ValueChangedFcn', @(src, evt) gui.updateField(src, 'workingConditions.wallTemperature', evt.Value));
             gui.UIControls.workingConditions.wallTemperature.Layout.Row = row;
             gui.UIControls.workingConditions.wallTemperature.Layout.Column = 2;
-            wallTempHint = uilabel(grid, 'Text', ''); % Hint
-            wallTempHint.Layout.Row = row;
-            wallTempHint.Layout.Column = 3;
 
             row = row + 1;
             % External Temperature [cite: 2]
             extTempLabel = uilabel(grid, 'Text', 'External Temperature (K):');
             extTempLabel.Layout.Row = row;
             extTempLabel.Layout.Column = 1;
-            gui.UIControls.workingConditions.extTemperature = uieditfield(grid, 'numeric', 'Limits', [0, Inf], 'ValueChangedFcn', @(src, evt) gui.updateField(src, 'workingConditions.extTemperature', evt.Value));
+            gui.UIControls.workingConditions.extTemperature = uieditfield(grid, 'numeric', ...
+                'Limits', [0, Inf], ...
+                'HorizontalAlignment', 'left', ...
+                'ValueChangedFcn', @(src, evt) gui.updateField(src, 'workingConditions.extTemperature', evt.Value));
             gui.UIControls.workingConditions.extTemperature.Layout.Row = row;
             gui.UIControls.workingConditions.extTemperature.Layout.Column = 2;
-            extTempHint = uilabel(grid, 'Text', ''); % Hint
-            extTempHint.Layout.Row = row;
-            extTempHint.Layout.Column = 3;
 
             row = row + 1;
             % Surface Site Density [cite: 2]
-            surfaceSiteDensityLabel = uilabel(grid, 'Text', 'Surface Site Density (m^-2):');
-            surfaceSiteDensityLabel.Layout.Row = row;
-            surfaceSiteDensityLabel.Layout.Column = 1;
-            gui.UIControls.workingConditions.surfaceSiteDensity = uieditfield(grid, 'numeric', 'Limits', [0, Inf], 'ValueChangedFcn', @(src, evt) gui.updateField(src, 'workingConditions.surfaceSiteDensity', evt.Value));
+            surfaceSiteDensityCheckbox = uicheckbox(grid, 'Text', 'Surface Site Density (m^-2):', ...
+                'ValueChangedFcn', @(src, evt) gui.toggleSurfaceSiteDensityEnable(evt.Value));
+            surfaceSiteDensityCheckbox.Layout.Row = row;
+            surfaceSiteDensityCheckbox.Layout.Column = 1;
+            gui.UIControls.workingConditions.surfaceSiteDensityCheckbox = surfaceSiteDensityCheckbox;
+            
+            gui.UIControls.workingConditions.surfaceSiteDensity = uieditfield(grid, 'numeric', ...
+                'Limits', [0, Inf], ...
+                'Enable', 'off', ...
+                'HorizontalAlignment', 'left', ...
+                'ValueChangedFcn', @(src, evt) gui.updateField(src, 'workingConditions.surfaceSiteDensity', evt.Value));
             gui.UIControls.workingConditions.surfaceSiteDensity.Layout.Row = row;
             gui.UIControls.workingConditions.surfaceSiteDensity.Layout.Column = 2;
-            surfaceSiteDensityHint = uilabel(grid, 'Text', ''); % Hint
-            surfaceSiteDensityHint.Layout.Row = row;
-            surfaceSiteDensityHint.Layout.Column = 3;
 
             row = row + 1;
             % Electron Density [cite: 3]
-            electronDensityLabel = uilabel(grid, 'Text', 'Electron Density (m^-3):');
-            electronDensityLabel.Layout.Row = row;
-            electronDensityLabel.Layout.Column = 1;
-            gui.UIControls.workingConditions.electronDensity = uieditfield(grid, 'numeric', 'Limits', [0, Inf], 'ValueChangedFcn', @(src, evt) gui.updateField(src, 'workingConditions.electronDensity', evt.Value));
+            electronDensityCheckbox = uicheckbox(grid, 'Text', 'Electron Density (m^-3):', ...
+                'ValueChangedFcn', @(src, evt) gui.toggleElectronDensityEnable(evt.Value));
+            electronDensityCheckbox.Layout.Row = row;
+            electronDensityCheckbox.Layout.Column = 1;
+            gui.UIControls.workingConditions.electronDensityCheckbox = electronDensityCheckbox;
+            
+            gui.UIControls.workingConditions.electronDensity = uieditfield(grid, 'numeric', ...
+                'Limits', [0, Inf], ...
+                'Enable', 'off', ...
+                'HorizontalAlignment', 'left', ...
+                'ValueChangedFcn', @(src, evt) gui.updateField(src, 'workingConditions.electronDensity', evt.Value));
             gui.UIControls.workingConditions.electronDensity.Layout.Row = row;
             gui.UIControls.workingConditions.electronDensity.Layout.Column = 2;
-            electronDensityHint = uilabel(grid, 'Text', ''); % Hint
-            electronDensityHint.Layout.Row = row;
-            electronDensityHint.Layout.Column = 3;
 
             row = row + 1;
             % Chamber Length [cite: 3]
             chamberLengthLabel = uilabel(grid, 'Text', 'Chamber Length (m):');
             chamberLengthLabel.Layout.Row = row;
             chamberLengthLabel.Layout.Column = 1;
-            gui.UIControls.workingConditions.chamberLength = uieditfield(grid, 'numeric', 'Limits', [0, Inf], 'ValueChangedFcn', @(src, evt) gui.updateField(src, 'workingConditions.chamberLength', evt.Value));
+            gui.UIControls.workingConditions.chamberLength = uieditfield(grid, 'numeric', ...
+                'Limits', [0, Inf], ...
+                'HorizontalAlignment', 'left', ...
+                'ValueChangedFcn', @(src, evt) gui.updateField(src, 'workingConditions.chamberLength', evt.Value));
             gui.UIControls.workingConditions.chamberLength.Layout.Row = row;
             gui.UIControls.workingConditions.chamberLength.Layout.Column = 2;
-            chamberLengthHint = uilabel(grid, 'Text', ''); % Hint
-            chamberLengthHint.Layout.Row = row;
-            chamberLengthHint.Layout.Column = 3;
 
             row = row + 1;
             % Chamber Radius [cite: 3]
             chamberRadiusLabel = uilabel(grid, 'Text', 'Chamber Radius (m):');
             chamberRadiusLabel.Layout.Row = row;
             chamberRadiusLabel.Layout.Column = 1;
-            gui.UIControls.workingConditions.chamberRadius = uieditfield(grid, 'numeric', 'Limits', [0, Inf], 'ValueChangedFcn', @(src, evt) gui.updateField(src, 'workingConditions.chamberRadius', evt.Value));
+            gui.UIControls.workingConditions.chamberRadius = uieditfield(grid, 'numeric', ...
+                'Limits', [0, Inf], ...
+                'HorizontalAlignment', 'left', ...
+                'ValueChangedFcn', @(src, evt) gui.updateField(src, 'workingConditions.chamberRadius', evt.Value));
             gui.UIControls.workingConditions.chamberRadius.Layout.Row = row;
             gui.UIControls.workingConditions.chamberRadius.Layout.Column = 2;
-            chamberRadiusHint = uilabel(grid, 'Text', ''); % Hint
-            chamberRadiusHint.Layout.Row = row;
-            chamberRadiusHint.Layout.Column = 3;
 
             row = row + 1;
             % Total SCCM Inflow [cite: 3]
-            totalSccmInFlowLabel = uilabel(grid, 'Text', 'Total SCCM Inflow (sccm):');
-            totalSccmInFlowLabel.Layout.Row = row;
-            totalSccmInFlowLabel.Layout.Column = 1;
-            gui.UIControls.workingConditions.totalSccmInFlow = uieditfield(grid, 'numeric', 'Limits', [0, Inf], 'ValueChangedFcn', @(src, evt) gui.updateField(src, 'workingConditions.totalSccmInFlow', evt.Value));
+            totalSccmInFlowCheckbox = uicheckbox(grid, 'Text', 'Total SCCM Inflow (sccm):', ...
+                'ValueChangedFcn', @(src, evt) gui.toggleTotalSccmInFlowEnable(evt.Value));
+            totalSccmInFlowCheckbox.Layout.Row = row;
+            totalSccmInFlowCheckbox.Layout.Column = 1;
+            gui.UIControls.workingConditions.totalSccmInFlowCheckbox = totalSccmInFlowCheckbox;
+            
+            gui.UIControls.workingConditions.totalSccmInFlow = uieditfield(grid, 'numeric', ...
+                'Limits', [0, Inf], ...
+                'Enable', 'off', ...
+                'HorizontalAlignment', 'left', ...
+                'ValueChangedFcn', @(src, evt) gui.updateField(src, 'workingConditions.totalSccmInFlow', evt.Value));
             gui.UIControls.workingConditions.totalSccmInFlow.Layout.Row = row;
             gui.UIControls.workingConditions.totalSccmInFlow.Layout.Column = 2;
-            totalSccmInFlowHint = uilabel(grid, 'Text', ''); % Hint
-            totalSccmInFlowHint.Layout.Row = row;
-            totalSccmInFlowHint.Layout.Column = 3;
 
             row = row + 1;
             % Total SCCM Outflow [cite: 3]
-            totalSccmOutFlowLabel = uilabel(grid, 'Text', 'Total SCCM Outflow:');
-            totalSccmOutFlowLabel.Layout.Row = row;
-            totalSccmOutFlowLabel.Layout.Column = 1;
+            totalSccmOutFlowCheckbox = uicheckbox(grid, 'Text', 'Total SCCM Outflow:', ...
+                'ValueChangedFcn', @(src, evt) gui.toggleTotalSccmOutFlowEnable(evt.Value));
+            totalSccmOutFlowCheckbox.Layout.Row = row;
+            totalSccmOutFlowCheckbox.Layout.Column = 1;
+            gui.UIControls.workingConditions.totalSccmOutFlowCheckbox = totalSccmOutFlowCheckbox;
             
-            % Create a container for the dropdown and optional text field
-            flowContainer = uigridlayout(grid, [1, 2]);
-            flowContainer.Layout.Row = row;
-            flowContainer.Layout.Column = 2;
-            flowContainer.ColumnWidth = {'fit', '1x'};
-            flowContainer.Padding = [0 0 0 0];
-            
-            gui.UIControls.workingConditions.totalSccmOutFlowType = uidropdown(flowContainer, ...
+            % One-row overlay behavior:
+            % - dropdown always visible
+            % - when 'Number' is selected, show a numeric edit field on top,
+            %   slightly narrower so the dropdown arrow remains clickable.
+            outFlowPanel = uipanel(grid, 'BorderType', 'none');
+            outFlowPanel.Layout.Row = row;
+            outFlowPanel.Layout.Column = 2;
+            gui.UIControls.workingConditions.totalSccmOutFlowPanel = outFlowPanel;
+            % Allow SizeChangedFcn to execute (MATLAB suppresses it when AutoResizeChildren is on)
+            outFlowPanel.AutoResizeChildren = 'off';
+            % Re-layout overlay whenever this cell is resized (more reliable than figure SizeChanged alone)
+            outFlowPanel.SizeChangedFcn = @(src, evt) gui.layoutTotalSccmOutFlowOverlay();
+
+            dd = uidropdown(outFlowPanel, ...
                 'Items', {'ensureIsobaric', 'totalSccmInFlow', 'Number'}, ...
                 'Value', 'ensureIsobaric', ...
                 'ValueChangedFcn', @(src, evt) gui.handleSccmOutFlowTypeChange(src, evt.Value));
-            gui.UIControls.workingConditions.totalSccmOutFlowType.Layout.Column = 1;
-            
-            gui.UIControls.workingConditions.totalSccmOutFlow = uieditfield(flowContainer, 'numeric', ...
+            gui.UIControls.workingConditions.totalSccmOutFlowType = dd;
+
+            ef = uieditfield(outFlowPanel, 'numeric', ...
                 'Limits', [0, Inf], ...
                 'ValueChangedFcn', @(src, evt) gui.updateField(src, 'workingConditions.totalSccmOutFlow', evt.Value), ...
-                'Enable', 'off');
-            gui.UIControls.workingConditions.totalSccmOutFlow.Layout.Column = 2;
-            
-            totalSccmOutFlowHint = uilabel(grid, 'Text', ''); % Hint
-            totalSccmOutFlowHint.Layout.Row = row;
-            totalSccmOutFlowHint.Layout.Column = 3;
+                'Enable', 'off', ...
+                'HorizontalAlignment', 'left');
+            ef.Visible = 'off'; % start hidden behind dropdown
+            gui.UIControls.workingConditions.totalSccmOutFlow = ef;
+
+            % Initial positioning (will be updated on resize)
+            gui.layoutTotalSccmOutFlowOverlay();
 
             row = row + 1;
             % Discharge Current [cite: 3] - Optional
@@ -367,12 +552,10 @@ classdef LoKI_GUI < handle
             gui.UIControls.workingConditions.dischargeCurrent = uieditfield(grid, 'numeric', ...
                 'Limits', [0, Inf], ...
                 'Enable', 'off', ...
+                'HorizontalAlignment', 'left', ...
                 'ValueChangedFcn', @(src, evt) gui.updateField(src, 'workingConditions.dischargeCurrent', evt.Value));
             gui.UIControls.workingConditions.dischargeCurrent.Layout.Row = row;
             gui.UIControls.workingConditions.dischargeCurrent.Layout.Column = 2;
-            dischargeCurrentHint = uilabel(grid, 'Text', ''); % Hint
-            dischargeCurrentHint.Layout.Row = row;
-            dischargeCurrentHint.Layout.Column = 3;
 
             row = row + 1;
             % Discharge Power Density [cite: 3] - Optional
@@ -381,16 +564,59 @@ classdef LoKI_GUI < handle
             dischargePowerCheckbox.Layout.Row = row;
             dischargePowerCheckbox.Layout.Column = 1;
             gui.UIControls.workingConditions.dischargePowerCheckbox = dischargePowerCheckbox;
-            
+
             gui.UIControls.workingConditions.dischargePowerDensity = uieditfield(grid, 'numeric', ...
                 'Limits', [0, Inf], ...
                 'Enable', 'off', ...
+                'HorizontalAlignment', 'left', ...
                 'ValueChangedFcn', @(src, evt) gui.updateField(src, 'workingConditions.dischargePowerDensity', evt.Value));
             gui.UIControls.workingConditions.dischargePowerDensity.Layout.Row = row;
             gui.UIControls.workingConditions.dischargePowerDensity.Layout.Column = 2;
-            dischargePowerHint = uilabel(grid, 'Text', ''); % Hint
-            dischargePowerHint.Layout.Row = row;
-            dischargePowerHint.Layout.Column = 3;
+
+            % --- Information Section (row 16, spans both columns) ---
+            row = row + 1;
+            
+            % Info section: image aligned left, text takes remaining horizontal space
+            infoContainer = uigridlayout(grid, [1, 2]);
+            infoContainer.Layout.Row = row;
+            infoContainer.Layout.Column = [1, 2];
+            % Column widths are made responsive in handleFigureSizeChanged()
+            infoContainer.ColumnWidth = {150, '1x'}; % {Image, Text}
+            infoContainer.RowHeight = {'1x'};
+            % Slight top padding so the image doesn't stick to the top edge
+            infoContainer.Padding = [0 0 0 20];
+            infoContainer.ColumnSpacing = 15;
+            gui.UIControls.workingConditions.infoContainer = infoContainer;
+            
+            % LoKI image
+            lokiImagePath = fullfile('figs', 'LoKI.png');
+            if isfile(lokiImagePath)
+                lokiImage = uiimage(infoContainer, 'ImageSource', lokiImagePath);
+                lokiImage.Layout.Row = 1;
+                lokiImage.Layout.Column = 1;
+                % Expand to fill available space without distorting
+                lokiImage.ScaleMethod = 'fit';
+                gui.UIControls.workingConditions.infoImage = lokiImage;
+            else
+                % Placeholder if image not found
+                lokiPlaceholder = uilabel(infoContainer, 'Text', '[LoKI]', 'FontSize', 16, 'FontWeight', 'bold');
+                lokiPlaceholder.Layout.Row = 1;
+                lokiPlaceholder.Layout.Column = 1;
+            end
+
+            % Description text
+            descText = sprintf(['\n\n\n' ...
+                'Developed by the IST-Lisbon Plasma Physics Group.\n' ...
+                'Build hash: 0x4D522D41525047']);
+            descLabel = uilabel(infoContainer, 'Text', descText, ...
+                'FontSize', 15, ...
+                'FontColor', [0.35 0.35 0.35], ...
+                'WordWrap', 'on', ...
+                'VerticalAlignment', 'center', ...
+                'HorizontalAlignment', 'left');
+            descLabel.Layout.Row = 1;
+            descLabel.Layout.Column = 2;
+            gui.UIControls.workingConditions.infoDescLabel = descLabel;
         end
 
         function createElectronKineticsPanel(gui, parent)
@@ -411,7 +637,10 @@ classdef LoKI_GUI < handle
 
             row = 1;
             % Is On [cite: 4]
-            gui.UIControls.electronKinetics.isOn = uicheckbox(generalGrid, 'Text', 'Enable Electron Kinetics', 'ValueChangedFcn', @(src, evt) gui.updateField(src, 'electronKinetics.isOn', evt.Value));
+            gui.UIControls.electronKinetics.isOn = uicheckbox(generalGrid, ...
+                'Text', 'Enable Electron Kinetics', ...
+                'Value', true, ...
+                'ValueChangedFcn', @(src, evt) gui.toggleElectronKineticsEnable(evt.Value));
             gui.UIControls.electronKinetics.isOn.Layout.Row = row;
             gui.UIControls.electronKinetics.isOn.Layout.Column = [1, 2]; % Span columns
 
@@ -440,7 +669,9 @@ classdef LoKI_GUI < handle
             ionizationOperatorLabel = uilabel(generalGrid, 'Text', 'Ionization Operator:');
             ionizationOperatorLabel.Layout.Row = row;
             ionizationOperatorLabel.Layout.Column = 1;
-            gui.UIControls.electronKinetics.ionizationOperatorType = uidropdown(generalGrid, 'Items', {'conservative', 'oneTakesAll', 'equalSharing', 'usingSDCS'}, 'ValueChangedFcn', @(src, evt) gui.updateField(src, 'electronKinetics.ionizationOperatorType', evt.Value));
+            gui.UIControls.electronKinetics.ionizationOperatorType = uidropdown(generalGrid, ...
+                'Items', {'conservative', 'oneTakesAll', 'equalSharing', 'usingSDCS'}, ...
+                'ValueChangedFcn', @(src, evt) gui.handleIonizationOperatorChange(evt.Value));
             gui.UIControls.electronKinetics.ionizationOperatorType.Layout.Row = row;
             gui.UIControls.electronKinetics.ionizationOperatorType.Layout.Column = 2;
 
@@ -455,7 +686,9 @@ classdef LoKI_GUI < handle
 
             row = row + 1;
             % Include e-e Collisions [cite: 5]
-            gui.UIControls.electronKinetics.includeEECollisions = uicheckbox(generalGrid, 'Text', 'Include e-e Collisions', 'ValueChangedFcn', @(src, evt) gui.updateField(src, 'electronKinetics.includeEECollisions', evt.Value));
+            gui.UIControls.electronKinetics.includeEECollisions = uicheckbox(generalGrid, ...
+                'Text', 'Include e-e Collisions', ...
+                'ValueChangedFcn', @(src, evt) gui.handleEECollisionsChange(evt.Value));
             gui.UIControls.electronKinetics.includeEECollisions.Layout.Row = row;
             gui.UIControls.electronKinetics.includeEECollisions.Layout.Column = [1, 2];
 
@@ -541,7 +774,10 @@ classdef LoKI_GUI < handle
             carCheckbox.Layout.Column = 1;
             gui.UIControls.electronKinetics.CARcheckbox = carCheckbox;
             
-            gui.UIControls.electronKinetics.CARgases = uilistbox(carGrid, 'Multiselect', 'on', 'Enable', 'off');
+            gui.UIControls.electronKinetics.CARgases = uilistbox(carGrid, ...
+                'Multiselect', 'on', ...
+                'Enable', 'off', ...
+                'DoubleClickedFcn', @(src, evt) gui.editListItem(src, 'electronKinetics.CARgases'));
             gui.UIControls.electronKinetics.CARgases.Layout.Row = 1;
             gui.UIControls.electronKinetics.CARgases.Layout.Column = 2;
             carAddButton = uibutton(carGrid, 'Text', 'Add', ...
@@ -556,6 +792,85 @@ classdef LoKI_GUI < handle
             carRemoveButton.Layout.Row = 1;
             carRemoveButton.Layout.Column = 4;
             gui.UIControls.electronKinetics.CARremoveButton = carRemoveButton;
+        end
+
+        function handleFigureSizeChanged(gui)
+            % Responsively adjust UI for small windows:
+            % - Autoscale the Working Conditions info text font size so it stays visible
+            if isempty(gui) || ~isvalid(gui) || isempty(gui.UIControls)
+                return;
+            end
+
+            % Responsive layout for the info block: when the window gets narrow,
+            % shrink the image column so the text gets more horizontal space.
+            if isfield(gui.UIControls, 'workingConditions') && isfield(gui.UIControls.workingConditions, 'infoContainer')
+                c = gui.UIControls.workingConditions.infoContainer;
+                if ~isempty(c) && isvalid(c)
+                    w = gui.Fig.Position(3); % figure width
+                    if w < 900
+                        imgW = 110;
+                    elseif w < 1200
+                        imgW = 130;
+                    else
+                        imgW = 150;
+                    end
+                    c.ColumnWidth = {imgW, '1x'};
+                end
+            end
+
+            if isfield(gui.UIControls, 'workingConditions') && isfield(gui.UIControls.workingConditions, 'infoDescLabel')
+                lbl = gui.UIControls.workingConditions.infoDescLabel;
+                if ~isempty(lbl) && isvalid(lbl)
+                    w = gui.Fig.Position(3); % figure width
+                    % Simple piecewise scaling: clamp to keep readability while fitting small windows.
+                    if w < 900
+                        fs = 10;
+                    elseif w < 1200
+                        fs = 12;
+                    else
+                        fs = 14;
+                    end
+                    lbl.FontSize = fs;
+                end
+            end
+
+            % Keep SCCM outflow overlay aligned with panel size
+            if isfield(gui.UIControls, 'workingConditions') && isfield(gui.UIControls.workingConditions, 'totalSccmOutFlowPanel')
+                gui.layoutTotalSccmOutFlowOverlay();
+            end
+        end
+
+        function layoutTotalSccmOutFlowOverlay(gui)
+            % Layout helper for the "overlay numeric field on top of dropdown" behavior
+            if isempty(gui) || ~isvalid(gui) || isempty(gui.UIControls) || ~isfield(gui.UIControls, 'workingConditions')
+                return;
+            end
+            wc = gui.UIControls.workingConditions;
+            if ~isfield(wc, 'totalSccmOutFlowPanel') || ~isfield(wc, 'totalSccmOutFlowType') || ~isfield(wc, 'totalSccmOutFlow')
+                return;
+            end
+
+            p = wc.totalSccmOutFlowPanel;
+            dd = wc.totalSccmOutFlowType;
+            ef = wc.totalSccmOutFlow;
+            if isempty(p) || isempty(dd) || isempty(ef) || ~isvalid(p) || ~isvalid(dd) || ~isvalid(ef)
+                return;
+            end
+
+            % Panel is grid-managed; use its current pixel size to position children.
+            panelPos = p.Position;
+            W = max(1, panelPos(3));
+            H = max(1, panelPos(4));
+
+            h = min(22, H);
+            y = max(0, (H - h) / 2);
+
+            dd.Position = [0, y, W, h];
+
+            % Leave room for dropdown arrow (~32px) so user can still change mode
+            arrowW = 34;
+            efW = max(60, W - arrowW);
+            ef.Position = [0, y, efW, h];
         end
 
         function createGasPropertiesPanel(gui, parent)
@@ -663,7 +978,8 @@ classdef LoKI_GUI < handle
             fractionsLabel.Layout.Column = 1;
             gui.UIControls.gasProperties.fraction = uilistbox(fractionsGrid, ...
                 'Multiselect', 'on', ...
-                'Items', {});
+                'Items', {}, ...
+                'DoubleClickedFcn', @(src, evt) gui.editListItem(src, 'electronKinetics.gasProperties.fraction'));
             gui.UIControls.gasProperties.fraction.Layout.Row = 2;
             gui.UIControls.gasProperties.fraction.Layout.Column = 2;
             fractionsBtnGrid = uigridlayout(fractionsGrid, [2, 1]);
@@ -690,7 +1006,8 @@ classdef LoKI_GUI < handle
             energyLabel.Layout.Column = 1;
             gui.UIControls.electronKinetics.stateProperties.energy = uilistbox(grid, ...
                 'Multiselect', 'on', ...
-                'Items', {});
+                'Items', {}, ...
+                'DoubleClickedFcn', @(src, evt) gui.editListItem(src, 'electronKinetics.stateProperties.energy'));
             gui.UIControls.electronKinetics.stateProperties.energy.Layout.Row = row;
             gui.UIControls.electronKinetics.stateProperties.energy.Layout.Column = 2;
             energyBtnGrid = uigridlayout(grid, [2, 1]);
@@ -708,7 +1025,8 @@ classdef LoKI_GUI < handle
             statisticalWeightLabel.Layout.Column = 1;
             gui.UIControls.electronKinetics.stateProperties.statisticalWeight = uilistbox(grid, ...
                 'Multiselect', 'on', ...
-                'Items', {});
+                'Items', {}, ...
+                'DoubleClickedFcn', @(src, evt) gui.editListItem(src, 'electronKinetics.stateProperties.statisticalWeight'));
             gui.UIControls.electronKinetics.stateProperties.statisticalWeight.Layout.Row = row;
             gui.UIControls.electronKinetics.stateProperties.statisticalWeight.Layout.Column = 2;
             statWeightBtnGrid = uigridlayout(grid, [2, 1]);
@@ -726,7 +1044,8 @@ classdef LoKI_GUI < handle
             statePopulationsLabel.Layout.Column = 1;
             gui.UIControls.electronKinetics.stateProperties.population = uilistbox(grid, ...
                 'Multiselect', 'on', ...
-                'Items', {});
+                'Items', {}, ...
+                'DoubleClickedFcn', @(src, evt) gui.editListItem(src, 'electronKinetics.stateProperties.population'));
             gui.UIControls.electronKinetics.stateProperties.population.Layout.Row = row;
             gui.UIControls.electronKinetics.stateProperties.population.Layout.Column = 2;
             btnGrid = uigridlayout(grid, [2, 1]);
@@ -769,7 +1088,7 @@ classdef LoKI_GUI < handle
             maxEnergyLabel = uilabel(energyGridGrid, 'Text', 'Max Energy (eV):');
             maxEnergyLabel.Layout.Row = row;
             maxEnergyLabel.Layout.Column = 1;
-            gui.UIControls.electronKinetics.numerics.energyGrid.maxEnergy = uieditfield(energyGridGrid, 'numeric', 'Limits', [0, Inf], 'ValueChangedFcn', @(src, evt) gui.updateField(src, 'electronKinetics.numerics.energyGrid.maxEnergy', evt.Value));
+            gui.UIControls.electronKinetics.numerics.energyGrid.maxEnergy = uieditfield(energyGridGrid, 'numeric', 'Limits', [0, Inf], 'HorizontalAlignment', 'left', 'ValueChangedFcn', @(src, evt) gui.updateField(src, 'electronKinetics.numerics.energyGrid.maxEnergy', evt.Value));
             gui.UIControls.electronKinetics.numerics.energyGrid.maxEnergy.Layout.Row = row;
             gui.UIControls.electronKinetics.numerics.energyGrid.maxEnergy.Layout.Column = 2;
 
@@ -778,7 +1097,7 @@ classdef LoKI_GUI < handle
             cellNumberLabel = uilabel(energyGridGrid, 'Text', 'Energy Cell Number:');
             cellNumberLabel.Layout.Row = row;
             cellNumberLabel.Layout.Column = 1;
-            gui.UIControls.electronKinetics.numerics.energyGrid.cellNumber = uieditfield(energyGridGrid, 'numeric', 'Limits', [1, Inf], 'ValueDisplayFormat', '%.0f', 'ValueChangedFcn', @(src, evt) gui.updateField(src, 'electronKinetics.numerics.energyGrid.cellNumber', evt.Value));
+            gui.UIControls.electronKinetics.numerics.energyGrid.cellNumber = uieditfield(energyGridGrid, 'numeric', 'Limits', [1, Inf], 'ValueDisplayFormat', '%.0f', 'HorizontalAlignment', 'left', 'ValueChangedFcn', @(src, evt) gui.updateField(src, 'electronKinetics.numerics.energyGrid.cellNumber', evt.Value));
             gui.UIControls.electronKinetics.numerics.energyGrid.cellNumber.Layout.Row = row;
             gui.UIControls.electronKinetics.numerics.energyGrid.cellNumber.Layout.Column = 2;
 
@@ -794,7 +1113,7 @@ classdef LoKI_GUI < handle
             minEedfDecayLabel = uilabel(energyGridGrid, 'Text', 'Min EEDF Decay:');
             minEedfDecayLabel.Layout.Row = row;
             minEedfDecayLabel.Layout.Column = 1;
-            gui.UIControls.electronKinetics.numerics.energyGrid.smartGrid.minEedfDecay = uieditfield(energyGridGrid, 'numeric', 'Limits', [0, Inf], 'ValueDisplayFormat', '%.0f', 'ValueChangedFcn', @(src, evt) gui.updateField(src, 'electronKinetics.numerics.energyGrid.smartGrid.minEedfDecay', evt.Value));
+            gui.UIControls.electronKinetics.numerics.energyGrid.smartGrid.minEedfDecay = uieditfield(energyGridGrid, 'numeric', 'Limits', [0, Inf], 'ValueDisplayFormat', '%.0f', 'HorizontalAlignment', 'left', 'ValueChangedFcn', @(src, evt) gui.updateField(src, 'electronKinetics.numerics.energyGrid.smartGrid.minEedfDecay', evt.Value));
             gui.UIControls.electronKinetics.numerics.energyGrid.smartGrid.minEedfDecay.Layout.Row = row;
             gui.UIControls.electronKinetics.numerics.energyGrid.smartGrid.minEedfDecay.Layout.Column = 2;
 
@@ -803,7 +1122,7 @@ classdef LoKI_GUI < handle
             maxEedfDecayLabel = uilabel(energyGridGrid, 'Text', 'Max EEDF Decay:');
             maxEedfDecayLabel.Layout.Row = row;
             maxEedfDecayLabel.Layout.Column = 1;
-            gui.UIControls.electronKinetics.numerics.energyGrid.smartGrid.maxEedfDecay = uieditfield(energyGridGrid, 'numeric', 'Limits', [0, Inf], 'ValueDisplayFormat', '%.0f', 'ValueChangedFcn', @(src, evt) gui.updateField(src, 'electronKinetics.numerics.energyGrid.smartGrid.maxEedfDecay', evt.Value));
+            gui.UIControls.electronKinetics.numerics.energyGrid.smartGrid.maxEedfDecay = uieditfield(energyGridGrid, 'numeric', 'Limits', [0, Inf], 'ValueDisplayFormat', '%.0f', 'HorizontalAlignment', 'left', 'ValueChangedFcn', @(src, evt) gui.updateField(src, 'electronKinetics.numerics.energyGrid.smartGrid.maxEedfDecay', evt.Value));
             gui.UIControls.electronKinetics.numerics.energyGrid.smartGrid.maxEedfDecay.Layout.Row = row;
             gui.UIControls.electronKinetics.numerics.energyGrid.smartGrid.maxEedfDecay.Layout.Column = 2;
 
@@ -812,7 +1131,12 @@ classdef LoKI_GUI < handle
             updateFactorLabel = uilabel(energyGridGrid, 'Text', 'Update Factor:');
             updateFactorLabel.Layout.Row = row;
             updateFactorLabel.Layout.Column = 1;
-            gui.UIControls.electronKinetics.numerics.energyGrid.smartGrid.updateFactor = uieditfield(energyGridGrid, 'numeric', 'Limits', [0, Inf], 'ValueChangedFcn', @(src, evt) gui.updateField(src, 'electronKinetics.numerics.energyGrid.smartGrid.updateFactor', evt.Value));
+            gui.UIControls.electronKinetics.numerics.energyGrid.smartGrid.updateFactor = uieditfield(energyGridGrid, ...
+                'numeric', ...
+                'Limits', [0.001, Inf], ...
+                'Value', 0.05, ...
+                'HorizontalAlignment', 'left', ...
+                'ValueChangedFcn', @(src, evt) gui.handleUpdateFactorChange(evt.Value));
             gui.UIControls.electronKinetics.numerics.energyGrid.smartGrid.updateFactor.Layout.Row = row;
             gui.UIControls.electronKinetics.numerics.energyGrid.smartGrid.updateFactor.Layout.Column = 2;
 
@@ -821,7 +1145,7 @@ classdef LoKI_GUI < handle
             maxPowerBalanceLabel = uilabel(energyGridGrid, 'Text', 'Max Power Bal. Rel. Error:');
             maxPowerBalanceLabel.Layout.Row = row;
             maxPowerBalanceLabel.Layout.Column = 1;
-            gui.UIControls.electronKinetics.numerics.maxPowerBalanceRelError = uieditfield(energyGridGrid, 'numeric', 'Limits', [0, Inf], 'ValueChangedFcn', @(src, evt) gui.updateField(src, 'electronKinetics.numerics.maxPowerBalanceRelError', evt.Value));
+            gui.UIControls.electronKinetics.numerics.maxPowerBalanceRelError = uieditfield(energyGridGrid, 'numeric', 'Limits', [0, Inf], 'HorizontalAlignment', 'left', 'ValueChangedFcn', @(src, evt) gui.updateField(src, 'electronKinetics.numerics.maxPowerBalanceRelError', evt.Value));
             gui.UIControls.electronKinetics.numerics.maxPowerBalanceRelError.Layout.Row = row;
             gui.UIControls.electronKinetics.numerics.maxPowerBalanceRelError.Layout.Column = 2;
 
@@ -837,7 +1161,7 @@ classdef LoKI_GUI < handle
             row = 1;
             % Algorithm [cite: 12]
             uilabel(nonLinearGrid, 'Text', 'Non-Linear Algorithm:');
-            gui.UIControls.electronKinetics.numerics.nonLinearRoutines.algorithm = uidropdown(nonLinearGrid, 'Items', {'mixingDirectSolutions', 'temporalIntegration'}, 'ValueChangedFcn', @(src, evt) gui.updateField(src, 'electronKinetics.numerics.nonLinearRoutines.algorithm', evt.Value));
+            gui.UIControls.electronKinetics.numerics.nonLinearRoutines.algorithm = uidropdown(nonLinearGrid, 'Items', {'mixingDirectSolutions', 'temporalIntegration'}, 'ValueChangedFcn', @(src, evt) gui.handleAlgorithmChange(evt.Value));
 
             row = row + 1;
             % Mixing Parameter [cite: 12] - Simplified slider with precision input
@@ -848,7 +1172,7 @@ classdef LoKI_GUI < handle
             mixingParamGrid.ColumnSpacing = 5;
             
             gui.UIControls.electronKinetics.numerics.nonLinearRoutines.mixingParameter = uislider(mixingParamGrid, 'Limits', [0, 1], 'Value', 0.7, 'MajorTicks', [0, 1], 'MajorTickLabels', {'0', '1'}, 'ValueChangedFcn', @(src, evt) gui.sliderMixingParameterChanged(src, evt.Value));
-            gui.UIControls.electronKinetics.numerics.nonLinearRoutines.mixingParameterPrecise = uieditfield(mixingParamGrid, 'numeric', 'Limits', [0, 1], 'Value', 0.7, 'ValueChangedFcn', @(src, evt) gui.textMixingParameterChanged(src, evt.Value));
+            gui.UIControls.electronKinetics.numerics.nonLinearRoutines.mixingParameterPrecise = uieditfield(mixingParamGrid, 'numeric', 'Limits', [0, 1], 'Value', 0.7, 'HorizontalAlignment', 'left', 'ValueChangedFcn', @(src, evt) gui.textMixingParameterChanged(src, evt.Value));
             
             mixingParamGrid.Layout.Row = row;
             mixingParamGrid.Layout.Column = 2;
@@ -856,10 +1180,10 @@ classdef LoKI_GUI < handle
             row = row + 1;
             % Max EEDF Rel Error [cite: 12]
             uilabel(nonLinearGrid, 'Text', 'Max EEDF Rel. Error:');
-            gui.UIControls.electronKinetics.numerics.nonLinearRoutines.maxEedfRelError = uieditfield(nonLinearGrid, 'numeric', 'Limits', [0, Inf], 'ValueChangedFcn', @(src, evt) gui.updateField(src, 'electronKinetics.numerics.nonLinearRoutines.maxEedfRelError', evt.Value));
+            gui.UIControls.electronKinetics.numerics.nonLinearRoutines.maxEedfRelError = uieditfield(nonLinearGrid, 'numeric', 'Limits', [0, Inf], 'HorizontalAlignment', 'left', 'ValueChangedFcn', @(src, evt) gui.updateField(src, 'electronKinetics.numerics.nonLinearRoutines.maxEedfRelError', evt.Value));
 
             row = row + 1;
-            % Advanced Parameters Section (Expandable) - Only visible for temporalIntegration
+            % Advanced Parameters Section (Expandable) - Only visible when algorithm is temporalIntegration
             advancedButton = uibutton(nonLinearGrid, 'Text', 'Advanced (Optional) ▼', 'ButtonPushedFcn', @(src, evt) gui.toggleAdvancedSection(src), 'Visible', 'off');
             advancedButton.Layout.Column = [1, 2];
             gui.UIControls.electronKinetics.numerics.nonLinearRoutines.advancedButton = advancedButton;
@@ -896,19 +1220,19 @@ classdef LoKI_GUI < handle
             
             % Absolute Tolerance
             uilabel(contentGrid, 'Text', 'Absolute Tolerance:');
-            gui.UIControls.electronKinetics.numerics.nonLinearRoutines.odeSetParameters.AbsTol = uieditfield(contentGrid, 'numeric', 'Limits', [0, Inf], 'ValueChangedFcn', @(src, evt) gui.updateField(src, 'electronKinetics.numerics.nonLinearRoutines.odeSetParameters.AbsTol', evt.Value));
+            gui.UIControls.electronKinetics.numerics.nonLinearRoutines.odeSetParameters.AbsTol = uieditfield(contentGrid, 'numeric', 'Limits', [0, Inf], 'HorizontalAlignment', 'left', 'ValueChangedFcn', @(src, evt) gui.updateField(src, 'electronKinetics.numerics.nonLinearRoutines.odeSetParameters.AbsTol', evt.Value));
             gui.UIControls.electronKinetics.numerics.nonLinearRoutines.odeSetParameters.AbsTol.Layout.Row = 2;
             gui.UIControls.electronKinetics.numerics.nonLinearRoutines.odeSetParameters.AbsTol.Layout.Column = 2;
 
                          % Relative Tolerance
              uilabel(contentGrid, 'Text', 'Relative Tolerance:');
-             gui.UIControls.electronKinetics.numerics.nonLinearRoutines.odeSetParameters.RelTol = uieditfield(contentGrid, 'numeric', 'Limits', [0, Inf], 'ValueChangedFcn', @(src, evt) gui.updateField(src, 'electronKinetics.numerics.nonLinearRoutines.odeSetParameters.RelTol', evt.Value));
+             gui.UIControls.electronKinetics.numerics.nonLinearRoutines.odeSetParameters.RelTol = uieditfield(contentGrid, 'numeric', 'Limits', [0, Inf], 'HorizontalAlignment', 'left', 'ValueChangedFcn', @(src, evt) gui.updateField(src, 'electronKinetics.numerics.nonLinearRoutines.odeSetParameters.RelTol', evt.Value));
              gui.UIControls.electronKinetics.numerics.nonLinearRoutines.odeSetParameters.RelTol.Layout.Row = 3;
              gui.UIControls.electronKinetics.numerics.nonLinearRoutines.odeSetParameters.RelTol.Layout.Column = 2;
 
              % Max Step
              uilabel(contentGrid, 'Text', 'Max Step:');
-             gui.UIControls.electronKinetics.numerics.nonLinearRoutines.odeSetParameters.MaxStep = uieditfield(contentGrid, 'numeric', 'Limits', [0, Inf], 'ValueChangedFcn', @(src, evt) gui.updateField(src, 'electronKinetics.numerics.nonLinearRoutines.odeSetParameters.MaxStep', evt.Value));
+             gui.UIControls.electronKinetics.numerics.nonLinearRoutines.odeSetParameters.MaxStep = uieditfield(contentGrid, 'numeric', 'Limits', [0, Inf], 'HorizontalAlignment', 'left', 'ValueChangedFcn', @(src, evt) gui.updateField(src, 'electronKinetics.numerics.nonLinearRoutines.odeSetParameters.MaxStep', evt.Value));
              gui.UIControls.electronKinetics.numerics.nonLinearRoutines.odeSetParameters.MaxStep.Layout.Row = 4;
              gui.UIControls.electronKinetics.numerics.nonLinearRoutines.odeSetParameters.MaxStep.Layout.Column = 2;
 
@@ -943,6 +1267,7 @@ classdef LoKI_GUI < handle
             refreshFreqLabel.Layout.Column = 1;
             gui.UIControls.gui.refreshFrequency = uieditfield(grid, 'numeric', ...
                 'Limits', [1, Inf], ...
+                'HorizontalAlignment', 'left', ...
                 'ValueChangedFcn', @(src, evt) gui.updateField(src, 'gui.refreshFrequency', evt.Value));
             gui.UIControls.gui.refreshFrequency.Layout.Row = 3;
             gui.UIControls.gui.refreshFrequency.Layout.Column = [2, 3];
@@ -955,7 +1280,8 @@ classdef LoKI_GUI < handle
             % Row 5: Enable Output checkbox
             gui.UIControls.output.isOn = uicheckbox(grid, ...
                 'Text', 'Enable Output', ...
-                'ValueChangedFcn', @(src, evt) gui.updateField(src, 'output.isOn', evt.Value));
+                'Value', false, ...
+                'ValueChangedFcn', @(src, evt) gui.toggleOutputEnable(evt.Value));
             gui.UIControls.output.isOn.Layout.Row = 5;
             gui.UIControls.output.isOn.Layout.Column = 1;
 
@@ -966,6 +1292,7 @@ classdef LoKI_GUI < handle
             
             gui.UIControls.output.dataFormat = uidropdown(grid, ...
                 'Items', {'txt', 'hdf5', 'hdf5+txt'}, ...
+                'Enable', 'on', ... % Always enabled regardless of output.isOn state
                 'ValueChangedFcn', @(src, evt) gui.updateField(src, 'output.dataFormat', evt.Value));
             gui.UIControls.output.dataFormat.Layout.Row = 6;
             gui.UIControls.output.dataFormat.Layout.Column = [2, 3];
@@ -975,6 +1302,7 @@ classdef LoKI_GUI < handle
             folderLabel.Layout.Row = 7;
             folderLabel.Layout.Column = 1;
             gui.UIControls.output.folder = uieditfield(grid, 'text', ...
+                'Enable', 'on', ... % Always enabled regardless of output.isOn state
                 'ValueChangedFcn', @(src, evt) gui.updateField(src, 'output.folder', evt.Value));
             gui.UIControls.output.folder.Layout.Row = 7;
             gui.UIControls.output.folder.Layout.Column = 2;
@@ -1072,8 +1400,26 @@ classdef LoKI_GUI < handle
                                         continue;
                                     end
                                     
-                                    dataPath = sprintf('%s.%s.%s.%s', sectionName, subSectionName, subSubSectionName, subSubControlName);
-                                    gui.setControlValue(subSubControl, dataPath);
+                                    if isstruct(subSubControl)
+                                        % --- Fifth-level fields (e.g., under 'smartGrid' or 'odeSetParameters') ---
+                                        fifthLevelFields = fieldnames(subSubControl);
+                                        for m = 1:length(fifthLevelFields)
+                                            fifthLevelName = fifthLevelFields{m};
+                                            fifthLevelControl = subSubControl.(fifthLevelName);
+                                            
+                                            % Skip UI containers
+                                            if isa(fifthLevelControl, 'matlab.ui.control.Button') || ...
+                                               isa(fifthLevelControl, 'matlab.ui.control.Panel')
+                                                continue;
+                                            end
+                                            
+                                            dataPath = sprintf('%s.%s.%s.%s.%s', sectionName, subSectionName, subSubSectionName, subSubControlName, fifthLevelName);
+                                            gui.setControlValue(fifthLevelControl, dataPath);
+                                        end
+                                    else
+                                        dataPath = sprintf('%s.%s.%s.%s', sectionName, subSectionName, subSubSectionName, subSubControlName);
+                                        gui.setControlValue(subSubControl, dataPath);
+                                    end
                                 end
                             else % Control is at third level (e.g., 'maxPowerBalanceRelError')
                                 % Skip listboxes - they're handled specially below
@@ -1209,12 +1555,39 @@ classdef LoKI_GUI < handle
             end
 
             % Configure initial state of advanced button visibility
+            % Button is only visible when algorithm is temporalIntegration
             try
                 advancedButton = gui.UIControls.electronKinetics.numerics.nonLinearRoutines.advancedButton;
-                if strcmp(gui.Setup.electronKinetics.numerics.nonLinearRoutines.algorithm, 'temporalIntegration')
+                advancedPanel = gui.UIControls.electronKinetics.numerics.nonLinearRoutines.advancedPanel;
+                
+                % Check current algorithm
+                algorithm = gui.Setup.electronKinetics.numerics.nonLinearRoutines.algorithm;
+                
+                if strcmp(algorithm, 'temporalIntegration')
+                    % Show button when algorithm is temporalIntegration
                     advancedButton.Visible = 'on';
+                    
+                    % Check if odeSetParameters exists to determine if panel should be expanded
+                    hasOdeParams = isfield(gui.Setup.electronKinetics.numerics.nonLinearRoutines, 'odeSetParameters') && ...
+                                   isstruct(gui.Setup.electronKinetics.numerics.nonLinearRoutines.odeSetParameters) && ...
+                                   (isfield(gui.Setup.electronKinetics.numerics.nonLinearRoutines.odeSetParameters, 'AbsTol') || ...
+                                    isfield(gui.Setup.electronKinetics.numerics.nonLinearRoutines.odeSetParameters, 'RelTol') || ...
+                                    isfield(gui.Setup.electronKinetics.numerics.nonLinearRoutines.odeSetParameters, 'MaxStep'));
+                    
+                    if hasOdeParams
+                        % Expand panel if odeSetParameters exists
+                        advancedPanel.Visible = 'on';
+                        advancedButton.Text = 'Advanced (Optional) ▲';
+                    else
+                        % Collapse panel if odeSetParameters doesn't exist
+                        advancedPanel.Visible = 'off';
+                        advancedButton.Text = 'Advanced (Optional) ▼';
+                    end
                 else
+                    % Hide button when algorithm is not temporalIntegration
                     advancedButton.Visible = 'off';
+                    advancedPanel.Visible = 'off';
+                    advancedButton.Text = 'Advanced (Optional) ▼';
                 end
             catch ME
                 warning('Error configuring advanced button visibility: %s', ME.message);
@@ -1232,6 +1605,46 @@ classdef LoKI_GUI < handle
                 gui.toggleGuiControls(gui.Setup.gui.isOn);
             catch ME
                 warning('Error configuring GUI controls: %s', ME.message);
+            end
+
+            % Configure initial state of Working Conditions optional fields (inactive by default)
+            try
+                gui.toggleGasPressureEnable(false);
+                gui.toggleGasTemperatureEnable(false);
+                gui.toggleSurfaceSiteDensityEnable(false);
+                gui.toggleElectronDensityEnable(false);
+                gui.toggleTotalSccmInFlowEnable(false);
+                gui.toggleTotalSccmOutFlowEnable(false);
+                gui.toggleDischargeCurrentEnable(false);
+                gui.toggleDischargePowerEnable(false);
+            catch ME
+                warning('Error configuring optional working conditions: %s', ME.message);
+            end
+
+            % Configure initial state of Electron Kinetics (enabled but inactive by default)
+            try
+                gui.toggleElectronKineticsEnable(true);
+                % Ensure growth model respects initial ionization operator choice
+                gui.handleIonizationOperatorChange(gui.Setup.electronKinetics.ionizationOperatorType);
+                % Ensure e-e collisions state is applied (unlocks Working Conditions fields if active)
+                gui.handleEECollisionsChange(gui.Setup.electronKinetics.includeEECollisions);
+            catch ME
+                warning('Error configuring electron kinetics controls: %s', ME.message);
+            end
+
+            % Configure initial state of Output controls (respect Enable Output flag)
+            % Note: dataFormat and folder remain always enabled
+            try
+                gui.toggleOutputEnable(gui.Setup.output.isOn);
+                % Ensure dataFormat and folder are always enabled
+                if isfield(gui.UIControls.output, 'dataFormat')
+                    gui.UIControls.output.dataFormat.Enable = 'on';
+                end
+                if isfield(gui.UIControls.output, 'folder')
+                    gui.UIControls.output.folder.Enable = 'on';
+                end
+            catch ME
+                warning('Error configuring output controls: %s', ME.message);
             end
 
             % Configure initial state of SCCM Outflow type
@@ -1286,6 +1699,9 @@ classdef LoKI_GUI < handle
             catch ME
                 warning('Error configuring EEDF type visibility: %s', ME.message);
             end
+            
+            % Update run button state after initial population
+            gui.updateRunButtonState();
         end
 
         function setControlValue(gui, control, dataPath)
@@ -1297,14 +1713,29 @@ classdef LoKI_GUI < handle
             end
             
             % Skip UI-only controls that don't exist in Setup
-            if contains(dataPath, 'totalSccmOutFlowType') || ...
+            if contains(dataPath, 'tabs.tabGroup') || ...
+               contains(dataPath, 'tabs.kineticsTab') || ...
+               startsWith(dataPath, 'runButton') || ...
+               contains(dataPath, 'totalSccmOutFlowType') || ...
+               contains(dataPath, 'workingConditions.infoDescLabel') || ...
+               contains(dataPath, 'workingConditions.infoContainer') || ...
+               contains(dataPath, 'workingConditions.infoImage') || ...
+               contains(dataPath, 'workingConditions.totalSccmOutFlowPanel') || ...
+               contains(dataPath, 'gasPressureCheckbox') || ...
+               contains(dataPath, 'gasTemperatureCheckbox') || ...
+               contains(dataPath, 'surfaceSiteDensityCheckbox') || ...
+               contains(dataPath, 'electronDensityCheckbox') || ...
+               contains(dataPath, 'totalSccmInFlowCheckbox') || ...
+               contains(dataPath, 'totalSccmOutFlowCheckbox') || ...
                contains(dataPath, 'dischargeCurrentCheckbox') || ...
                contains(dataPath, 'dischargePowerCheckbox') || ...
                contains(dataPath, 'LXCatExtraCheckbox') || ...
                contains(dataPath, 'effectivePopCheckbox') || ...
                contains(dataPath, 'CARcheckbox') || ...
                contains(dataPath, 'CARaddButton') || ...
-               contains(dataPath, 'CARremoveButton')
+               contains(dataPath, 'CARremoveButton') || ...
+               contains(dataPath, 'odeSetParameters.isOn') || ...
+               contains(dataPath, 'smartGrid.isOn')
                 return;
             end
             
@@ -1476,18 +1907,37 @@ classdef LoKI_GUI < handle
             % Optional: Re-enable/disable controls based on the change
             if strcmp(fieldPath, 'electronKinetics.numerics.energyGrid.smartGrid.isOn')
                 gui.toggleSmartGridEnable(value);
-            elseif strcmp(fieldPath, 'electronKinetics.numerics.nonLinearRoutines.algorithm')
-                % Show/hide advanced button based on algorithm selection
+            end
+        end
+        
+        function handleAlgorithmChange(gui, algorithmValue)
+            % Handle algorithm change: show/hide Advanced button based on algorithm
+            % Also update the Setup struct
+            
+            % Update the Setup struct
+            gui.updateField([], 'electronKinetics.numerics.nonLinearRoutines.algorithm', algorithmValue);
+            
+            % Show/hide Advanced button based on algorithm
+            try
                 advancedButton = gui.UIControls.electronKinetics.numerics.nonLinearRoutines.advancedButton;
-                if strcmp(value, 'temporalIntegration')
+                advancedPanel = gui.UIControls.electronKinetics.numerics.nonLinearRoutines.advancedPanel;
+                
+                if strcmp(algorithmValue, 'temporalIntegration')
+                    % Show button when algorithm is temporalIntegration
                     advancedButton.Visible = 'on';
                 else
+                    % Hide button and collapse panel when algorithm is not temporalIntegration
                     advancedButton.Visible = 'off';
-                    % Also hide the advanced panel if algorithm changes
-                    advancedPanel = gui.UIControls.electronKinetics.numerics.nonLinearRoutines.advancedPanel;
                     advancedPanel.Visible = 'off';
                     advancedButton.Text = 'Advanced (Optional) ▼';
+                    % Also uncheck the checkbox and disable controls
+                    if isfield(gui.UIControls.electronKinetics.numerics.nonLinearRoutines.odeSetParameters, 'isOn')
+                        gui.UIControls.electronKinetics.numerics.nonLinearRoutines.odeSetParameters.isOn.Value = false;
+                        gui.toggleOdeParametersEnable(false);
+                    end
                 end
+            catch ME
+                warning('Error handling algorithm change: %s', ME.message);
             end
         end
 
@@ -1690,14 +2140,19 @@ classdef LoKI_GUI < handle
                 
                 [file, path] = uigetfile('*.*', ['Select file for ', fieldPath], inputFolder);
                 if isequal(file, 0) || isequal(path, 0)
-                    gui.Fig.WindowState = oldState;
+                    % Restore window state after dialog cancellation
+                    drawnow;
+                    pause(0.1);
+                    gui.Fig.WindowState = 'maximized';
+                    figure(gui.Fig);
+                    drawnow;
                     return; % User cancelled
                 end
                 
                 % Restore window state after file dialog
                 drawnow;
                 pause(0.1);
-                gui.Fig.WindowState = 'normal';
+                gui.Fig.WindowState = oldState; % Restore previous (typically maximized)
                 figure(gui.Fig); % Bring to front
                 drawnow;
                 fullPath = fullfile(path, file);
@@ -1728,6 +2183,12 @@ classdef LoKI_GUI < handle
                 dims = [1 50];
                 answer = inputdlg(prompt, dlgtitle, dims);
                 if isempty(answer)
+                    % Restore window state after dialog cancellation
+                    drawnow;
+                    pause(0.1);
+                    gui.Fig.WindowState = 'maximized';
+                    figure(gui.Fig);
+                    drawnow;
                     return; % User cancelled
                 end
                 newItem = answer{1};
@@ -1757,12 +2218,19 @@ classdef LoKI_GUI < handle
                     
                     % Check if sum equals 1 (with tolerance for floating point)
                     if abs(totalSum - 1.0) > 1e-6
-                        warningMsg = sprintf(['Gas fractions must sum to 1.0.\n' ...
-                            'Current sum: %.6f\n' ...
-                            'Continue anyway?'], totalSum);
-                        % Just warn but don't prevent, as user might be entering multiple values
-                        % For now, we'll allow it but show a warning
-                        uialert(gui.Fig, warningMsg, 'Fraction Sum Warning', 'Icon', 'warning');
+                        % Automatically correct the last added value to make sum = 1
+                        speciesName = match{1}{1};
+                        correctedValue = 1.0 - (totalSum - str2double(match{1}{2}));
+                        if correctedValue < 0
+                            uialert(gui.Fig, sprintf(['Cannot correct: sum of existing fractions (%.6f) already exceeds 1.0.\n' ...
+                                'Please adjust existing values first.'], totalSum - str2double(match{1}{2})), ...
+                                'Fraction Sum Error', 'Icon', 'error');
+                            return;
+                        end
+                        newItem = sprintf('%s = %.6f', speciesName, correctedValue);
+                        uialert(gui.Fig, sprintf(['Gas fractions must sum to 1.0.\n' ...
+                            'Corrected last value to: %s'], newItem), ...
+                            'Fraction Sum Corrected', 'Icon', 'info');
                     end
                 end
                 
@@ -1778,6 +2246,11 @@ classdef LoKI_GUI < handle
                 listBox.Items = newItems;
                 % Update the Setup struct as well
                 gui.setNestedField(fieldPath, newItems);
+            end
+            
+            % Update run button state if LXCat files were modified
+            if strcmp(fieldPath, 'electronKinetics.LXCatFiles')
+                gui.updateRunButtonState();
             end
          end
 
@@ -1849,7 +2322,161 @@ classdef LoKI_GUI < handle
             
             % Update the Setup struct as well
             gui.setNestedField(fieldPath, currentItems);
+            
+            % Update run button state if LXCat files were modified
+            if strcmp(fieldPath, 'electronKinetics.LXCatFiles')
+                gui.updateRunButtonState();
+            end
          end
+
+        function editListItem(gui, listBox, fieldPath)
+            % Edit an existing item in a listbox (called on double-click)
+            selectedValues = listBox.Value;
+            
+            if isempty(selectedValues)
+                uialert(gui.Fig, 'Please select an item to edit.', 'Selection Error');
+                return;
+            end
+            
+            % For multiselect, only edit the first selected item
+            if iscell(selectedValues)
+                itemToEdit = selectedValues{1};
+            else
+                itemToEdit = selectedValues;
+            end
+            
+            % Map old gasProperties paths to new electronKinetics.gasProperties paths
+            if startsWith(fieldPath, 'gasProperties.')
+                fieldPath = strrep(fieldPath, 'gasProperties.', 'electronKinetics.gasProperties.');
+            end
+
+            % Show loading spinner briefly - use classic figure to match inputdlg style
+            spinnerFig = [];
+            try
+                screenSize = get(0, 'ScreenSize');
+                dlgWidth = 250;
+                dlgHeight = 80;
+                dlgX = (screenSize(3) - dlgWidth) / 2;
+                dlgY = (screenSize(4) - dlgHeight) / 2 + 100; % Pull down more for better vertical centering
+                
+                spinnerFig = figure('Name', 'Edit List Item', ...
+                    'Position', [dlgX, dlgY, dlgWidth, dlgHeight], ...
+                    'MenuBar', 'none', 'ToolBar', 'none', ...
+                    'NumberTitle', 'off', 'Resize', 'off', ...
+                    'Color', [0.94 0.94 0.94], 'Visible', 'on');
+                
+                uicontrol(spinnerFig, 'Style', 'text', 'String', 'Loading...', ...
+                    'Position', [10 40 230 25], 'FontSize', 10, ...
+                    'BackgroundColor', [0.94 0.94 0.94], 'HorizontalAlignment', 'center');
+                
+                spinnerText = uicontrol(spinnerFig, 'Style', 'text', 'String', '●', ...
+                    'Position', [10 10 230 25], 'FontSize', 18, ...
+                    'BackgroundColor', [0.94 0.94 0.94], 'ForegroundColor', [0.18 0.70 0.25], ...
+                    'HorizontalAlignment', 'center');
+                
+                drawnow;
+                spinnerChars = {'●', '◐', '◓', '◑', '◒'};
+                for i = 1:5
+                    spinnerText.String = spinnerChars{mod(i-1, 5) + 1};
+                    drawnow; pause(0.04);
+                end
+            catch
+                spinnerFig = [];
+            end
+            
+            if ~isempty(spinnerFig) && ishandle(spinnerFig)
+                close(spinnerFig);
+                drawnow;
+            end
+            
+            % Use original inputdlg for safety and correct functionality
+            prompt = {['Edit item for ', fieldPath, ':']};
+            dlgtitle = 'Edit List Item';
+            dims = [1, 50];
+            answer = inputdlg(prompt, dlgtitle, dims, {itemToEdit});
+            
+            if isempty(answer)
+                % Restore window state after dialog cancellation
+                drawnow;
+                pause(0.1);
+                gui.Fig.WindowState = 'maximized';
+                figure(gui.Fig);
+                drawnow;
+                return; % User cancelled
+            end
+            
+            newItem = answer{1};
+            if isempty(newItem)
+                uialert(gui.Fig, 'Item cannot be empty.', 'Invalid Input');
+                return;
+            end
+            
+            currentItems = listBox.Items;
+            
+            % Find the index of the item to replace
+            if iscell(currentItems)
+                itemIndex = find(strcmp(currentItems, itemToEdit), 1);
+            else
+                itemIndex = find(strcmp(currentItems, itemToEdit), 1);
+            end
+            
+            if isempty(itemIndex)
+                uialert(gui.Fig, 'Could not find the selected item.', 'Error');
+                return;
+            end
+            
+            % Validate gas fractions format if applicable
+            if endsWith(fieldPath, 'gasProperties.fraction') || contains(fieldPath, 'gasProperties.fraction')
+                pattern = '^\s*(\w+)\s*=\s*([0-9]+\.?[0-9]*)\s*$';
+                match = regexp(newItem, pattern, 'tokens');
+                if isempty(match)
+                    uialert(gui.Fig, ['Invalid format for gas fraction. Expected format: "species = number"\n' ...
+                        'Example: "N2 = 1" or "H2 = 0.5"'], 'Invalid Format');
+                    return;
+                end
+                
+                % Check if sum equals 1 after editing
+                % Create a temporary list with the edited item
+                tempItems = currentItems;
+                tempItems{itemIndex} = newItem;
+                
+                % Calculate total sum
+                totalSum = 0;
+                for i = 1:length(tempItems)
+                    matchTokens = regexp(tempItems{i}, pattern, 'tokens');
+                    if ~isempty(matchTokens)
+                        totalSum = totalSum + str2double(matchTokens{1}{2});
+                    end
+                end
+                
+                % Check if sum equals 1 (with tolerance for floating point)
+                if abs(totalSum - 1.0) > 1e-6
+                    % Automatically correct the edited value to make sum = 1
+                    speciesName = match{1}{1};
+                    correctedValue = 1.0 - (totalSum - str2double(match{1}{2}));
+                    if correctedValue < 0
+                        % If cannot correct (sum excluding this is > 1), alert user
+                        uialert(gui.Fig, sprintf('Total gas fraction exceeds 1.0 (%.4f). Please adjust other fractions first.', totalSum), 'Fraction Sum Error');
+                        return;
+                    end
+                    newItem = sprintf('%s = %.6g', speciesName, correctedValue);
+                    fprintf('Corrected %s fraction to %.6g to ensure sum = 1.0\n', speciesName, correctedValue);
+                end
+            end
+            
+            % Update the list and selection
+            currentItems{itemIndex} = newItem;
+            listBox.Items = currentItems;
+            listBox.Value = newItem;
+            
+            % Update the Setup struct as well
+            gui.setNestedField(fieldPath, currentItems);
+            
+            % Update run button state if LXCat files were modified
+            if strcmp(fieldPath, 'electronKinetics.LXCatFiles')
+                gui.updateRunButtonState();
+            end
+        end
 
         function browseFolder(gui, ~, ~)
             folderPath = uigetdir(pwd, 'Select Output Folder'); % Start in current directory
@@ -1881,14 +2508,19 @@ classdef LoKI_GUI < handle
             
             [file, path] = uigetfile('*.*', 'Select File', inputFolder); % Allow any file type
             if isequal(file, 0) || isequal(path, 0)
-                gui.Fig.WindowState = oldState;
+                % Restore window state after dialog cancellation
+                drawnow;
+                pause(0.1);
+                gui.Fig.WindowState = 'maximized';
+                figure(gui.Fig);
+                drawnow;
                 return;
             end
             
             % Restore window state after file dialog
             drawnow;
             pause(0.1);
-            gui.Fig.WindowState = 'normal';
+            gui.Fig.WindowState = oldState; % Restore previous (typically maximized)
             figure(gui.Fig); % Bring to front
             drawnow;
             fullPath = fullfile(path, file);
@@ -1929,16 +2561,118 @@ classdef LoKI_GUI < handle
             numField = gui.UIControls.workingConditions.totalSccmOutFlow;
             
             if strcmp(value, 'Number')
-                % Enable numeric field for direct numeric input
-                numField.Enable = 'on';
-                numField.Value = 1; % Set default value for numeric input
+                % Show numeric field on top of dropdown
+                numField.Visible = 'on';
+                if isfield(gui.UIControls.workingConditions, 'totalSccmOutFlowCheckbox') && gui.UIControls.workingConditions.totalSccmOutFlowCheckbox.Value
+                    numField.Enable = 'on';
+                else
+                    numField.Enable = 'off';
+                end
+                if isempty(numField.Value) || numField.Value == 0
+                    numField.Value = 1;
+                end
+                gui.layoutTotalSccmOutFlowOverlay();
             else
-                % Disable numeric field
+                % Hide numeric field behind dropdown and store the selected mode in Setup
+                numField.Visible = 'off';
                 numField.Enable = 'off';
                 if strcmp(value, 'totalSccmInFlow') || strcmp(value, 'ensureIsobaric')
                     % Update the setup struct with the selected value
                     gui.setNestedField('workingConditions.totalSccmOutFlow', value);
                 end
+            end
+        end
+
+        function handleIonizationOperatorChange(gui, value)
+            % Update Setup and enable/disable growth model depending on operator
+            gui.updateField(gui.UIControls.electronKinetics.ionizationOperatorType, 'electronKinetics.ionizationOperatorType', value);
+
+            if strcmp(value, 'conservative')
+                gui.UIControls.electronKinetics.growthModelType.Enable = 'off';
+            else
+                gui.UIControls.electronKinetics.growthModelType.Enable = 'on';
+            end
+        end
+
+        function handleEECollisionsChange(gui, value)
+            % Update Setup
+            gui.setNestedField('electronKinetics.includeEECollisions', value);
+            
+            % When e-e collisions are enabled, unlock Gas pressure, Gas temperature, and Electron density
+            if value
+                % Enable the fields (but keep checkboxes as they are - user can still control them)
+                gui.UIControls.workingConditions.gasPressure.Enable = 'on';
+                gui.UIControls.workingConditions.gasTemperature.Enable = 'on';
+                gui.UIControls.workingConditions.electronDensity.Enable = 'on';
+                % Also check the checkboxes to indicate they're active
+                gui.UIControls.workingConditions.gasPressureCheckbox.Value = true;
+                gui.UIControls.workingConditions.gasTemperatureCheckbox.Value = true;
+                gui.UIControls.workingConditions.electronDensityCheckbox.Value = true;
+            else
+                % When disabled, block the fields and uncheck the checkboxes
+                gui.UIControls.workingConditions.gasPressureCheckbox.Value = false;
+                gui.UIControls.workingConditions.gasTemperatureCheckbox.Value = false;
+                gui.UIControls.workingConditions.electronDensityCheckbox.Value = false;
+                gui.toggleGasPressureEnable(false);
+                gui.toggleGasTemperatureEnable(false);
+                gui.toggleElectronDensityEnable(false);
+            end
+        end
+
+        function updateRunButtonState(gui)
+            % Update the state of the "Generate & Run" button based on LXCat files
+            % Button is disabled if Electron Kinetics is enabled but no LXCat files are present
+            try
+                if isfield(gui.UIControls, 'runButton')
+                    if gui.Setup.electronKinetics.isOn
+                        items = gui.UIControls.electronKinetics.LXCatFiles.Items;
+                        if isempty(items)
+                            % Disable button if no LXCat files
+                            gui.UIControls.runButton.Enable = 'off';
+                        else
+                            % Enable button if LXCat files are present
+                            gui.UIControls.runButton.Enable = 'on';
+                        end
+                    else
+                        % Enable button if Electron Kinetics is disabled (no LXCat requirement)
+                        gui.UIControls.runButton.Enable = 'on';
+                    end
+                end
+            catch ME
+                % Fail safe: enable button if something goes wrong
+                try
+                    if isfield(gui.UIControls, 'runButton')
+                        gui.UIControls.runButton.Enable = 'on';
+                    end
+                catch
+                end
+            end
+        end
+
+        function handleTabChange(gui, evt)
+            % Prevent leaving Electron Kinetics tab if LXCat files list is empty
+            try
+                oldTab = evt.OldValue;
+                newTab = evt.NewValue;
+
+                % Only enforce when leaving the Electron Kinetics tab
+                if isequal(oldTab, gui.UIControls.tabs.kineticsTab) && ~isequal(newTab, gui.UIControls.tabs.kineticsTab)
+                    % Only enforce if Electron Kinetics is enabled
+                    if gui.Setup.electronKinetics.isOn
+                        items = gui.UIControls.electronKinetics.LXCatFiles.Items;
+                        if isempty(items)
+                            % Revert selection and warn user
+                            evt.Source.SelectedTab = gui.UIControls.tabs.kineticsTab;
+                            uialert(gui.Fig, 'At least one LXCat file is required. Please add a file before leaving the Electron Kinetics tab.', ...
+                                'Missing LXCat Files');
+                        end
+                    end
+                end
+                
+                % Update run button state after tab change
+                gui.updateRunButtonState();
+            catch
+                % Fail safe: do not block tab change if something goes wrong
             end
         end
 
@@ -1952,6 +2686,17 @@ classdef LoKI_GUI < handle
             
             % Update the setup struct
             gui.setNestedField('gui.isOn', isEnabled);
+        end
+
+        function toggleOutputEnable(gui, isEnabled)
+            % Enable/disable output-related controls based on checkbox state
+            % Note: dataFormat and folder remain always enabled (user requirement)
+            % Only dataSets checkboxes are controlled by this toggle
+            
+            % Update Setup flag
+            gui.setNestedField('output.isOn', isEnabled);
+            
+            % Note: dataFormat and folder are always enabled, not controlled here
         end
 
         function toggleCARGasEnable(gui, isEnabled)
@@ -1981,6 +2726,150 @@ classdef LoKI_GUI < handle
                 gui.UIControls.workingConditions.dischargePowerDensity.Enable = 'on';
             else
                 gui.UIControls.workingConditions.dischargePowerDensity.Enable = 'off';
+            end
+        end
+
+        function toggleSurfaceSiteDensityEnable(gui, isEnabled)
+            % Enable/disable surface site density based on checkbox state
+            if isEnabled
+                gui.UIControls.workingConditions.surfaceSiteDensity.Enable = 'on';
+            else
+                gui.UIControls.workingConditions.surfaceSiteDensity.Enable = 'off';
+            end
+        end
+
+        function toggleGasPressureEnable(gui, isEnabled)
+            % Enable/disable gas pressure based on checkbox state
+            if isEnabled
+                gui.UIControls.workingConditions.gasPressure.Enable = 'on';
+            else
+                gui.UIControls.workingConditions.gasPressure.Enable = 'off';
+            end
+        end
+
+        function toggleGasTemperatureEnable(gui, isEnabled)
+            % Enable/disable gas temperature based on checkbox state
+            if isEnabled
+                gui.UIControls.workingConditions.gasTemperature.Enable = 'on';
+            else
+                gui.UIControls.workingConditions.gasTemperature.Enable = 'off';
+            end
+        end
+
+        function toggleElectronDensityEnable(gui, isEnabled)
+            % Enable/disable electron density based on checkbox state
+            if isEnabled
+                gui.UIControls.workingConditions.electronDensity.Enable = 'on';
+            else
+                gui.UIControls.workingConditions.electronDensity.Enable = 'off';
+            end
+        end
+
+        function toggleTotalSccmInFlowEnable(gui, isEnabled)
+            % Enable/disable total SCCM inflow based on checkbox state
+            if isEnabled
+                gui.UIControls.workingConditions.totalSccmInFlow.Enable = 'on';
+            else
+                gui.UIControls.workingConditions.totalSccmInFlow.Enable = 'off';
+            end
+        end
+
+        function toggleTotalSccmOutFlowEnable(gui, isEnabled)
+            % Enable/disable total SCCM outflow controls based on checkbox state
+            if isEnabled
+                gui.UIControls.workingConditions.totalSccmOutFlowType.Enable = 'on';
+                gui.handleSccmOutFlowTypeChange([], gui.UIControls.workingConditions.totalSccmOutFlowType.Value);
+            else
+                gui.UIControls.workingConditions.totalSccmOutFlowType.Enable = 'off';
+                gui.UIControls.workingConditions.totalSccmOutFlow.Enable = 'off';
+            end
+        end
+
+        function handleUpdateFactorChange(gui, value)
+            % Validate Update Factor: cannot be 0
+            if value == 0
+                uialert(gui.Fig, 'Update Factor cannot be 0. Using default value 0.05.', ...
+                    'Invalid Value', 'Icon', 'error');
+                gui.UIControls.electronKinetics.numerics.energyGrid.smartGrid.updateFactor.Value = 0.05;
+                gui.setNestedField('electronKinetics.numerics.energyGrid.smartGrid.updateFactor', 0.05);
+            else
+                gui.setNestedField('electronKinetics.numerics.energyGrid.smartGrid.updateFactor', value);
+            end
+        end
+
+        function toggleElectronKineticsEnable(gui, isEnabled)
+            % Enable/disable electron kinetics controls based on master checkbox
+            % Update Setup flag
+            gui.Setup.electronKinetics.isOn = isEnabled;
+
+            % Core controls that always follow the master flag
+            coreControls = {
+                'eedfType', ...
+                'shapeParameter', ...
+                'ionizationOperatorType', ...
+                'growthModelType', ...
+                'includeEECollisions', ...
+                'LXCatFiles' ...
+            };
+
+            if isEnabled
+                state = 'on';
+            else
+                state = 'off';
+            end
+
+            % Apply state to core controls
+            for i = 1:numel(coreControls)
+                try
+                    ctrl = gui.UIControls.electronKinetics.(coreControls{i});
+                    ctrl.Enable = state;
+                catch
+                    % Ignore missing or non-enable-able controls
+                end
+            end
+            
+            % Update run button state when Electron Kinetics is toggled
+            gui.updateRunButtonState();
+
+            % Optional groups (extra LXCat, effective pops, CAR gases) depend on both
+            % the master flag AND their individual checkboxes
+            try
+                % LXCat Extra Files
+                if isfield(gui.UIControls.electronKinetics, 'LXCatExtraCheckbox')
+                    gui.UIControls.electronKinetics.LXCatExtraCheckbox.Enable = state;
+                    if isEnabled
+                        gui.toggleLXCatExtraEnable(gui.UIControls.electronKinetics.LXCatExtraCheckbox.Value);
+                    else
+                        gui.toggleLXCatExtraEnable(false);
+                    end
+                end
+            catch
+            end
+
+            try
+                % Effective Cross Section Populations
+                if isfield(gui.UIControls.electronKinetics, 'effectivePopCheckbox')
+                    gui.UIControls.electronKinetics.effectivePopCheckbox.Enable = state;
+                    if isEnabled
+                        gui.toggleEffectivePopEnable(gui.UIControls.electronKinetics.effectivePopCheckbox.Value);
+                    else
+                        gui.toggleEffectivePopEnable(false);
+                    end
+                end
+            catch
+            end
+
+            try
+                % CAR Gases
+                if isfield(gui.UIControls.electronKinetics, 'CARcheckbox')
+                    gui.UIControls.electronKinetics.CARcheckbox.Enable = state;
+                    if isEnabled
+                        gui.toggleCARGasEnable(gui.UIControls.electronKinetics.CARcheckbox.Value);
+                    else
+                        gui.toggleCARGasEnable(false);
+                    end
+                end
+            catch
             end
         end
 
@@ -2063,29 +2952,1006 @@ classdef LoKI_GUI < handle
         end
 
         function loadSettings(gui, ~, ~)
-            % Placeholder for loading settings from a file
-            [file, path] = uigetfile('*.txt;*.setup', 'Load LoKI Setup File');
+            % Load settings from a .in or .json input file
+            inputFolder = fullfile(pwd, 'Input');
+            if ~isfolder(inputFolder)
+                inputFolder = pwd;
+            end
+
+            % Save window state before opening dialog
+            drawnow;
+            oldState = gui.Fig.WindowState;
+            drawnow;
+            pause(0.1);
+            
+            % Allow both .in and .json files
+            [file, path] = uigetfile({'*.in;*.json', 'LoKI Input Files (*.in, *.json)'; '*.in', 'LoKI Input Files (*.in)'; '*.json', 'LoKI JSON Files (*.json)'}, 'Load LoKI Input File', inputFolder);
             if isequal(file, 0) || isequal(path, 0)
+                % Restore window state after dialog cancellation
+                drawnow;
+                pause(0.1);
+                gui.Fig.WindowState = oldState;
+                figure(gui.Fig);
+                drawnow;
                 return; % User cancelled
             end
+            
+            % Restore window state immediately after file selection
+            drawnow;
+            pause(0.1);
+            gui.Fig.WindowState = oldState;
+            figure(gui.Fig);
+            drawnow;
+            
             inputFile = fullfile(path, file);
+            [~, ~, ext] = fileparts(file);
+            
             try
-                % gui.Setup = gui.parseInputFile(inputFile); % Implement this
+                % Reset to defaults first to clear any unused fields
+                gui.initializeDefaultSetup();
+                
+                % Parse based on file extension
+                if strcmpi(ext, '.json')
+                    % Load from JSON file
+                    [gui.Setup, foundFields] = gui.parseJSONFile(inputFile);
+                else
+                    % Load from .in file (default)
+                    [gui.Setup, foundFields] = gui.parseInputFile(inputFile);
+                end
+                
                 gui.populateGUIFromSetup(); % Update UI
-                uialert(gui.Fig, ['Settings loaded from ', file], 'Load Successful');
+                % Disable optional fields that were not found in the file
+                gui.disableUnusedOptionalFields(foundFields);
+                % Activate and expand fields that were found in the file
+                gui.activateFoundOptionalFields(foundFields);
+                % Ensure window stays maximized
+                drawnow;
+                pause(0.1);
+                gui.Fig.WindowState = oldState;
+                figure(gui.Fig);
+                drawnow;
+                gui.handleFigureSizeChanged();
+                uialert(gui.Fig, ['Settings loaded from ', file], 'Load Successful', 'Icon', 'success');
             catch ME
+                % Ensure window stays maximized even on error
+                drawnow;
+                pause(0.1);
+                gui.Fig.WindowState = oldState;
+                figure(gui.Fig);
+                drawnow;
                 uialert(gui.Fig, ['Error loading file: ', ME.message], 'Load Error');
             end
         end
 
-        function saveInputFile(gui, ~, ~)
-            % Save the current setup to a file
-            defaultName = ['LoKI_Setup_', datestr(now,'yyyymmdd_HHMMSS'), '.txt'];
-            startPath = gui.Setup.output.folder; % Suggest saving in output folder
-            if ~isfolder(startPath)
-                startPath = pwd; % Fallback to current directory
+        function [setup, foundFields] = parseInputFile(gui, inputFile)
+            % Parse a LoKI-B .in file written by generateInputFile (YAML-like subset).
+            %
+            % Strategy:
+            % - Start from the current gui.Setup (assumed defaults already initialized)
+            % - Override fields found in the file
+            % - Track which optional fields were found
+            txt = fileread(inputFile);
+            lines = regexp(txt, '\r\n|\n|\r', 'split');
+
+            setup = gui.Setup;
+            foundFields = containers.Map('KeyType', 'char', 'ValueType', 'logical'); % Track found fields
+
+            keyStack = {};
+            indentStack = [-1];
+
+            i = 1;
+            while i <= numel(lines)
+                raw = lines{i};
+                if isempty(raw)
+                    i = i + 1;
+                    continue;
+                end
+                % Strip full-line comments (but keep leading indentation for structure)
+                if startsWith(strtrim(raw), '%')
+                    i = i + 1;
+                    continue;
+                end
+                if startsWith(strtrim(raw), '#')
+                    i = i + 1;
+                    continue;
+                end
+
+                % Strip inline comments (LoKI-B input files commonly use "%" at end of line)
+                % Important: do this AFTER skipping full-line comments.
+                pctIdx = strfind(raw, '%');
+                if ~isempty(pctIdx)
+                    raw = raw(1:pctIdx(1)-1);
+                end
+                hashIdx = strfind(raw, '#');
+                if ~isempty(hashIdx)
+                    raw = raw(1:hashIdx(1)-1);
+                end
+
+                indent = numel(regexp(raw, '^\s*', 'match', 'once'));
+                line = strtrim(raw);
+                if isempty(line)
+                    i = i + 1;
+                    continue;
+                end
+
+                % Pop stack if indentation decreased
+                while ~isempty(indentStack) && indent <= indentStack(end) && numel(indentStack) > 1
+                    indentStack(end) = [];
+                    keyStack(end) = [];
+                end
+
+                % List item: "- something"
+                if startsWith(line, '-')
+                    % Append to last list key
+                    item = strtrim(line(2:end));
+                    if isempty(keyStack)
+                        i = i + 1;
+                        continue;
+                    end
+                    pathParts = keyStack;
+                    % Get current list (should be empty or already started from "key:" line)
+                    currentList = getByPath(setup, pathParts);
+                    if isempty(currentList) || ~iscell(currentList)
+                        currentList = {};
+                    end
+                    % Append item to list (completely replacing, not adding to defaults)
+                    currentList{end+1} = item;
+                    setup = setByPath(setup, pathParts, currentList);
+                    % Mark this list field as found
+                    fieldPath = strjoin(pathParts, '.');
+                    foundFields(fieldPath) = true;
+                    i = i + 1;
+                    continue;
+                end
+
+                % Key/value line: "key: value" or "key:"
+                tok = regexp(line, '^([^:]+):\s*(.*)$', 'tokens', 'once');
+                if isempty(tok)
+                    i = i + 1;
+                    continue;
+                end
+                key = strtrim(tok{1});
+                valStr = strtrim(tok{2}); % Trim value string to remove trailing spaces from inline comments
+
+                if isempty(valStr)
+                    % Lookahead to decide struct vs list
+                    j = i + 1;
+                    while j <= numel(lines) && isempty(strtrim(lines{j}))
+                        j = j + 1;
+                    end
+                    isList = false;
+                    if j <= numel(lines)
+                        nxtRaw = lines{j};
+                        nxtIndent = numel(regexp(nxtRaw, '^\s*', 'match', 'once'));
+                        nxtLine = strtrim(nxtRaw);
+                        if nxtIndent > indent && startsWith(nxtLine, '-')
+                            isList = true;
+                        end
+                    end
+
+                    if isList
+                        % Initialize list as empty (will be populated by "- " lines)
+                        pathParts = [keyStack, {key}];
+                        setup = setByPath(setup, pathParts, {}); % Start with empty list
+                        % Mark this list field as found
+                        fieldPath = strjoin(pathParts, '.');
+                        foundFields(fieldPath) = true;
+                        % Push key so "- " lines append to it
+                        keyStack = pathParts;
+                        indentStack(end+1) = indent; %#ok<AGROW>
+                    else
+                        % Struct header
+                        keyStack{end+1} = key; %#ok<AGROW>
+                        indentStack(end+1) = indent; %#ok<AGROW>
+                        % Ensure struct exists
+                        pathParts = keyStack;
+                        cur = getByPath(setup, pathParts);
+                        if isempty(cur)
+                            setup = setByPath(setup, pathParts, struct());
+                        end
+                        % Mark this struct field as found (even if empty, it was present in file)
+                        fieldPath = strjoin(pathParts, '.');
+                        foundFields(fieldPath) = true;
+                    end
+                else
+                    pathParts = [keyStack, {key}];
+                    setup = setByPath(setup, pathParts, parseScalar(valStr));
+                    % Mark this field as found
+                    fieldPath = strjoin(pathParts, '.');
+                    foundFields(fieldPath) = true;
+                end
+
+                i = i + 1;
             end
-            [file, path] = uiputfile('*.txt', 'Save LoKI Input File As', fullfile(startPath, defaultName));
+
+            % Local helpers
+            function v = parseScalar(s)
+                s = strtrim(s);
+                % Booleans
+                if strcmpi(s, 'true')
+                    v = true; return;
+                elseif strcmpi(s, 'false')
+                    v = false; return;
+                end
+                % Numeric
+                n = str2double(s);
+                if ~isnan(n) && ~contains(s, ' ') && ~contains(lower(s), 'logspace') && ~contains(lower(s), 'linspace')
+                    v = n; return;
+                end
+                % Keep strings as-is (expressions like logspace(...) are expected)
+                v = s;
+            end
+
+            function cur = getByPath(s, parts)
+                cur = s;
+                for k = 1:numel(parts)
+                    p = parts{k};
+                    if ~isstruct(cur) || ~isfield(cur, p)
+                        cur = [];
+                        return;
+                    end
+                    cur = cur.(p);
+                end
+            end
+
+            function s = setByPath(s, parts, value)
+                if isempty(parts)
+                    s = value;
+                    return;
+                end
+                p = parts{1};
+                if numel(parts) == 1
+                    s.(p) = value;
+                    return;
+                end
+                if ~isfield(s, p) || ~isstruct(s.(p))
+                    s.(p) = struct();
+                end
+                s.(p) = setByPath(s.(p), parts(2:end), value);
+            end
+
+            function out = appendList(cur, item)
+                if isempty(cur)
+                    out = {item};
+                elseif iscell(cur)
+                    out = cur;
+                    out{end+1} = item;
+                else
+                    out = {item};
+                end
+            end
+        end
+
+        function [setup, foundFields] = parseJSONFile(gui, jsonFile)
+            % Parse a LoKI-B .json file into a MATLAB struct.
+            % Validates the JSON format and converts it to the same structure as parseInputFile.
+            
+            % Read and parse JSON
+            try
+                jsonText = fileread(jsonFile);
+                jsonData = jsondecode(jsonText);
+            catch ME
+                error('Invalid JSON file format: %s', ME.message);
+            end
+            
+            % Validate required top-level sections
+            requiredSections = {'workingConditions', 'electronKinetics'};
+            for i = 1:length(requiredSections)
+                if ~isfield(jsonData, requiredSections{i})
+                    error('Missing required section: %s', requiredSections{i});
+                end
+            end
+            
+            % Initialize with defaults
+            setup = gui.Setup;
+            foundFields = containers.Map('KeyType', 'char', 'ValueType', 'logical');
+            
+            % Convert JSON structure to Setup structure, tracking found fields
+            setup = gui.convertJSONToSetup(jsonData, setup, foundFields, '');
+        end
+        
+        function setup = convertJSONToSetup(gui, jsonData, setup, foundFields, prefix)
+            % Recursively convert JSON structure to Setup structure
+            % prefix: current path prefix (e.g., 'workingConditions.')
+            
+            if ~isstruct(jsonData)
+                return;
+            end
+            
+            fields = fieldnames(jsonData);
+            
+            for i = 1:length(fields)
+                fieldName = fields{i};
+                value = jsonData.(fieldName);
+                
+                % Build current path
+                if isempty(prefix)
+                    currentPath = fieldName;
+                else
+                    currentPath = [prefix, '.', fieldName];
+                end
+                
+                % Mark field as found
+                foundFields(currentPath) = true;
+                
+                if isstruct(value)
+                    % Nested structure - recurse
+                    if ~isfield(setup, fieldName) || ~isstruct(setup.(fieldName))
+                        setup.(fieldName) = struct();
+                    end
+                    setup.(fieldName) = gui.convertJSONToSetup(value, setup.(fieldName), foundFields, currentPath);
+                elseif iscell(value)
+                    % Cell array (list) - convert to cell array of strings
+                    setup.(fieldName) = cellfun(@(x) gui.jsonValueToString(x), value, 'UniformOutput', false);
+                elseif isnumeric(value) || islogical(value)
+                    % Numeric or boolean - keep as is
+                    setup.(fieldName) = value;
+                else
+                    % String - keep as string
+                    if ischar(value) || isstring(value)
+                        setup.(fieldName) = char(value);
+                    else
+                        setup.(fieldName) = value;
+                    end
+                end
+            end
+        end
+        
+        function str = jsonValueToString(gui, value)
+            % Convert JSON value to string representation
+            if isnumeric(value)
+                str = num2str(value);
+            elseif islogical(value)
+                if value
+                    str = 'true';
+                else
+                    str = 'false';
+                end
+            else
+                str = char(value);
+            end
+        end
+        
+        function generateJSONFile(gui, filename)
+            % Generates a JSON input file from the gui.Setup struct
+            
+            % Update totalSccmOutFlow from UI before generating file
+            try
+                dropdownValue = gui.UIControls.workingConditions.totalSccmOutFlowType.Value;
+                if strcmp(dropdownValue, 'Number')
+                    numValue = gui.UIControls.workingConditions.totalSccmOutFlow.Value;
+                    if isnumeric(numValue)
+                        gui.Setup.workingConditions.totalSccmOutFlow = numValue;
+                    end
+                else
+                    gui.Setup.workingConditions.totalSccmOutFlow = dropdownValue;
+                end
+            catch ME
+                warning('Error updating totalSccmOutFlow from UI: %s', ME.message);
+            end
+            
+            % Convert Setup struct to JSON structure
+            jsonStruct = gui.convertSetupToJSON(gui.Setup);
+            
+            % Write JSON file with pretty formatting
+            try
+                jsonText = jsonencode(jsonStruct, 'PrettyPrint', true);
+                fid = fopen(filename, 'w');
+                if fid == -1
+                    error('Cannot open file "%s" for writing.', filename);
+                end
+                fprintf(fid, '%s', jsonText);
+                fclose(fid);
+                fprintf('JSON file generated: %s\n', filename);
+            catch ME
+                error('Error writing JSON file: %s', ME.message);
+            end
+        end
+        
+        function jsonStruct = convertSetupToJSON(gui, setup)
+            % Convert Setup struct to JSON-compatible structure
+            % In JSON format, all fields that exist in Setup are included
+            % Only remove UI-only fields like isOn within smartGrid and odeSetParameters
+            % IMPORTANT: Only include optional fields if their checkboxes are checked (blocked fields should not appear)
+            
+            jsonStruct = struct();
+            fields = fieldnames(setup);
+            
+            for i = 1:length(fields)
+                fieldName = fields{i};
+                value = setup.(fieldName);
+                
+                % Skip UI-only isOn fields in nested structures (handled separately)
+                if strcmp(fieldName, 'isOn') && isstruct(value)
+                    continue;
+                end
+                
+                if isstruct(value)
+                    % Recursively convert nested structures
+                    nestedStruct = gui.convertSetupToJSON(value);
+                    % Only add if not empty
+                    if ~isempty(fieldnames(nestedStruct))
+                        jsonStruct.(fieldName) = nestedStruct;
+                    end
+                elseif iscell(value)
+                    % Cell array - keep as cell array (will be JSON array)
+                    % Include all arrays (even empty ones, as per JSON format)
+                    jsonStruct.(fieldName) = value;
+                elseif isnumeric(value) || islogical(value)
+                    % Numeric or boolean - keep as is
+                    jsonStruct.(fieldName) = value;
+                else
+                    % String - convert to char if needed
+                    jsonStruct.(fieldName) = char(value);
+                end
+            end
+            
+            % Special handling: Remove UI-only isOn fields from smartGrid and odeSetParameters
+            % But keep the structures themselves if they have other data
+            if isfield(jsonStruct, 'electronKinetics') && isfield(jsonStruct.electronKinetics, 'numerics')
+                if isfield(jsonStruct.electronKinetics.numerics, 'energyGrid')
+                    if isfield(jsonStruct.electronKinetics.numerics.energyGrid, 'smartGrid')
+                        % Remove isOn field from smartGrid if it exists (UI-only)
+                        if isfield(jsonStruct.electronKinetics.numerics.energyGrid.smartGrid, 'isOn')
+                            jsonStruct.electronKinetics.numerics.energyGrid.smartGrid = rmfield(jsonStruct.electronKinetics.numerics.energyGrid.smartGrid, 'isOn');
+                        end
+                    end
+                end
+                if isfield(jsonStruct.electronKinetics.numerics, 'nonLinearRoutines')
+                    if isfield(jsonStruct.electronKinetics.numerics.nonLinearRoutines, 'odeSetParameters')
+                        % Remove isOn field from odeSetParameters if it exists (UI-only)
+                        if isfield(jsonStruct.electronKinetics.numerics.nonLinearRoutines.odeSetParameters, 'isOn')
+                            jsonStruct.electronKinetics.numerics.nonLinearRoutines.odeSetParameters = rmfield(jsonStruct.electronKinetics.numerics.nonLinearRoutines.odeSetParameters, 'isOn');
+                        end
+                    end
+                end
+            end
+            
+            % Remove optional fields that are blocked (checkboxes unchecked)
+            % Working Conditions optional fields
+            if isfield(jsonStruct, 'workingConditions')
+                % dischargeCurrent - only if checkbox is checked
+                if isfield(gui.UIControls.workingConditions, 'dischargeCurrentCheckbox')
+                    if ~gui.UIControls.workingConditions.dischargeCurrentCheckbox.Value
+                        if isfield(jsonStruct.workingConditions, 'dischargeCurrent')
+                            jsonStruct.workingConditions = rmfield(jsonStruct.workingConditions, 'dischargeCurrent');
+                        end
+                    end
+                end
+                
+                % dischargePowerDensity - only if checkbox is checked
+                if isfield(gui.UIControls.workingConditions, 'dischargePowerCheckbox')
+                    if ~gui.UIControls.workingConditions.dischargePowerCheckbox.Value
+                        if isfield(jsonStruct.workingConditions, 'dischargePowerDensity')
+                            jsonStruct.workingConditions = rmfield(jsonStruct.workingConditions, 'dischargePowerDensity');
+                        end
+                    end
+                end
+                
+                % totalSccmInFlow - only if checkbox is checked
+                if isfield(gui.UIControls.workingConditions, 'totalSccmInFlowCheckbox')
+                    if ~gui.UIControls.workingConditions.totalSccmInFlowCheckbox.Value
+                        if isfield(jsonStruct.workingConditions, 'totalSccmInFlow')
+                            jsonStruct.workingConditions = rmfield(jsonStruct.workingConditions, 'totalSccmInFlow');
+                        end
+                    end
+                end
+                
+                % totalSccmOutFlow - only if checkbox is checked
+                if isfield(gui.UIControls.workingConditions, 'totalSccmOutFlowCheckbox')
+                    if ~gui.UIControls.workingConditions.totalSccmOutFlowCheckbox.Value
+                        if isfield(jsonStruct.workingConditions, 'totalSccmOutFlow')
+                            jsonStruct.workingConditions = rmfield(jsonStruct.workingConditions, 'totalSccmOutFlow');
+                        end
+                    end
+                end
+                
+                % gasPressure - only if checkbox is checked
+                if isfield(gui.UIControls.workingConditions, 'gasPressureCheckbox')
+                    if ~gui.UIControls.workingConditions.gasPressureCheckbox.Value
+                        if isfield(jsonStruct.workingConditions, 'gasPressure')
+                            jsonStruct.workingConditions = rmfield(jsonStruct.workingConditions, 'gasPressure');
+                        end
+                    end
+                end
+                
+                % gasTemperature - only if checkbox is checked
+                if isfield(gui.UIControls.workingConditions, 'gasTemperatureCheckbox')
+                    if ~gui.UIControls.workingConditions.gasTemperatureCheckbox.Value
+                        if isfield(jsonStruct.workingConditions, 'gasTemperature')
+                            jsonStruct.workingConditions = rmfield(jsonStruct.workingConditions, 'gasTemperature');
+                        end
+                    end
+                end
+                
+                % surfaceSiteDensity - only if checkbox is checked
+                if isfield(gui.UIControls.workingConditions, 'surfaceSiteDensityCheckbox')
+                    if ~gui.UIControls.workingConditions.surfaceSiteDensityCheckbox.Value
+                        if isfield(jsonStruct.workingConditions, 'surfaceSiteDensity')
+                            jsonStruct.workingConditions = rmfield(jsonStruct.workingConditions, 'surfaceSiteDensity');
+                        end
+                    end
+                end
+                
+                % electronDensity - only if checkbox is checked
+                if isfield(gui.UIControls.workingConditions, 'electronDensityCheckbox')
+                    if ~gui.UIControls.workingConditions.electronDensityCheckbox.Value
+                        if isfield(jsonStruct.workingConditions, 'electronDensity')
+                            jsonStruct.workingConditions = rmfield(jsonStruct.workingConditions, 'electronDensity');
+                        end
+                    end
+                end
+            end
+            
+            % Electron Kinetics optional fields
+            if isfield(jsonStruct, 'electronKinetics')
+                % shapeParameter - only if eedfType is 'prescribedEedf'
+                if isfield(gui.UIControls.electronKinetics, 'eedfType')
+                    if ~strcmp(gui.UIControls.electronKinetics.eedfType.Value, 'prescribedEedf')
+                        if isfield(jsonStruct.electronKinetics, 'shapeParameter')
+                            jsonStruct.electronKinetics = rmfield(jsonStruct.electronKinetics, 'shapeParameter');
+                        end
+                    end
+                end
+                
+                % LXCatExtraFiles - only if checkbox is checked
+                if isfield(gui.UIControls.electronKinetics, 'LXCatExtraCheckbox')
+                    if ~gui.UIControls.electronKinetics.LXCatExtraCheckbox.Value
+                        if isfield(jsonStruct.electronKinetics, 'LXCatExtraFiles')
+                            jsonStruct.electronKinetics = rmfield(jsonStruct.electronKinetics, 'LXCatExtraFiles');
+                        end
+                    end
+                end
+                
+                % effectiveCrossSectionPopulations - only if checkbox is checked
+                if isfield(gui.UIControls.electronKinetics, 'effectivePopCheckbox')
+                    if ~gui.UIControls.electronKinetics.effectivePopCheckbox.Value
+                        if isfield(jsonStruct.electronKinetics, 'effectiveCrossSectionPopulations')
+                            jsonStruct.electronKinetics = rmfield(jsonStruct.electronKinetics, 'effectiveCrossSectionPopulations');
+                        end
+                    end
+                end
+                
+                % CARgases - only if checkbox is checked
+                if isfield(gui.UIControls.electronKinetics, 'CARcheckbox')
+                    if ~gui.UIControls.electronKinetics.CARcheckbox.Value
+                        if isfield(jsonStruct.electronKinetics, 'CARgases')
+                            jsonStruct.electronKinetics = rmfield(jsonStruct.electronKinetics, 'CARgases');
+                        end
+                    end
+                end
+                
+                % odeSetParameters - only if algorithm is 'temporalIntegration' AND checkbox is checked
+                if isfield(jsonStruct.electronKinetics, 'numerics') && isfield(jsonStruct.electronKinetics.numerics, 'nonLinearRoutines')
+                    if isfield(jsonStruct.electronKinetics.numerics.nonLinearRoutines, 'odeSetParameters')
+                        % Check if algorithm is temporalIntegration
+                        algorithmIsTemporal = false;
+                        if isfield(gui.UIControls.electronKinetics.numerics.nonLinearRoutines, 'algorithm')
+                            algorithmIsTemporal = strcmp(gui.UIControls.electronKinetics.numerics.nonLinearRoutines.algorithm.Value, 'temporalIntegration');
+                        end
+                        
+                        % Check if checkbox is checked
+                        checkboxChecked = false;
+                        if isfield(gui.UIControls.electronKinetics.numerics.nonLinearRoutines.odeSetParameters, 'isOn')
+                            checkboxChecked = gui.UIControls.electronKinetics.numerics.nonLinearRoutines.odeSetParameters.isOn.Value;
+                        end
+                        
+                        % Remove if not activated (algorithm not temporalIntegration OR checkbox not checked)
+                        if ~algorithmIsTemporal || ~checkboxChecked
+                            jsonStruct.electronKinetics.numerics.nonLinearRoutines = rmfield(jsonStruct.electronKinetics.numerics.nonLinearRoutines, 'odeSetParameters');
+                        end
+                    end
+                end
+            end
+        end
+
+        function disableUnusedOptionalFields(gui, foundFields)
+            % Disable optional fields that were not found in the loaded file
+            % This ensures that fields not present in the file appear blocked/unselected
+            % Also activate fields that WERE found in the file
+            
+            % Helper function to check if a field was found
+            function wasFound = isFieldFound(fieldPath)
+                wasFound = foundFields.isKey(fieldPath) && foundFields(fieldPath);
+            end
+            
+            % Working Conditions optional fields - ACTIVATE if found
+            if isFieldFound('workingConditions.totalSccmInFlow')
+                try
+                    gui.toggleTotalSccmInFlowEnable(true);
+                    if isfield(gui.UIControls.workingConditions, 'totalSccmInFlowCheckbox')
+                        gui.UIControls.workingConditions.totalSccmInFlowCheckbox.Value = true;
+                    end
+                catch
+                end
+            elseif ~isFieldFound('workingConditions.totalSccmInFlow')
+                try
+                    gui.toggleTotalSccmInFlowEnable(false);
+                    if isfield(gui.UIControls.workingConditions, 'totalSccmInFlowCheckbox')
+                        gui.UIControls.workingConditions.totalSccmInFlowCheckbox.Value = false;
+                    end
+                catch
+                end
+            end
+            
+            if isFieldFound('workingConditions.totalSccmOutFlow')
+                try
+                    gui.toggleTotalSccmOutFlowEnable(true);
+                    if isfield(gui.UIControls.workingConditions, 'totalSccmOutFlowCheckbox')
+                        gui.UIControls.workingConditions.totalSccmOutFlowCheckbox.Value = true;
+                    end
+                catch
+                end
+            elseif ~isFieldFound('workingConditions.totalSccmOutFlow')
+                try
+                    gui.toggleTotalSccmOutFlowEnable(false);
+                    if isfield(gui.UIControls.workingConditions, 'totalSccmOutFlowCheckbox')
+                        gui.UIControls.workingConditions.totalSccmOutFlowCheckbox.Value = false;
+                    end
+                catch
+                end
+            end
+            
+            if isFieldFound('workingConditions.gasPressure')
+                try
+                    gui.toggleGasPressureEnable(true);
+                    if isfield(gui.UIControls.workingConditions, 'gasPressureCheckbox')
+                        gui.UIControls.workingConditions.gasPressureCheckbox.Value = true;
+                    end
+                catch
+                end
+            elseif ~isFieldFound('workingConditions.gasPressure')
+                try
+                    gui.toggleGasPressureEnable(false);
+                    if isfield(gui.UIControls.workingConditions, 'gasPressureCheckbox')
+                        gui.UIControls.workingConditions.gasPressureCheckbox.Value = false;
+                    end
+                catch
+                end
+            end
+            
+            if isFieldFound('workingConditions.gasTemperature')
+                try
+                    gui.toggleGasTemperatureEnable(true);
+                    if isfield(gui.UIControls.workingConditions, 'gasTemperatureCheckbox')
+                        gui.UIControls.workingConditions.gasTemperatureCheckbox.Value = true;
+                    end
+                catch
+                end
+            elseif ~isFieldFound('workingConditions.gasTemperature')
+                try
+                    gui.toggleGasTemperatureEnable(false);
+                    if isfield(gui.UIControls.workingConditions, 'gasTemperatureCheckbox')
+                        gui.UIControls.workingConditions.gasTemperatureCheckbox.Value = false;
+                    end
+                catch
+                end
+            end
+            
+            if isFieldFound('workingConditions.surfaceSiteDensity')
+                try
+                    gui.toggleSurfaceSiteDensityEnable(true);
+                    if isfield(gui.UIControls.workingConditions, 'surfaceSiteDensityCheckbox')
+                        gui.UIControls.workingConditions.surfaceSiteDensityCheckbox.Value = true;
+                    end
+                catch
+                end
+            elseif ~isFieldFound('workingConditions.surfaceSiteDensity')
+                try
+                    gui.toggleSurfaceSiteDensityEnable(false);
+                    if isfield(gui.UIControls.workingConditions, 'surfaceSiteDensityCheckbox')
+                        gui.UIControls.workingConditions.surfaceSiteDensityCheckbox.Value = false;
+                    end
+                catch
+                end
+            end
+            
+            if isFieldFound('workingConditions.electronDensity')
+                try
+                    gui.toggleElectronDensityEnable(true);
+                    if isfield(gui.UIControls.workingConditions, 'electronDensityCheckbox')
+                        gui.UIControls.workingConditions.electronDensityCheckbox.Value = true;
+                    end
+                catch
+                end
+            elseif ~isFieldFound('workingConditions.electronDensity')
+                try
+                    gui.toggleElectronDensityEnable(false);
+                    if isfield(gui.UIControls.workingConditions, 'electronDensityCheckbox')
+                        gui.UIControls.workingConditions.electronDensityCheckbox.Value = false;
+                    end
+                catch
+                end
+            end
+            
+            % Working Conditions optional fields - DISABLE if not found
+            if ~isFieldFound('workingConditions.dischargeCurrent')
+                try
+                    gui.toggleDischargeCurrentEnable(false);
+                    if isfield(gui.UIControls.workingConditions, 'dischargeCurrentCheckbox')
+                        gui.UIControls.workingConditions.dischargeCurrentCheckbox.Value = false;
+                    end
+                catch
+                end
+            end
+            
+            if ~isFieldFound('workingConditions.dischargePowerDensity')
+                try
+                    gui.toggleDischargePowerEnable(false);
+                    if isfield(gui.UIControls.workingConditions, 'dischargePowerDensityCheckbox')
+                        gui.UIControls.workingConditions.dischargePowerDensityCheckbox.Value = false;
+                    end
+                catch
+                end
+            end
+            
+            if ~isFieldFound('workingConditions.surfaceSiteDensity')
+                try
+                    gui.toggleSurfaceSiteDensityEnable(false);
+                    if isfield(gui.UIControls.workingConditions, 'surfaceSiteDensityCheckbox')
+                        gui.UIControls.workingConditions.surfaceSiteDensityCheckbox.Value = false;
+                    end
+                catch
+                end
+            end
+            
+            if ~isFieldFound('workingConditions.totalSccmInFlow')
+                try
+                    gui.toggleTotalSccmInFlowEnable(false);
+                    if isfield(gui.UIControls.workingConditions, 'totalSccmInFlowCheckbox')
+                        gui.UIControls.workingConditions.totalSccmInFlowCheckbox.Value = false;
+                    end
+                catch
+                end
+            end
+            
+            if ~isFieldFound('workingConditions.totalSccmOutFlow')
+                try
+                    gui.toggleTotalSccmOutFlowEnable(false);
+                    if isfield(gui.UIControls.workingConditions, 'totalSccmOutFlowCheckbox')
+                        gui.UIControls.workingConditions.totalSccmOutFlowCheckbox.Value = false;
+                    end
+                catch
+                end
+            end
+            
+            if ~isFieldFound('workingConditions.gasPressure')
+                try
+                    gui.toggleGasPressureEnable(false);
+                    if isfield(gui.UIControls.workingConditions, 'gasPressureCheckbox')
+                        gui.UIControls.workingConditions.gasPressureCheckbox.Value = false;
+                    end
+                catch
+                end
+            end
+            
+            if ~isFieldFound('workingConditions.gasTemperature')
+                try
+                    gui.toggleGasTemperatureEnable(false);
+                    if isfield(gui.UIControls.workingConditions, 'gasTemperatureCheckbox')
+                        gui.UIControls.workingConditions.gasTemperatureCheckbox.Value = false;
+                    end
+                catch
+                end
+            end
+            
+            if ~isFieldFound('workingConditions.electronDensity')
+                try
+                    gui.toggleElectronDensityEnable(false);
+                    if isfield(gui.UIControls.workingConditions, 'electronDensityCheckbox')
+                        gui.UIControls.workingConditions.electronDensityCheckbox.Value = false;
+                    end
+                catch
+                end
+            end
+            
+            % Electron Kinetics optional fields
+            % Check both possible field names (LXCatExtraFiles and LXCatFilesExtra)
+            if ~isFieldFound('electronKinetics.LXCatExtraFiles') && ~isFieldFound('electronKinetics.LXCatFilesExtra')
+                try
+                    gui.toggleLXCatExtraEnable(false);
+                    if isfield(gui.UIControls.electronKinetics, 'LXCatExtraCheckbox')
+                        gui.UIControls.electronKinetics.LXCatExtraCheckbox.Value = false;
+                    end
+                catch
+                end
+            end
+            
+            if ~isFieldFound('electronKinetics.effectiveCrossSectionPopulations')
+                try
+                    gui.toggleEffectivePopEnable(false);
+                    if isfield(gui.UIControls.electronKinetics, 'effectivePopCheckbox')
+                        gui.UIControls.electronKinetics.effectivePopCheckbox.Value = false;
+                    end
+                catch
+                end
+            end
+            
+            if ~isFieldFound('electronKinetics.CARgases')
+                try
+                    gui.toggleCARGasEnable(false);
+                    if isfield(gui.UIControls.electronKinetics, 'CARcheckbox')
+                        gui.UIControls.electronKinetics.CARcheckbox.Value = false;
+                    end
+                catch
+                end
+            end
+            
+            % Output optional field
+            if ~isFieldFound('output.isOn')
+                try
+                    gui.toggleOutputEnable(false);
+                    if isfield(gui.UIControls.output, 'isOn')
+                        gui.UIControls.output.isOn.Value = false;
+                    end
+                    % Ensure dataFormat and folder remain enabled even when output.isOn is false
+                    if isfield(gui.UIControls.output, 'dataFormat')
+                        gui.UIControls.output.dataFormat.Enable = 'on';
+                    end
+                    if isfield(gui.UIControls.output, 'folder')
+                        gui.UIControls.output.folder.Enable = 'on';
+                    end
+                catch
+                end
+            end
+            
+            % Clear lists that were not found in the file
+            % LXCatFiles
+            if ~isFieldFound('electronKinetics.LXCatFiles')
+                gui.Setup.electronKinetics.LXCatFiles = {};
+                try
+                    if isfield(gui.UIControls.electronKinetics, 'LXCatFiles')
+                        gui.UIControls.electronKinetics.LXCatFiles.Items = {};
+                    end
+                catch
+                end
+            end
+            
+            % Gas Properties lists
+            if ~isFieldFound('electronKinetics.gasProperties.fraction')
+                gui.Setup.electronKinetics.gasProperties.fraction = {};
+                try
+                    if isfield(gui.UIControls, 'gasProperties') && isfield(gui.UIControls.gasProperties, 'fraction')
+                        gui.UIControls.gasProperties.fraction.Items = {};
+                    end
+                catch
+                end
+            end
+            
+            % State Properties lists
+            if ~isFieldFound('electronKinetics.stateProperties.energy')
+                gui.Setup.electronKinetics.stateProperties.energy = {};
+                try
+                    if isfield(gui.UIControls.electronKinetics, 'stateProperties') && isfield(gui.UIControls.electronKinetics.stateProperties, 'energy')
+                        gui.UIControls.electronKinetics.stateProperties.energy.Items = {};
+                    end
+                catch
+                end
+            end
+            
+            if ~isFieldFound('electronKinetics.stateProperties.statisticalWeight')
+                gui.Setup.electronKinetics.stateProperties.statisticalWeight = {};
+                try
+                    if isfield(gui.UIControls.electronKinetics, 'stateProperties') && isfield(gui.UIControls.electronKinetics.stateProperties, 'statisticalWeight')
+                        gui.UIControls.electronKinetics.stateProperties.statisticalWeight.Items = {};
+                    end
+                catch
+                end
+            end
+            
+            if ~isFieldFound('electronKinetics.stateProperties.population')
+                gui.Setup.electronKinetics.stateProperties.population = {};
+                try
+                    if isfield(gui.UIControls.electronKinetics, 'stateProperties') && isfield(gui.UIControls.electronKinetics.stateProperties, 'population')
+                        gui.UIControls.electronKinetics.stateProperties.population.Items = {};
+                    end
+                catch
+                end
+            end
+            
+            % Output dataSets
+            if ~isFieldFound('output.dataSets')
+                gui.Setup.output.dataSets = {};
+            end
+        end
+
+        function activateFoundOptionalFields(gui, foundFields)
+            % Activate and expand optional fields that were found in the loaded file
+            
+            % Helper function to check if a field was found (or any of its subfields)
+            function wasFound = isFieldFound(fieldPath)
+                wasFound = foundFields.isKey(fieldPath) && foundFields(fieldPath);
+                % Also check if any subfield was found (e.g., smartGrid.minEedfDecay means smartGrid was found)
+                if ~wasFound
+                    keys = foundFields.keys();
+                    for k = 1:length(keys)
+                        if startsWith(keys{k}, [fieldPath, '.'])
+                            wasFound = true;
+                            break;
+                        end
+                    end
+                end
+            end
+            
+            % Smart Grid - if found (or any subfield), activate checkbox and enable controls
+            if isFieldFound('electronKinetics.numerics.energyGrid.smartGrid') || ...
+               isFieldFound('electronKinetics.numerics.energyGrid.smartGrid.minEedfDecay') || ...
+               isFieldFound('electronKinetics.numerics.energyGrid.smartGrid.maxEedfDecay') || ...
+               isFieldFound('electronKinetics.numerics.energyGrid.smartGrid.updateFactor')
+                try
+                    if isfield(gui.UIControls.electronKinetics.numerics.energyGrid.smartGrid, 'isOn')
+                        gui.UIControls.electronKinetics.numerics.energyGrid.smartGrid.isOn.Value = true;
+                        gui.toggleSmartGridEnable(true);
+                    end
+                catch ME
+                    warning('Error activating smartGrid: %s', ME.message);
+                end
+            end
+            
+            % ODE Set Parameters - if found (or any subfield), show button and expand panel
+            % Button is only visible when algorithm is temporalIntegration
+            try
+                advancedButton = gui.UIControls.electronKinetics.numerics.nonLinearRoutines.advancedButton;
+                advancedPanel = gui.UIControls.electronKinetics.numerics.nonLinearRoutines.advancedPanel;
+                
+                % Check current algorithm
+                algorithm = gui.Setup.electronKinetics.numerics.nonLinearRoutines.algorithm;
+                
+                if strcmp(algorithm, 'temporalIntegration')
+                    % Show button when algorithm is temporalIntegration
+                    advancedButton.Visible = 'on';
+                    
+                    if isFieldFound('electronKinetics.numerics.nonLinearRoutines.odeSetParameters') || ...
+                       isFieldFound('electronKinetics.numerics.nonLinearRoutines.odeSetParameters.AbsTol') || ...
+                       isFieldFound('electronKinetics.numerics.nonLinearRoutines.odeSetParameters.RelTol') || ...
+                       isFieldFound('electronKinetics.numerics.nonLinearRoutines.odeSetParameters.MaxStep')
+                        % Expand panel if odeSetParameters is found
+                        advancedPanel.Visible = 'on';
+                        advancedButton.Text = 'Advanced (Optional) ▲';
+                        
+                        % Activate the checkbox
+                        if isfield(gui.UIControls.electronKinetics.numerics.nonLinearRoutines.odeSetParameters, 'isOn')
+                            gui.UIControls.electronKinetics.numerics.nonLinearRoutines.odeSetParameters.isOn.Value = true;
+                            gui.toggleOdeParametersEnable(true);
+                        end
+                    else
+                        % Collapse panel if odeSetParameters is not found
+                        advancedPanel.Visible = 'off';
+                        advancedButton.Text = 'Advanced (Optional) ▼';
+                    end
+                else
+                    % Hide button when algorithm is not temporalIntegration
+                    advancedButton.Visible = 'off';
+                    advancedPanel.Visible = 'off';
+                    advancedButton.Text = 'Advanced (Optional) ▼';
+                end
+            catch ME
+                warning('Error configuring advanced options: %s', ME.message);
+            end
+            
+            % Effective Cross Section Populations - if found, activate checkbox
+            if isFieldFound('electronKinetics.effectiveCrossSectionPopulations')
+                try
+                    gui.toggleEffectivePopEnable(true);
+                    if isfield(gui.UIControls.electronKinetics, 'effectivePopCheckbox')
+                        gui.UIControls.electronKinetics.effectivePopCheckbox.Value = true;
+                    end
+                catch ME
+                    warning('Error activating effectiveCrossSectionPopulations: %s', ME.message);
+                end
+            end
+        end
+
+        function saveInputFile(gui, ~, ~)
+            % Save the current setup to a file (.in or .json)
+            defaultName = ['LoKI_Setup_', datestr(now,'yyyymmdd_HHMMSS'), '.in'];
+            % Point to Code/Input folder
+            inputFolder = fullfile(pwd, 'Input');
+            if ~isfolder(inputFolder)
+                inputFolder = pwd; % Fallback to current directory
+            end
+            % Allow both .in and .json files
+            [file, path] = uiputfile({'*.in;*.json', 'LoKI Input Files (*.in, *.json)'; '*.in', 'LoKI Input Files (*.in)'; '*.json', 'LoKI JSON Files (*.json)'}, 'Save LoKI Input File As', fullfile(inputFolder, defaultName));
 
             if isequal(file, 0) || isequal(path, 0)
                 uialert(gui.Fig, 'File save cancelled.', 'Cancelled');
@@ -2093,8 +3959,15 @@ classdef LoKI_GUI < handle
             end
 
             outputFile = fullfile(path, file);
+            [~, ~, ext] = fileparts(file);
+            
             try
-                gui.generateInputFile(outputFile);
+                % Generate based on file extension
+                if strcmpi(ext, '.json')
+                    gui.generateJSONFile(outputFile);
+                else
+                    gui.generateInputFile(outputFile);
+                end
                 uialert(gui.Fig, ['Input file saved successfully: ', outputFile], 'Save Successful', 'Icon', 'success');
             catch ME
                 uialert(gui.Fig, ['Error saving file: ', ME.message], 'Save Error');
@@ -2179,8 +4052,8 @@ classdef LoKI_GUI < handle
                 fprintf(fid, '%sincludeEECollisions: %s\n', indent, mat2str(ek.includeEECollisions));
             end
             
-            % LXCat files
-            if isfield(ek, 'LXCatFiles')
+            % LXCat files (only write if not empty)
+            if isfield(ek, 'LXCatFiles') && ~isempty(ek.LXCatFiles)
                 fprintf(fid, '%sLXCatFiles:\n', indent);
                 for j = 1:length(ek.LXCatFiles)
                     fprintf(fid, '%s  - %s\n', indent, ek.LXCatFiles{j});
@@ -2191,7 +4064,7 @@ classdef LoKI_GUI < handle
             if isfield(ek, 'LXCatExtraFiles')
                 try
                     if gui.UIControls.electronKinetics.LXCatExtraCheckbox.Value
-                        fprintf(fid, '%s LXCatExtraFiles:\n', indent);
+                        fprintf(fid, '%sLXCatExtraFiles:\n', indent);
                         extraFiles = gui.UIControls.electronKinetics.LXCatExtraFiles.Items;
                         if isempty(extraFiles)
                             fprintf(fid, '%s   -\n', indent);
@@ -2210,7 +4083,7 @@ classdef LoKI_GUI < handle
             if isfield(ek, 'effectiveCrossSectionPopulations')
                 try
                     if gui.UIControls.electronKinetics.effectivePopCheckbox.Value
-                        fprintf(fid, '%s effectiveCrossSectionPopulations:\n', indent);
+                        fprintf(fid, '%seffectiveCrossSectionPopulations:\n', indent);
                         effectivePops = gui.UIControls.electronKinetics.effectiveCrossSectionPopulations.Items;
                         if isempty(effectivePops)
                             fprintf(fid, '%s   -\n', indent);
@@ -2229,7 +4102,7 @@ classdef LoKI_GUI < handle
             if isfield(ek, 'CARgases')
                 try
                     if gui.UIControls.electronKinetics.CARcheckbox.Value
-                        fprintf(fid, '%s CARgases:\n', indent);
+                        fprintf(fid, '%sCARgases:\n', indent);
                         carGases = gui.UIControls.electronKinetics.CARgases.Items;
                         if isempty(carGases)
                             fprintf(fid, '%s   -\n', indent);
@@ -2244,33 +4117,56 @@ classdef LoKI_GUI < handle
                 end
             end
             
-            % Gas Properties (write before stateProperties)
+            % Gas Properties (write before stateProperties, only if fraction is not empty)
             if isfield(ek, 'gasProperties')
-                fprintf(fid, '%sgasProperties:\n', indent);
-                % Write gas properties manually to handle fraction from UI
-                fprintf(fid, '%s  mass: %s\n', indent, ek.gasProperties.mass);
-                fprintf(fid, '%s  fraction:\n', indent);
+                % Check if fraction list is not empty
+                hasFraction = false;
                 if isfield(gui.UIControls, 'gasProperties') && isfield(gui.UIControls.gasProperties, 'fraction')
                     fractionItems = gui.UIControls.gasProperties.fraction.Items;
-                    for j = 1:length(fractionItems)
-                        fprintf(fid, '%s    - %s\n', indent, fractionItems{j});
-                    end
+                    hasFraction = ~isempty(fractionItems);
                 elseif isfield(ek.gasProperties, 'fraction')
-                    for j = 1:length(ek.gasProperties.fraction)
-                        fprintf(fid, '%s    - %s\n', indent, ek.gasProperties.fraction{j});
-                    end
+                    hasFraction = ~isempty(ek.gasProperties.fraction);
                 end
-                fprintf(fid, '%s  harmonicFrequency: %s\n', indent, ek.gasProperties.harmonicFrequency);
-                fprintf(fid, '%s  anharmonicFrequency: %s\n', indent, ek.gasProperties.anharmonicFrequency);
-                fprintf(fid, '%s  rotationalConstant: %s\n', indent, ek.gasProperties.rotationalConstant);
-                fprintf(fid, '%s  electricQuadrupoleMoment: %s\n', indent, ek.gasProperties.electricQuadrupoleMoment);
-                fprintf(fid, '%s  OPBParameter: %s\n', indent, ek.gasProperties.OPBParameter);
+                
+                if hasFraction
+                    fprintf(fid, '%sgasProperties:\n', indent);
+                    % Write gas properties manually to handle fraction from UI
+                    fprintf(fid, '%s  mass: %s\n', indent, ek.gasProperties.mass);
+                    fprintf(fid, '%s  fraction:\n', indent);
+                    if isfield(gui.UIControls, 'gasProperties') && isfield(gui.UIControls.gasProperties, 'fraction')
+                        fractionItems = gui.UIControls.gasProperties.fraction.Items;
+                        for j = 1:length(fractionItems)
+                            fprintf(fid, '%s    - %s\n', indent, fractionItems{j});
+                        end
+                    elseif isfield(ek.gasProperties, 'fraction')
+                        for j = 1:length(ek.gasProperties.fraction)
+                            fprintf(fid, '%s    - %s\n', indent, ek.gasProperties.fraction{j});
+                        end
+                    end
+                    fprintf(fid, '%s  harmonicFrequency: %s\n', indent, ek.gasProperties.harmonicFrequency);
+                    fprintf(fid, '%s  anharmonicFrequency: %s\n', indent, ek.gasProperties.anharmonicFrequency);
+                    fprintf(fid, '%s  rotationalConstant: %s\n', indent, ek.gasProperties.rotationalConstant);
+                    fprintf(fid, '%s  electricQuadrupoleMoment: %s\n', indent, ek.gasProperties.electricQuadrupoleMoment);
+                    fprintf(fid, '%s  OPBParameter: %s\n', indent, ek.gasProperties.OPBParameter);
+                end
             end
             
-            % State Properties (write normally with writeStructContent)
+            % State Properties (write normally with writeStructContent, but check if any lists are non-empty)
             if isfield(ek, 'stateProperties')
-                fprintf(fid, '%sstateProperties:\n', indent);
-                gui.writeStructContent(ek.stateProperties, [indent, '  '], fid);
+                % Check if any state property list is non-empty
+                hasStateProps = false;
+                if isfield(ek.stateProperties, 'energy') && ~isempty(ek.stateProperties.energy)
+                    hasStateProps = true;
+                elseif isfield(ek.stateProperties, 'statisticalWeight') && ~isempty(ek.stateProperties.statisticalWeight)
+                    hasStateProps = true;
+                elseif isfield(ek.stateProperties, 'population') && ~isempty(ek.stateProperties.population)
+                    hasStateProps = true;
+                end
+                
+                if hasStateProps
+                    fprintf(fid, '%sstateProperties:\n', indent);
+                    gui.writeStructContent(ek.stateProperties, [indent, '  '], fid);
+                end
             end
             
             % Numerics (write normally with writeStructContent)
@@ -2304,9 +4200,21 @@ classdef LoKI_GUI < handle
                         end
                         % If checkbox not checked, don't write anything
                     elseif strcmp(fieldName, 'odeSetParameters')
-                        % Check if ODE parameters should be written by checking the checkbox state
-                        if gui.UIControls.electronKinetics.numerics.nonLinearRoutines.odeSetParameters.isOn.Value
-                            % If checkbox is checked, write the section with current values
+                        % Check if ODE parameters should be written:
+                        % 1. Algorithm must be 'temporalIntegration'
+                        % 2. Checkbox must be checked
+                        algorithmIsTemporal = false;
+                        if isfield(gui.UIControls.electronKinetics.numerics.nonLinearRoutines, 'algorithm')
+                            algorithmIsTemporal = strcmp(gui.UIControls.electronKinetics.numerics.nonLinearRoutines.algorithm.Value, 'temporalIntegration');
+                        end
+                        
+                        checkboxChecked = false;
+                        if isfield(gui.UIControls.electronKinetics.numerics.nonLinearRoutines.odeSetParameters, 'isOn')
+                            checkboxChecked = gui.UIControls.electronKinetics.numerics.nonLinearRoutines.odeSetParameters.isOn.Value;
+                        end
+                        
+                        if algorithmIsTemporal && checkboxChecked
+                            % If algorithm is temporalIntegration AND checkbox is checked, write the section
                             fprintf(fid, '%s%s:\n', indent, fieldName);
                             % Write the actual values from the GUI controls with extra indentation
                             absTol = gui.UIControls.electronKinetics.numerics.nonLinearRoutines.odeSetParameters.AbsTol.Value;
@@ -2316,7 +4224,7 @@ classdef LoKI_GUI < handle
                             fprintf(fid, '%s   RelTol: %s\n', indent, num2str(relTol));
                             fprintf(fid, '%s   MaxStep: %s\n', indent, num2str(maxStep));
                         end
-                        % If not enabled, don't write anything
+                        % If not enabled (algorithm not temporalIntegration OR checkbox not checked), don't write anything
                     else
                         fprintf(fid, '%s%s:\n', indent, fieldName);
                         gui.writeStructContent(value, [indent, '  '], fid); % Recurse with more indent
@@ -2353,8 +4261,9 @@ classdef LoKI_GUI < handle
                                 % Skip if not checked
                             end
                         end
-                        % If none of the above, don't write empty fields
+                        % If none of the above, don't write empty fields (e.g., energy, statisticalWeight, population if empty)
                     else
+                        % Only write non-empty lists
                         fprintf(fid, '%s%s:\n', indent, fieldName);
                         for j = 1:length(value)
                             fprintf(fid, '%s  - %s\n', indent, gui.formatValue(value{j}));
@@ -2446,6 +4355,16 @@ classdef LoKI_GUI < handle
         end
 
         function runSimulation(gui, ~, ~)
+            % Show loading indicator while launching LoKI Simulation Tool
+            d = uiprogressdlg(gui.Fig, 'Title', 'LoKI-B', ...
+                'Message', 'Launching LoKI Simulation Tool...', ...
+                'Indeterminate', 'on');
+            cleanupDlg = onCleanup(@() gui.safeCloseDlg(d));
+            if isfield(gui.UIControls, 'runButton') && ~isempty(gui.UIControls.runButton) && isvalid(gui.UIControls.runButton)
+                gui.UIControls.runButton.Enable = 'off';
+                cleanupBtn = onCleanup(@() gui.safeEnableBtn(gui.UIControls.runButton));
+            end
+
             % 1. Generate the input file (e.g., to a temporary location or specific output)
             
             tempInputFile = fullfile(['Input' filesep 'loki_run_' datestr(now,'yyyymmdd_HHMMSSFFF') '.txt']);
@@ -2467,7 +4386,8 @@ classdef LoKI_GUI < handle
             % try
                 % --- Replace this with the actual call to your solver ---
                 % Example: status = run_loki_solver(tempInputFile);
-                lokibcl(tempInputFile(7:end)); % Placeholder for success
+                % Launch simulation tool
+                lokibcl(tempInputFile(7:end));
                 % Run the simulation
                 
             % catch ME
@@ -2478,5 +4398,23 @@ classdef LoKI_GUI < handle
             % delete(tempInputFile);
             fprintf('--- Simulation Finished ---\n');
          end
+
+        function safeCloseDlg(~, d)
+            try
+                if ~isempty(d) && isvalid(d)
+                    close(d);
+                end
+            catch
+            end
+        end
+
+        function safeEnableBtn(~, btn)
+            try
+                if ~isempty(btn) && isvalid(btn)
+                    btn.Enable = 'on';
+                end
+            catch
+            end
+        end
     end % methods
 end % classdef
