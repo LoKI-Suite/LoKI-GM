@@ -191,7 +191,7 @@ classdef Input_GUI < handle
             % Numerics
             gui.Setup.electronKinetics.numerics.energyGrid.maxEnergy = 1; % (use 18-20 for time-dependent simulations)
             gui.Setup.electronKinetics.numerics.energyGrid.cellNumber = 1000; % (use 1800-2000 for time-dependent simulations)
-            gui.Setup.electronKinetics.numerics.energyGrid.smartGrid.isOn = false;
+            gui.Setup.electronKinetics.numerics.energyGrid.smartGrid.isOn = true;
             gui.Setup.electronKinetics.numerics.energyGrid.smartGrid.minEedfDecay = 20;
             gui.Setup.electronKinetics.numerics.energyGrid.smartGrid.maxEedfDecay = 25;
             gui.Setup.electronKinetics.numerics.energyGrid.smartGrid.updateFactor = 0.05;
