@@ -4350,7 +4350,7 @@ classdef Input_GUI < handle
                         if strcmp(ek.shapeParameter, 'Druyvesteyn')
                             shapeValue = 2;
                         end
-                        fprintf(fid, '%s shapeParameter: %d\n', indent, shapeValue);
+                        fprintf(fid, '%sshapeParameter: %d\n', indent, shapeValue);
                     end
                 catch
                     % Skip if not prescribedEedf
