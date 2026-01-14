@@ -1816,6 +1816,16 @@ classdef Input_GUI < handle
                     end
                 elseif isa(control, 'matlab.ui.control.DropDown')
                     % Items set separately, here we set the selected value
+                    % Special handling for shapeParameter (numeric 1 or 2 -> string)
+                    if strcmp(dataPath, 'electronKinetics.shapeParameter') && isnumeric(value)
+                        if value == 1
+                            value = 'Maxwellian';
+                        elseif value == 2
+                            value = 'Druyvesteyn';
+                        else
+                            value = 'Maxwellian'; % Default fallback
+                        end
+                    end
                     control.Value = value;
                 elseif isa(control, 'matlab.ui.control.CheckBox')
                     control.Value = logical(value); % Ensure its logical
@@ -1832,7 +1842,16 @@ classdef Input_GUI < handle
                         warning('Non-numeric value found for numeric field %s. Attempted conversion.', dataPath);
                     end
                 elseif isa(control, 'matlab.ui.control.EditField') % Text edit field
-                    if isnumeric(value)
+                    if iscell(value) && ~isempty(value)
+                        % For cell arrays (lists), show first value or join with comma
+                        % For gas properties fields that are now lists, show first value
+                        if length(value) == 1
+                            control.Value = char(value{1});
+                        else
+                            % Multiple values - join with comma and space
+                            control.Value = strjoin(value, ', ');
+                        end
+                    elseif isnumeric(value)
                         control.Value = num2str(value);
                     elseif ischar(value) || isstring(value)
                         control.Value = value;
@@ -1922,7 +1941,20 @@ classdef Input_GUI < handle
                     elseif ~isnumeric(value) % If it's neither string nor numeric (e.g., unexpected type)
                         error('Expected numeric or string input for numeric field, got %s', class(value));
                     end
-                % Add elseif blocks here if other specific type conversions are needed
+                % Check if the target field is a cell array (list) but value is a string
+                elseif iscell(currentValue) && (ischar(value) || isstring(value))
+                    % If user entered a string but field is a list, check if it contains commas
+                    % If it does, split into cell array; otherwise, create single-item cell array
+                    if contains(value, ',')
+                        % Split by comma and trim each item
+                        items = strsplit(value, ',');
+                        value = cellfun(@strtrim, items, 'UniformOutput', false);
+                        % Remove empty items
+                        value = value(~cellfun(@isempty, value));
+                    else
+                        % Single value - convert to cell array
+                        value = {char(value)};
+                    end
                 end
                 % --- End Type Conversion ---
 
@@ -3172,24 +3204,67 @@ classdef Input_GUI < handle
 
                 % List item: "- something"
                 if startsWith(line, '-')
-                    % Append to last list key
                     item = strtrim(line(2:end));
                     if isempty(keyStack)
                         i = i + 1;
                         continue;
                     end
                     pathParts = keyStack;
-                    % Get current list (should be empty or already started from "key:" line)
-                    currentList = getByPath(setup, pathParts);
-                    if isempty(currentList) || ~iscell(currentList)
-                        currentList = {};
-                    end
-                    % Append item to list (completely replacing, not adding to defaults)
-                    currentList{end+1} = item;
-                    setup = setByPath(setup, pathParts, currentList);
-                    % Mark this list field as found
                     fieldPath = strjoin(pathParts, '.');
-                    foundFields(fieldPath) = true;
+                    
+                    % Check if this is a known list field
+                    if isListField(fieldPath)
+                        % This is a list field - append to list
+                        currentList = getByPath(setup, pathParts);
+                        if isempty(currentList) || ~iscell(currentList)
+                            currentList = {};
+                        end
+                        % Append item to list (completely replacing, not adding to defaults)
+                        currentList{end+1} = item;
+                        setup = setByPath(setup, pathParts, currentList);
+                        % Mark this list field as found
+                        foundFields(fieldPath) = true;
+                    else
+                        % This is NOT a list field - treat as string (take first value only)
+                        % If this is the first "-" line for this field, set the value
+                        currentValue = getByPath(setup, pathParts);
+                        % Check if value should be replaced:
+                        % - Empty values
+                        % - Cell arrays (empty or non-empty - should be converted to string)
+                        % - Structs (just created, no value set)
+                        % - Default values containing 'Databases/' (indicates default file path)
+                        isDefaultOrEmpty = isempty(currentValue) || ...
+                                          iscell(currentValue) || ...
+                                          isstruct(currentValue) || ...
+                                          (ischar(currentValue) && contains(currentValue, 'Databases/'));
+                        
+                        % Check if this field already has a non-default value set
+                        % (not just marked as found, but actually has a value that's not a struct or default)
+                        hasNonDefaultValue = foundFields.isKey(fieldPath) && foundFields(fieldPath) && ...
+                                           ~isstruct(currentValue) && ...
+                                           ~isempty(currentValue) && ...
+                                           ~iscell(currentValue) && ...
+                                           ~(ischar(currentValue) && contains(currentValue, 'Databases/'));
+                        
+                        if isDefaultOrEmpty && ~hasNonDefaultValue
+                            % First value - set as string (replace default if present)
+                            setup = setByPath(setup, pathParts, item);
+                            foundFields(fieldPath) = true;
+                        elseif hasNonDefaultValue
+                            % Multiple values detected - warn user
+                            currentVal = getByPath(setup, pathParts);
+                            % Convert cell array to string for warning message
+                            if iscell(currentVal) && ~isempty(currentVal)
+                                currentValStr = char(currentVal{1});
+                            elseif ischar(currentVal)
+                                currentValStr = currentVal;
+                            else
+                                currentValStr = 'unknown';
+                            end
+                            warning('Field "%s" only accepts a single file. Multiple values found, using only the first one: "%s"', fieldPath, currentValStr);
+                        end
+                        % Ignore additional "-" lines for non-list fields
+                    end
                     i = i + 1;
                     continue;
                 end
@@ -3222,21 +3297,23 @@ classdef Input_GUI < handle
                         j = j + 1;
                     end
                     isList = false;
+                    pathParts = [keyStack, {key}];
+                    fieldPath = strjoin(pathParts, '.');
+                    
                     if j <= numel(lines)
                         nxtRaw = lines{j};
                         nxtIndent = numel(regexp(nxtRaw, '^\s*', 'match', 'once'));
                         nxtLine = strtrim(nxtRaw);
+                        % Only treat as list if next line has "-" AND it's a known list field
                         if nxtIndent > indent && startsWith(nxtLine, '-')
-                            isList = true;
+                            isList = isListField(fieldPath);
                         end
                     end
 
                     if isList
                         % Initialize list as empty (will be populated by "- " lines)
-                        pathParts = [keyStack, {key}];
                         setup = setByPath(setup, pathParts, {}); % Start with empty list
                         % Mark this list field as found (with normalized name)
-                        fieldPath = strjoin(pathParts, '.');
                         foundFields(fieldPath) = true;
                         % Also mark with original name if it was normalized (for compatibility)
                         if ~strcmp(originalKey, key)
@@ -3269,9 +3346,28 @@ classdef Input_GUI < handle
                     end
                 else
                     pathParts = [keyStack, {key}];
-                    setup = setByPath(setup, pathParts, parseScalar(valStr));
-                    % Mark this field as found
                     fieldPath = strjoin(pathParts, '.');
+                    
+                    % Check if this is a known list field that can be written inline
+                    if isListField(fieldPath)
+                        % Convert inline value to cell array (list with single item)
+                        setup = setByPath(setup, pathParts, {valStr});
+                    else
+                        % Regular scalar value
+                        parsedValue = parseScalar(valStr);
+                        % Special handling for shapeParameter: convert numeric (1 or 2) to string
+                        if strcmp(fieldPath, 'electronKinetics.shapeParameter') && isnumeric(parsedValue)
+                            if parsedValue == 1
+                                parsedValue = 'Maxwellian';
+                            elseif parsedValue == 2
+                                parsedValue = 'Druyvesteyn';
+                            else
+                                parsedValue = 'Maxwellian'; % Default fallback
+                            end
+                        end
+                        setup = setByPath(setup, pathParts, parsedValue);
+                    end
+                    % Mark this field as found
                     foundFields(fieldPath) = true;
                 end
 
@@ -3279,6 +3375,48 @@ classdef Input_GUI < handle
             end
 
             % Local helpers
+            function isList = isListField(fieldPath)
+                % Check if a field path represents a known list field
+                % These fields can be written inline (single value) or multiline (with -)
+                % Check by field name (last part of path) to handle normalization
+                pathParts = strsplit(fieldPath, '.');
+                fieldName = pathParts{end};
+                
+                % List of field names that are lists (case-insensitive)
+                listFieldNames = {
+                    'LXCatFiles';
+                    'LXCatExtraFiles';
+                    'LXCatFilesExtra';
+                    'effectiveCrossSectionPopulations';
+                    'CARgases';
+                    'fraction';
+                    'energy';
+                    'statisticalWeight';
+                    'population';
+                    'dataSets'
+                };
+                
+                % Check if field name matches (case-insensitive)
+                isList = any(strcmpi(fieldName, listFieldNames));
+                
+                % Also check full path for specific cases (more precise)
+                fullPathListFields = {
+                    'electronKinetics.LXCatFiles';
+                    'electronKinetics.LXCatExtraFiles';
+                    'electronKinetics.LXCatFilesExtra';
+                    'electronKinetics.effectiveCrossSectionPopulations';
+                    'electronKinetics.CARgases';
+                    'electronKinetics.gasProperties.fraction';
+                    'electronKinetics.stateProperties.energy';
+                    'electronKinetics.stateProperties.statisticalWeight';
+                    'electronKinetics.stateProperties.population';
+                    'output.dataSets'
+                };
+                if any(strcmp(fieldPath, fullPathListFields))
+                    isList = true;
+                end
+            end
+            
             function v = parseScalar(s)
                 s = strtrim(s);
                 % Booleans
@@ -4445,7 +4583,14 @@ classdef Input_GUI < handle
                 if hasFraction
                     fprintf(fid, '%sgasProperties:\n', indent);
                     % Write gas properties manually to handle fraction from UI
-                    fprintf(fid, '%s  mass: %s\n', indent, ek.gasProperties.mass);
+                    % Write mass field - convert cell array to string if needed
+                    massValue = ek.gasProperties.mass;
+                    if iscell(massValue) && ~isempty(massValue)
+                        massValue = char(massValue{1});
+                    elseif iscell(massValue) && isempty(massValue)
+                        massValue = '';
+                    end
+                    fprintf(fid, '%s  mass: %s\n', indent, massValue);
                     fprintf(fid, '%s  fraction:\n', indent);
                     if isfield(gui.UIControls, 'gasProperties') && isfield(gui.UIControls.gasProperties, 'fraction')
                         fractionItems = gui.UIControls.gasProperties.fraction.Value;
@@ -4457,11 +4602,21 @@ classdef Input_GUI < handle
                             fprintf(fid, '%s    - %s\n', indent, ek.gasProperties.fraction{j});
                         end
                     end
-                    fprintf(fid, '%s  harmonicFrequency: %s\n', indent, ek.gasProperties.harmonicFrequency);
-                    fprintf(fid, '%s  anharmonicFrequency: %s\n', indent, ek.gasProperties.anharmonicFrequency);
-                    fprintf(fid, '%s  rotationalConstant: %s\n', indent, ek.gasProperties.rotationalConstant);
-                    fprintf(fid, '%s  electricQuadrupoleMoment: %s\n', indent, ek.gasProperties.electricQuadrupoleMoment);
-                    fprintf(fid, '%s  OPBParameter: %s\n', indent, ek.gasProperties.OPBParameter);
+                    % Write gas properties fields - convert cell arrays to strings if needed
+                    gasPropFields = {'harmonicFrequency', 'anharmonicFrequency', 'rotationalConstant', 'electricQuadrupoleMoment', 'OPBParameter'};
+                    for fieldIdx = 1:length(gasPropFields)
+                        fieldName = gasPropFields{fieldIdx};
+                        if isfield(ek.gasProperties, fieldName)
+                            fieldValue = ek.gasProperties.(fieldName);
+                            % Convert cell array to string (take first value)
+                            if iscell(fieldValue) && ~isempty(fieldValue)
+                                fieldValue = char(fieldValue{1});
+                            elseif iscell(fieldValue) && isempty(fieldValue)
+                                fieldValue = '';
+                            end
+                            fprintf(fid, '%s  %s: %s\n', indent, fieldName, fieldValue);
+                        end
+                    end
                 end
             end
             
