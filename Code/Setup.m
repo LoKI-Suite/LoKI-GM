@@ -260,9 +260,19 @@ classdef Setup < handle
           outputSubFolder = sprintf('%s%s%s_%g', outputSubFolder, filesep, setup.batches(i).property, ...
             setup.batches(i).value(newJobIndeces{i}));
         end
+        % locate the output subfolder at next level, 
+        % in case multiple jobs refer to a parameter different from 'reduced field' 
+        iBatches = setup.numberOfBatches;
+        if ~strcmp(setup.batches(iBatches).property, 'reducedField')
+            outputSubFolderBatches = sprintf('%s_%g', setup.batches(iBatches).property, ...
+                setup.batches(iBatches).value(newJobIndeces{iBatches}));
+        end
+
         % set subFolder for the output of the next job
         setup.output.subFolder = outputSubFolder;
-        
+        if ~strcmp(setup.batches(iBatches).property, 'reducedField')
+            setup.output.subFolderBatches = outputSubFolderBatches;
+        end
       end
       
     end

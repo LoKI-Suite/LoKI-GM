@@ -23,7 +23,8 @@ classdef Output < handle
   
   properties
     folder = '';                        % main output folder
-    subFolder = '';                     % sub folder for output of different jobs
+    subFolder = '';                     % sub folder (deeper level) for output of different jobs
+    subFolderBatches = '';              % sub folder (higher level) for output of different jobs    
     h5file = '';                        % output file name if dataFormat is hdf5
     dataFormat = '';                    % data format to save results. Options are: 'txt' and 'hdf5'
 
@@ -60,14 +61,26 @@ classdef Output < handle
 
         % set initial output subfolder (in case multiple jobs are to be run)
         outputSubFolder = '';
+        iBatches = setup.numberOfBatches;
         if setup.numberOfJobs > 1
           for i = setup.numberOfBatches:-1:1
             outputSubFolder = sprintf('%s%s%s_%g', outputSubFolder, filesep, setup.batches(i).property, ...
             setup.batches(i).value(1));
           end
+          % locate the output subfolder at next level, 
+          % in case multiple jobs refer to a parameter different from 'reduced field' 
+          if ~strcmp(setup.batches(iBatches).property, 'reducedField')
+            outputSubFolderBatches = sprintf('%s_%g', setup.batches(iBatches).property, ...
+                setup.batches(iBatches).value(1));
+          end 
         end
-        % save output sub folder info (folder inside the output.folder folder)
+        % save output subfolder info (folder inside the output.folder folder)
         output.subFolder = outputSubFolder;
+        if iBatches ~= 0
+            if ~strcmp(setup.batches(iBatches).property, 'reducedField')
+                output.subFolderBatches = outputSubFolderBatches;
+            end
+        end  
       end
       
       if contains(output.dataFormat, 'hdf5')
@@ -1116,6 +1129,7 @@ classdef Output < handle
       persistent fileName3;
       persistent fileName4;
       persistent fileName5;
+      persistent folderLookUpTables;
       
       % local copies of different variables (for performance reasons)
       workCond = electronKinetics.workCond;
@@ -1124,13 +1138,19 @@ classdef Output < handle
       rateCoeffAll = electronKinetics.rateCoeffAll;
       rateCoeffExtra = electronKinetics.rateCoeffExtra;
       eedf = electronKinetics.eedf;
-      
+
+      if isempty(folderLookUpTables) && ~isempty(output.subFolderBatches) 
+        folderLookUpTables = output.subFolderBatches;
+      end
+      localFolderLookUpTables = output.subFolderBatches;
+
       % initialize the files in case it is needed
-      if isempty(fileName1)
+      if (isempty(fileName1) || ~strcmp(folderLookUpTables,localFolderLookUpTables)) 
+        folderLookUpTables = output.subFolderBatches;
         % create file names
-        fileName1 = [output.folder filesep 'lookUpTableSwarm.txt'];
-        fileName2 = [output.folder filesep 'lookUpTablePower.txt'];
-        fileName3 = [output.folder filesep 'lookUpTableRateCoeff.txt'];
+        fileName1 = [output.folder filesep output.subFolderBatches filesep 'lookUpTableSwarm.txt'];
+        fileName2 = [output.folder filesep output.subFolderBatches filesep 'lookUpTablePower.txt'];
+        fileName3 = [output.folder filesep output.subFolderBatches filesep 'lookUpTableRateCoeff.txt'];
         % open files
         fileID1 = fopen(fileName1, 'wt');
         fileID2 = fopen(fileName2, 'wt');
