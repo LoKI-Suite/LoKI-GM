@@ -3157,6 +3157,7 @@ classdef Input_GUI < handle
 
             setup = gui.Setup;
             foundFields = containers.Map('KeyType', 'char', 'ValueType', 'logical'); % Track found fields
+            hyphenCounts = containers.Map('KeyType', 'char', 'ValueType', 'double'); % Track hyphen counts for non-list fields
 
             keyStack = {};
             indentStack = [-1];
@@ -3226,7 +3227,12 @@ classdef Input_GUI < handle
                         foundFields(fieldPath) = true;
                     else
                         % This is NOT a list field - treat as string (take first value only)
-                        % If this is the first "-" line for this field, set the value
+                        % Track number of hyphens found for this field
+                        if ~hyphenCounts.isKey(fieldPath)
+                            hyphenCounts(fieldPath) = 0;
+                        end
+                        hyphenCounts(fieldPath) = hyphenCounts(fieldPath) + 1;
+                        
                         currentValue = getByPath(setup, pathParts);
                         % Check if value should be replaced:
                         % - Empty values
@@ -3238,20 +3244,12 @@ classdef Input_GUI < handle
                                           isstruct(currentValue) || ...
                                           (ischar(currentValue) && contains(currentValue, 'Databases/'));
                         
-                        % Check if this field already has a non-default value set
-                        % (not just marked as found, but actually has a value that's not a struct or default)
-                        hasNonDefaultValue = foundFields.isKey(fieldPath) && foundFields(fieldPath) && ...
-                                           ~isstruct(currentValue) && ...
-                                           ~isempty(currentValue) && ...
-                                           ~iscell(currentValue) && ...
-                                           ~(ischar(currentValue) && contains(currentValue, 'Databases/'));
-                        
-                        if isDefaultOrEmpty && ~hasNonDefaultValue
-                            % First value - set as string (replace default if present)
+                        if hyphenCounts(fieldPath) == 1
+                            % First hyphen - set the value
                             setup = setByPath(setup, pathParts, item);
                             foundFields(fieldPath) = true;
-                        elseif hasNonDefaultValue
-                            % Multiple values detected - warn user
+                        else
+                            % Second or more hyphen - show warning (even if first was default)
                             currentVal = getByPath(setup, pathParts);
                             % Convert cell array to string for warning message
                             if iscell(currentVal) && ~isempty(currentVal)
@@ -3261,9 +3259,18 @@ classdef Input_GUI < handle
                             else
                                 currentValStr = 'unknown';
                             end
-                            warning('Field "%s" only accepts a single file. Multiple values found, using only the first one: "%s"', fieldPath, currentValStr);
+                            % Show visual warning to user
+                            if isvalid(gui.Fig)
+                                uialert(gui.Fig, ...
+                                    sprintf('Field "%s" only accepts a single file.\n\nMultiple values found in the input file (%d values).\nOnly the first value will be used: "%s"', ...
+                                    fieldPath, hyphenCounts(fieldPath), currentValStr), ...
+                                    'Multiple Values Warning', 'Icon', 'warning');
+                            else
+                                % Fallback to console warning if figure is not available
+                                warning('Field "%s" only accepts a single file. Multiple values found (%d values), using only the first one: "%s"', fieldPath, hyphenCounts(fieldPath), currentValStr);
+                            end
                         end
-                        % Ignore additional "-" lines for non-list fields
+                        % Ignore additional "-" lines for non-list fields (value already set from first hyphen)
                     end
                     i = i + 1;
                     continue;
