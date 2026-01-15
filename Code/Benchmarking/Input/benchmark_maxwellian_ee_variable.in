@@ -1,0 +1,72 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%   BENCHMARK: Maxwellian com colisões e-e          %
+%   E/N = 10 Td, eeCollisions = true, CAR = false  %
+%   Colisões elásticas ~ 0 (cross section dummy)   %
+%   Solução analítica: Maxwelliana a Te             %
+%   Malha VARIÁVEL                                  %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% --- configuration of the working conditions ---
+workingConditions:
+  reducedField: 1                        % E/N = 10 Td para estabelecer Te
+  electronTemperature: linspace(0.03, 5, 100) % in eV
+  excitationFrequency: 0                      % in Hz
+  gasPressure: 133.32                         % in Pa (1 Torr)
+  gasTemperature: 300                         % in K
+  wallTemperature: 300                        % in K
+  extTemperature: 300                         % in K
+  surfaceSiteDensity: 1e19                    % in m-2
+  electronDensity: 1e20                       % in m-3
+  chamberLength: 1.0                          % in m
+  chamberRadius: 1.0                          % in m
+
+% --- configuration of the electron kinetics ---
+electronKinetics:
+  isOn: true                           % true or false
+  eedfType: boltzmann                  % boltzmann
+  ionizationOperatorType: conservative % conservative
+  growthModelType: temporal            % temporal
+  includeEECollisions: true            % TRUE - com colisões e-e
+  LXCatFiles:                          % Cross section dummy (quase zero) para reconhecer H2
+    - Hydrogen/H2_elastic_LXCat.txt
+  gasProperties:                       % properties of the gases (S.I. Units)
+    mass: Databases/masses.txt
+    fraction:
+      - H2 = 1
+    harmonicFrequency: Databases/harmonicFrequencies.txt
+    anharmonicFrequency: Databases/anharmonicFrequencies.txt
+    rotationalConstant: Databases/rotationalConstants.txt
+    electricQuadrupoleMoment: Databases/quadrupoleMoment.txt
+    OPBParameter: Databases/OPBParameter.txt
+  stateProperties:                     % properties of the states
+    population:
+      - H2(X) = 1.0
+  numerics:                            % configuration of numerical details
+    energyGrid:                        % properties of the energy grid (in eV)
+      variableGrid: true               % MALHA VARIÁVEL
+      firstEnergyStep: 1e-3            % Passo inicial (OBRIGATÓRIO para variableGrid)
+      maxEnergy: 5                     % 5 eV (mais conservativo)
+      cellNumber: 1000                 % Mais células para melhor resolução
+    maxPowerBalanceRelError: 1e-9      % threshold for power balance
+    nonLinearRoutines:
+      algorithm: mixingDirectSolutions % mixingDirectSolutions
+      mixingParameter: 0.7             % mixing parameter
+      maxEedfRelError: 1e-9            % maximum rel. variation for EEDF
+          
+% --- configuration of the graphical user interface ---
+gui: 
+  isOn: false
+  refreshFrequency: 1
+
+% ---  configuration of the output files ---
+output: 
+  isOn: true
+  dataFormat: txt % txt
+  folder: benchmark_maxwellian_ee_variable
+  dataSets:
+    - log
+    - eedf
+    - swarmParameters
+    - powerBalance
+    - lookUpTable
+

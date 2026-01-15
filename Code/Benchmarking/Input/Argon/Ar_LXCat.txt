@@ -1,0 +1,1588 @@
+LXCat, www.lxcat.net
+Generated on 23 Sep 2022. All rights reserved.
+
+RECOMMENDED REFERENCE FORMAT
+- IST-Lisbon database, www.lxcat.net, retrieved on September 23, 2022.
+Be aware that some databases and solvers can additionally have instructions how to reference corresponding data.
+Please check below in the headers of databases.
+
+CROSS SECTION DATA FORMAT
+In downloaded files, each collision process is defined by a block consisting of
+1st line
+Keyword in capitals indicating the type of the collision. Possible collision types are elastic, effective, excitation,
+ionization, or attachment (capital letters required, key words are case sensitive), where "elastic" is used to denote
+the elastic momentum transfer cross section and where "effective" denotes the total momentum transfer cross section (sum
+of elastic momentum transfer and total inelastic cross sections).  The latter is useful for solving the Boltzmann
+equation in the 2-term approximation.
+2nd line
+Name of the target particle species. This name is a character string, freely chosen by the user, e.g. "Ar". Optionally
+for excitation processes, the name of the corresponding excited state can be specified on the same line, separated from
+the first name either by arrow "->" (dash + greater than) or by double-head arrow "<->" (less than + dash +
+greater than), e.g. "Ar -> Ar*" and "Ar <-> Ar*", respectively. In the later case BOLSIG+ will automatically
+define the inverse superelastic process, constructing the superelastic cross-section by detailed balancing, and
+considering the indicated excited state as the target. In this case, the ratio of statistical weights must be input in
+the 3rd line (see below).
+3rd line
+For elastic and effective collisions, the ratio of the electron mass to the target particle mass. For excitation or
+ionization collisions, the electron energy loss (nominally the threshold energy) in eV. For attachment, the 3rd line is
+missing. In case of an excitation process where an excited state has been indicated on the 2nd line using double-head
+arrow "<->", the 3rd line must specify also ratio of the statistical weights of the final state to the initial state
+as the second parameter in 3rd line this is needed by BOLSIG+ to calculate the de-excitation cross-section. The
+statistical weight ratio, if given, will also be used by the automatic superelastics option in BOLSIG+. If this ratio is
+not provided then BOLSIG+ will assume it unity.
+from 4th line (optionally)
+User comments and reference information, maximum 100 lines. The only constraint on format is that these comment lines
+must not start with a number.
+Finally
+Table of the cross section as a function of energy. The table starts and ends by a line of dashes "------" (at least 5),
+and has otherwise two numbers per line: the energy in eV and the cross section in m2.
+
+xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+DATABASE:         IST-Lisbon database
+PERMLINK:         www.lxcat.net/IST-Lisbon
+DESCRIPTION:      IST-Lisbon database contains up-to-date electron-neutral scattering cross sections (together with the
+                  measured swarm parameters used to validate these data), resulting from the research effort of the
+                  Group N-Plasmas Reactive: Modelling and Engineering (N-PRiME) with IPFN/IST (Instituto de Plasmas e
+                  Fusao Nuclear / Instituto Superior Tecnico), Lisbon, Portugal.  The data, compiled from the
+                  literature, correspond to contributions from different authors (see detailed references in the
+                  database). For each gas the database presents a COMPLETE SET of cross sections, validated against
+                  measured swarm parameters by solving the two-term homogeneous electron Boltzmann equation. In most
+                  cases, predictions are in agreement with measurements within 1-20%, for reduced electric fields E/N ~
+                  1e-4 - 500 Td. To improve predictions at low E/N, some sets need to be completed with rotational cross
+                  sections, also available in the database.
+CONTACT:          LL Alves and V Guerra
+                  e-mail: llalves@@tecnico.ulisboa.pt
+HOW TO REFERENCE: L.L. Alves, ''The IST-Lisbon database on LXCat'' J. Phys. Conf. Series 2014, 565, 1
+xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+
+************************************************************************************************************************
+
+COMMENT: A. Yanguas-Gil, J. Cotrino and L.L. Alves ''An update of argon inelastic cross sections for plasma discharges'' 2005 J.
+         Phys. D: Appl. Phys. 38 1588-1598. Cross sections were defined for energies up to 1 keV and were adjusted as to yield
+         good agreement between calculated and measured swarm parameters. The calculations use a two-term Boltzmann solver with
+         the SST growth model. The cross sections are handled choosing a linear interpolation scheme with no extrapolation after
+         the last energy point, within energy-grids with 1000 points and constant step-sizes comprised between 0.001 and 0.7 eV,
+         according to the (low/high) reduced-field values considered.
+         The elastic momentum-transfer cross section is obtained from the effective proposed by Phelps et al, as published in
+         Yamade et al, Phys. Rev (1983). The inelastic electron cross sections for the 4s states are obtained from Khakoo et al,
+         with the cross sections for the resonant transitions multiplied by a factor of 0.5. The inelastic electron cross
+         sections for the 4p states, 3d and 5s states, and 5p states are obtained from Chilton et al., Hayashi and Weber et al,
+         respectively. The inelastic electron cross sections for the 4d and 6s states are estimated using the formulae proposed
+         by Drawin. 
+         The ionization cross section is taken from the measurements of Rapp and Englander-Golden.
+
+********************************************************** Ar **********************************************************
+
+ELASTIC
+Ar
+ 1.371000e-5
+SPECIES: e / Ar
+PROCESS: E + Ar -> E + Ar, Elastic
+PARAM.:  m/M = 0.00001371, complete set
+COMMENT: [Ar(1S0) + e -> Ar(1S0) + e, Elastic] Phelps A V et al 1997 Yamabe C et al 1983 Phys.
+COMMENT: Rev. A 27 1345.
+UPDATED: 2018-05-18 13:21:10
+COLUMNS: Energy (eV) | Cross section (m2)
+-----------------------------
+ 0.000000e+0	7.500000e-20
+ 1.000000e-3	7.500000e-20
+ 2.000000e-3	7.100000e-20
+ 3.000000e-3	6.700000e-20
+ 5.000000e-3	6.100000e-20
+ 7.000000e-3	5.400000e-20
+ 8.500000e-3	5.050000e-20
+ 1.000000e-2	4.600000e-20
+ 1.500000e-2	3.750000e-20
+ 2.000000e-2	3.250000e-20
+ 3.000000e-2	2.500000e-20
+ 4.000000e-2	2.050000e-20
+ 5.000000e-2	1.730000e-20
+ 7.000000e-2	1.130000e-20
+ 1.000000e-1	5.900000e-21
+ 1.200000e-1	4.000000e-21
+ 1.500000e-1	2.300000e-21
+ 1.700000e-1	1.600000e-21
+ 2.000000e-1	1.030000e-21
+ 2.500000e-1	9.100000e-22
+ 3.000000e-1	1.530000e-21
+ 3.500000e-1	2.350000e-21
+ 4.000000e-1	3.300000e-21
+ 5.000000e-1	5.100000e-21
+ 7.000000e-1	8.600000e-21
+ 1.000000e+0	1.380000e-20
+ 1.200000e+0	1.660000e-20
+ 1.300000e+0	1.820000e-20
+ 1.500000e+0	2.100000e-20
+ 1.700000e+0	2.300000e-20
+ 1.900000e+0	2.500000e-20
+ 2.100000e+0	2.800000e-20
+ 2.200000e+0	2.900000e-20
+ 2.500000e+0	3.300000e-20
+ 2.800000e+0	3.800000e-20
+ 3.000000e+0	4.100000e-20
+ 3.300000e+0	4.500000e-20
+ 3.600000e+0	4.900000e-20
+ 4.000000e+0	5.400000e-20
+ 4.500000e+0	6.100000e-20
+ 5.000000e+0	6.700000e-20
+ 6.000000e+0	8.100000e-20
+ 7.000000e+0	9.600000e-20
+ 8.000000e+0	1.170000e-19
+ 1.000000e+1	1.500000e-19
+ 1.200000e+1	1.450000e-19
+ 1.500000e+1	1.370000e-19
+ 1.700000e+1	1.100000e-19
+ 2.000000e+1	9.200000e-20
+ 2.500000e+1	6.800000e-20
+ 3.000000e+1	5.500000e-20
+ 5.000000e+1	3.200000e-20
+ 7.500000e+1	2.150000e-20
+ 1.000000e+2	1.600000e-20
+ 1.500000e+2	1.100000e-20
+ 2.000000e+2	8.800000e-21
+ 3.000000e+2	6.000000e-21
+ 5.000000e+2	3.700000e-21
+ 7.000000e+2	2.600000e-21
+ 1.000000e+3	1.700000e-21
+-----------------------------
+
+EXCITATION
+Ar -> Ar(3P2)
+ 1.154800e+1
+SPECIES: e / Ar
+PROCESS: E + Ar -> E + Ar(3P2), Excitation
+PARAM.:  E = 11.548 eV, complete set
+COMMENT: [Ar(1S0) + e -> Ar(3P2) + e, Excitation] Khakoo M A et al 2004 J. Phys. B: At. Mol.
+COMMENT: Opt. Phys. 37 247.
+UPDATED: 2018-04-20 12:45:27
+COLUMNS: Energy (eV) | Cross section (m2)
+-----------------------------
+ 1.154800e+1	0.000000e+0
+ 1.300000e+1	3.237651e-22
+ 1.400000e+1	6.696381e-22
+ 1.500000e+1	8.379833e-22
+ 1.600000e+1	8.465143e-22
+ 1.700000e+1	7.921512e-22
+ 1.800000e+1	7.239988e-22
+ 1.900000e+1	6.652126e-22
+ 2.000000e+1	6.126511e-22
+ 2.100000e+1	5.627307e-22
+ 2.200000e+1	5.148532e-22
+ 2.300000e+1	4.691839e-22
+ 2.400000e+1	4.258879e-22
+ 2.500000e+1	3.851303e-22
+ 3.000000e+1	2.211297e-22
+ 3.500000e+1	1.188919e-22
+ 4.000000e+1	6.437844e-23
+ 4.500000e+1	4.149204e-23
+ 5.000000e+1	3.413557e-23
+ 8.000000e+1	6.591940e-24
+ 9.000000e+1	4.532050e-24
+ 1.000000e+2	3.453060e-24
+ 2.000000e+2	1.021530e-24
+ 3.000000e+2	5.995260e-25
+ 4.000000e+2	4.243090e-25
+ 5.000000e+2	3.283760e-25
+ 1.000000e+3	1.542300e-25
+-----------------------------
+
+EXCITATION
+Ar -> Ar(3P1)
+ 1.162300e+1
+SPECIES: e / Ar
+PROCESS: E + Ar -> E + Ar(3P1), Excitation
+PARAM.:  E = 11.623 eV, complete set
+COMMENT: [Ar(1S0) + e -> Ar(3P1) + e, Excitation] Khakoo M A et al 2004 J. Phys. B: At. Mol.
+COMMENT: Opt. Phys. 37 247 (multiplied by 0.5).
+UPDATED: 2018-04-20 12:59:20
+COLUMNS: Energy (eV) | Cross section (m2)
+-----------------------------
+ 1.162300e+1	0.000000e+0
+ 1.300000e+1	1.912001e-22
+ 1.400000e+1	3.728471e-22
+ 1.500000e+1	4.208985e-22
+ 1.600000e+1	4.276331e-22
+ 1.700000e+1	4.271554e-22
+ 1.800000e+1	4.219654e-22
+ 1.900000e+1	4.140567e-22
+ 2.000000e+1	4.049165e-22
+ 2.100000e+1	3.957714e-22
+ 2.200000e+1	3.868779e-22
+ 2.300000e+1	3.782461e-22
+ 2.400000e+1	3.698862e-22
+ 2.500000e+1	3.618082e-22
+ 3.000000e+1	3.260000e-22
+ 3.500000e+1	2.982574e-22
+ 4.000000e+1	2.773622e-22
+ 4.500000e+1	2.616002e-22
+ 5.000000e+1	2.492574e-22
+ 8.000000e+1	2.061000e-22
+ 9.000000e+1	1.963000e-22
+ 1.000000e+2	1.872000e-22
+ 2.000000e+2	1.283000e-22
+ 3.000000e+2	9.905000e-23
+ 4.000000e+2	8.150000e-23
+ 5.000000e+2	6.965000e-23
+ 1.000000e+3	4.180000e-23
+-----------------------------
+
+EXCITATION
+Ar -> Ar(3P0)
+ 1.172300e+1
+SPECIES: e / Ar
+PROCESS: E + Ar -> E + Ar(3P0), Excitation
+PARAM.:  E = 11.723 eV, complete set
+COMMENT: [Ar(1S0) + e -> Ar(3P0) + e, Excitation] Khakoo M A et al 2004 J. Phys. B: At. Mol.
+COMMENT: Opt. Phys. 37 247.
+UPDATED: 2018-04-20 12:58:39
+COLUMNS: Energy (eV) | Cross section (m2)
+-----------------------------
+ 1.172300e+1	0.000000e+0
+ 1.300000e+1	2.383485e-23
+ 1.400000e+1	7.000000e-23
+ 1.500000e+1	1.248946e-22
+ 1.600000e+1	1.525432e-22
+ 1.700000e+1	1.542259e-22
+ 1.800000e+1	1.424236e-22
+ 1.900000e+1	1.254325e-22
+ 2.000000e+1	1.073286e-22
+ 2.100000e+1	9.132054e-23
+ 2.200000e+1	7.785033e-23
+ 2.300000e+1	6.665677e-23
+ 2.400000e+1	5.747864e-23
+ 2.500000e+1	5.005477e-23
+ 3.000000e+1	3.010785e-23
+ 3.500000e+1	2.009508e-23
+ 4.000000e+1	1.367266e-23
+ 4.500000e+1	9.765876e-24
+ 5.000000e+1	7.300000e-24
+ 8.000000e+1	6.667710e-25
+ 9.000000e+1	4.286470e-25
+ 1.000000e+2	3.158510e-25
+ 2.000000e+2	8.699060e-26
+ 3.000000e+2	5.044980e-26
+ 4.000000e+2	3.553080e-26
+ 5.000000e+2	2.742410e-26
+ 1.000000e+3	1.281830e-26
+-----------------------------
+
+EXCITATION
+Ar -> Ar(1P1)
+ 1.182800e+1
+SPECIES: e / Ar
+PROCESS: E + Ar -> E + Ar(1P1), Excitation
+PARAM.:  E = 11.828 eV, complete set
+COMMENT: [Ar(1S0) + e -> Ar(1P1) + e, Excitation] Khakoo M A et al 2004 J. Phys. B: At. Mol.
+COMMENT: Opt. Phys. 37 247 (multiplied by 0.5).
+UPDATED: 2018-04-20 12:59:03
+COLUMNS: Energy (eV) | Cross section (m2)
+-----------------------------
+ 1.182800e+1	0.000000e+0
+ 1.300000e+1	1.462692e-22
+ 1.400000e+1	3.850000e-22
+ 1.500000e+1	5.953570e-22
+ 1.600000e+1	7.522780e-22
+ 1.700000e+1	8.611805e-22
+ 1.800000e+1	9.291095e-22
+ 1.900000e+1	9.663965e-22
+ 2.000000e+1	9.866815e-22
+ 2.100000e+1	1.001533e-21
+ 2.200000e+1	1.013488e-21
+ 2.300000e+1	1.022794e-21
+ 2.400000e+1	1.029694e-21
+ 2.500000e+1	1.034436e-21
+ 3.000000e+1	1.034341e-21
+ 3.500000e+1	1.012873e-21
+ 4.000000e+1	9.796910e-22
+ 4.500000e+1	9.402495e-22
+ 5.000000e+1	9.000000e-22
+ 8.000000e+1	7.363500e-22
+ 9.000000e+1	6.969500e-22
+ 1.000000e+2	6.614000e-22
+ 2.000000e+2	4.431000e-22
+ 3.000000e+2	3.392500e-22
+ 4.000000e+2	2.778000e-22
+ 5.000000e+2	2.367500e-22
+ 1.000000e+3	1.409500e-22
+-----------------------------
+
+EXCITATION
+Ar -> Ar(4p[1/2]1)
+ 1.290700e+1
+SPECIES: e / Ar
+PROCESS: E + Ar -> E + Ar(4p[1/2]1), Excitation
+PARAM.:  E = 12.907 eV, complete set
+COMMENT: [Ar(1S0) + e -> Ar(4p[1/2]1) + e, Excitation] Chilton J E et al 1998 Phys. Rev. A 57
+COMMENT: 267.
+UPDATED: 2018-04-20 12:56:37
+COLUMNS: Energy (eV) | Cross section (m2)
+-----------------------------
+ 1.290700e+1	0.000000e+0
+ 1.400000e+1	3.735290e-23
+ 1.500000e+1	1.175278e-22
+ 1.600000e+1	2.152399e-22
+ 1.700000e+1	3.064930e-22
+ 1.800000e+1	3.799034e-22
+ 1.900000e+1	4.366548e-22
+ 2.000000e+1	4.784773e-22
+ 2.100000e+1	5.071008e-22
+ 2.200000e+1	5.242554e-22
+ 2.300000e+1	5.316713e-22
+ 2.400000e+1	5.310782e-22
+ 2.500000e+1	5.242051e-22
+ 3.000000e+1	4.337958e-22
+ 3.500000e+1	3.173874e-22
+ 4.000000e+1	2.347116e-22
+ 4.500000e+1	1.850583e-22
+ 5.000000e+1	1.443098e-22
+ 8.000000e+1	7.260000e-23
+ 9.000000e+1	6.570000e-23
+ 1.000000e+2	6.010000e-23
+ 2.000000e+2	3.200000e-23
+ 3.000000e+2	2.180000e-23
+ 4.000000e+2	1.650000e-23
+ 5.000000e+2	1.330000e-23
+ 1.000000e+3	6.733630e-24
+-----------------------------
+
+EXCITATION
+Ar -> Ar(4p[5/2]3)
+ 1.307600e+1
+SPECIES: e / Ar
+PROCESS: E + Ar -> E + Ar(4p[5/2]3), Excitation
+PARAM.:  E = 13.076 eV, complete set
+COMMENT: [Ar(1S0) + e -> Ar(4p[5/2]3) + e, Excitation] Chilton J E et al 1998 Phys. Rev. A 57
+COMMENT: 267.
+UPDATED: 2018-04-20 12:58:13
+COLUMNS: Energy (eV) | Cross section (m2)
+-----------------------------
+ 1.307600e+1	0.000000e+0
+ 1.400000e+1	2.000567e-23
+ 1.500000e+1	5.374095e-23
+ 1.600000e+1	1.088792e-22
+ 1.700000e+1	2.714184e-22
+ 1.800000e+1	4.799858e-22
+ 1.900000e+1	5.200199e-22
+ 2.000000e+1	4.932387e-22
+ 2.100000e+1	4.573903e-22
+ 2.200000e+1	4.224374e-22
+ 2.300000e+1	3.898976e-22
+ 2.400000e+1	3.607922e-22
+ 2.500000e+1	3.346691e-22
+ 3.000000e+1	2.235568e-22
+ 3.500000e+1	1.283387e-22
+ 4.000000e+1	8.443099e-23
+ 4.500000e+1	6.991201e-23
+ 5.000000e+1	6.442104e-23
+ 8.000000e+1	5.090000e-23
+ 9.000000e+1	4.780000e-23
+ 1.000000e+2	4.500000e-23
+ 2.000000e+2	2.670000e-23
+ 3.000000e+2	1.880000e-23
+ 4.000000e+2	1.440000e-23
+ 5.000000e+2	1.170000e-23
+ 1.000000e+3	6.041330e-24
+-----------------------------
+
+EXCITATION
+Ar -> Ar(4p[5/2]2)
+ 1.309500e+1
+SPECIES: e / Ar
+PROCESS: E + Ar -> E + Ar(4p[5/2]2), Excitation
+PARAM.:  E = 13.095 eV, complete set
+COMMENT: [Ar(1S0) + e -> Ar(4p[5/2]2) + e, Excitation] Chilton J E et al 1998 Phys. Rev. A 57
+COMMENT: 267.
+UPDATED: 2018-04-20 12:57:44
+COLUMNS: Energy (eV) | Cross section (m2)
+-----------------------------
+ 1.309500e+1	0.000000e+0
+ 1.400000e+1	7.659355e-23
+ 1.500000e+1	2.031569e-22
+ 1.600000e+1	2.836340e-22
+ 1.700000e+1	3.514590e-22
+ 1.800000e+1	4.222786e-22
+ 1.900000e+1	4.880935e-22
+ 2.000000e+1	5.347821e-22
+ 2.100000e+1	5.419829e-22
+ 2.200000e+1	5.174940e-22
+ 2.300000e+1	4.900214e-22
+ 2.400000e+1	4.631847e-22
+ 2.500000e+1	4.392787e-22
+ 3.000000e+1	3.721907e-22
+ 3.500000e+1	3.309747e-22
+ 4.000000e+1	3.014266e-22
+ 4.500000e+1	2.812043e-22
+ 5.000000e+1	2.675667e-22
+ 8.000000e+1	2.273000e-22
+ 9.000000e+1	2.202000e-22
+ 1.000000e+2	2.113000e-22
+ 2.000000e+2	1.351000e-22
+ 3.000000e+2	9.660000e-23
+ 4.000000e+2	7.490000e-23
+ 5.000000e+2	6.110000e-23
+ 1.000000e+3	3.180000e-23
+-----------------------------
+
+EXCITATION
+Ar -> Ar(4p[3/2]1)
+ 1.315300e+1
+SPECIES: e / Ar
+PROCESS: E + Ar -> E + Ar(4p[3/2]1), Excitation
+PARAM.:  E = 13.153 eV, complete set
+COMMENT: [Ar(1S0) + e -> Ar(4p[3/2]1) + e, Excitation] Chilton J E et al 1998 Phys. Rev. A 57
+COMMENT: 267.
+UPDATED: 2018-04-20 12:56:57
+COLUMNS: Energy (eV) | Cross section (m2)
+-----------------------------
+ 1.315300e+1	0.000000e+0
+ 1.400000e+1	7.011125e-24
+ 1.500000e+1	4.559997e-23
+ 1.600000e+1	1.106503e-22
+ 1.700000e+1	1.802820e-22
+ 1.800000e+1	2.368347e-22
+ 1.900000e+1	2.668878e-22
+ 2.000000e+1	2.737786e-22
+ 2.100000e+1	2.702668e-22
+ 2.200000e+1	2.625962e-22
+ 2.300000e+1	2.518963e-22
+ 2.400000e+1	2.391651e-22
+ 2.500000e+1	2.254007e-22
+ 3.000000e+1	1.682388e-22
+ 3.500000e+1	1.391633e-22
+ 4.000000e+1	1.275739e-22
+ 4.500000e+1	1.224269e-22
+ 5.000000e+1	1.179024e-22
+ 8.000000e+1	1.073000e-22
+ 9.000000e+1	1.032000e-22
+ 1.000000e+2	9.850000e-23
+ 2.000000e+2	6.190000e-23
+ 3.000000e+2	4.410000e-23
+ 4.000000e+2	3.410000e-23
+ 5.000000e+2	2.780000e-23
+ 1.000000e+3	1.440000e-23
+-----------------------------
+
+EXCITATION
+Ar -> Ar(4p[3/2]2)
+ 1.317200e+1
+SPECIES: e / Ar
+PROCESS: E + Ar -> E + Ar(4p[3/2]2), Excitation
+PARAM.:  E = 13.172 eV, complete set
+COMMENT: [Ar(1S0) + e -> Ar(4p[3/2]2) + e, Excitation] Chilton J E et al 1998 Phys. Rev. A 57
+COMMENT: 267.
+UPDATED: 2018-04-20 12:57:19
+COLUMNS: Energy (eV) | Cross section (m2)
+-----------------------------
+ 1.317200e+1	0.000000e+0
+ 1.400000e+1	7.120779e-24
+ 1.500000e+1	4.727955e-23
+ 1.600000e+1	1.206962e-22
+ 1.700000e+1	1.976543e-22
+ 1.800000e+1	2.582944e-22
+ 1.900000e+1	3.028532e-22
+ 2.000000e+1	3.335138e-22
+ 2.100000e+1	3.524594e-22
+ 2.200000e+1	3.618731e-22
+ 2.300000e+1	3.639379e-22
+ 2.400000e+1	3.605964e-22
+ 2.500000e+1	3.530776e-22
+ 3.000000e+1	2.911001e-22
+ 3.500000e+1	2.466740e-22
+ 4.000000e+1	2.130092e-22
+ 4.500000e+1	1.887194e-22
+ 5.000000e+1	1.759817e-22
+ 8.000000e+1	1.546000e-22
+ 9.000000e+1	1.482000e-22
+ 1.000000e+2	1.412000e-22
+ 2.000000e+2	8.810000e-23
+ 3.000000e+2	6.260000e-23
+ 4.000000e+2	4.840000e-23
+ 5.000000e+2	3.940000e-23
+ 1.000000e+3	2.040000e-23
+-----------------------------
+
+EXCITATION
+Ar -> Ar(4p[1/2]0)
+ 1.327300e+1
+SPECIES: e / Ar
+PROCESS: E + Ar -> E + Ar(4p[1/2]0), Excitation
+PARAM.:  E = 13.273 eV, complete set
+COMMENT: [Ar(1S0) + e -> Ar(4p[1/2]0) + e, Excitation] Chilton J E et al 1998 Phys. Rev. A 57
+COMMENT: 267.
+UPDATED: 2018-04-20 12:55:56
+COLUMNS: Energy (eV) | Cross section (m2)
+-----------------------------
+ 1.327300e+1	0.000000e+0
+ 1.400000e+1	2.007521e-23
+ 1.500000e+1	7.010377e-23
+ 1.600000e+1	1.086723e-22
+ 1.700000e+1	1.455631e-22
+ 1.800000e+1	1.754474e-22
+ 1.900000e+1	1.770719e-22
+ 2.000000e+1	1.726327e-22
+ 2.100000e+1	1.685565e-22
+ 2.200000e+1	1.654052e-22
+ 2.300000e+1	1.630233e-22
+ 2.400000e+1	1.612555e-22
+ 2.500000e+1	1.599465e-22
+ 3.000000e+1	1.554982e-22
+ 3.500000e+1	1.510887e-22
+ 4.000000e+1	1.470762e-22
+ 4.500000e+1	1.436964e-22
+ 5.000000e+1	1.408157e-22
+ 8.000000e+1	1.274000e-22
+ 9.000000e+1	1.223000e-22
+ 1.000000e+2	1.166000e-22
+ 2.000000e+2	7.290000e-23
+ 3.000000e+2	5.190000e-23
+ 4.000000e+2	4.010000e-23
+ 5.000000e+2	3.270000e-23
+ 1.000000e+3	1.690000e-23
+-----------------------------
+
+EXCITATION
+Ar -> Ar(4p'[3/2]1)
+ 1.328300e+1
+SPECIES: e / Ar
+PROCESS: E + Ar -> E + Ar(4p'[3/2]1), Excitation
+PARAM.:  E = 13.283 eV, complete set
+COMMENT: [Ar(1S0) + e -> Ar(4p'[3/2]1) + e, Excitation] Chilton J E et al 1998 Phys. Rev. A 57
+COMMENT: 267.
+UPDATED: 2018-04-20 12:54:21
+COLUMNS: Energy (eV) | Cross section (m2)
+-----------------------------
+ 1.328300e+1	0.000000e+0
+ 1.400000e+1	6.743806e-24
+ 1.500000e+1	2.412584e-23
+ 1.600000e+1	4.734533e-23
+ 1.700000e+1	1.005745e-22
+ 1.800000e+1	1.821636e-22
+ 1.900000e+1	2.543583e-22
+ 2.000000e+1	2.880844e-22
+ 2.100000e+1	2.801072e-22
+ 2.200000e+1	2.525733e-22
+ 2.300000e+1	2.247042e-22
+ 2.400000e+1	2.087227e-22
+ 2.500000e+1	2.000220e-22
+ 3.000000e+1	1.589498e-22
+ 3.500000e+1	1.221933e-22
+ 4.000000e+1	1.000000e-22
+ 4.500000e+1	9.271264e-23
+ 5.000000e+1	9.094276e-23
+ 8.000000e+1	8.130000e-23
+ 9.000000e+1	7.710000e-23
+ 1.000000e+2	7.280000e-23
+ 2.000000e+2	4.420000e-23
+ 3.000000e+2	3.120000e-23
+ 4.000000e+2	2.410000e-23
+ 5.000000e+2	1.960000e-23
+ 1.000000e+3	1.010000e-23
+-----------------------------
+
+EXCITATION
+Ar -> Ar(4p'[3/2]2)
+ 1.330200e+1
+SPECIES: e / Ar
+PROCESS: E + Ar -> E + Ar(4p'[3/2]2), Excitation
+PARAM.:  E = 13.302 eV, complete set
+COMMENT: [Ar(1S0) + e -> Ar(4p'[3/2]2) + e, Excitation] Chilton J E et al 1998 Phys. Rev. A 57
+COMMENT: 267.
+UPDATED: 2018-04-20 12:54:38
+COLUMNS: Energy (eV) | Cross section (m2)
+-----------------------------
+ 1.330200e+1	0.000000e+0
+ 1.400000e+1	6.929125e-24
+ 1.500000e+1	2.940277e-23
+ 1.600000e+1	6.582657e-23
+ 1.700000e+1	1.403783e-22
+ 1.800000e+1	2.447536e-22
+ 1.900000e+1	3.125502e-22
+ 2.000000e+1	3.215238e-22
+ 2.100000e+1	3.216043e-22
+ 2.200000e+1	3.215024e-22
+ 2.300000e+1	3.176558e-22
+ 2.400000e+1	3.081174e-22
+ 2.500000e+1	2.958000e-22
+ 3.000000e+1	2.436789e-22
+ 3.500000e+1	2.041357e-22
+ 4.000000e+1	1.750490e-22
+ 4.500000e+1	1.556310e-22
+ 5.000000e+1	1.437723e-22
+ 8.000000e+1	1.113000e-22
+ 9.000000e+1	1.030000e-22
+ 1.000000e+2	9.570000e-23
+ 2.000000e+2	5.440000e-23
+ 3.000000e+2	3.780000e-23
+ 4.000000e+2	2.890000e-23
+ 5.000000e+2	2.340000e-23
+ 1.000000e+3	1.200000e-23
+-----------------------------
+
+EXCITATION
+Ar -> Ar(4p'[1/2]1)
+ 1.332800e+1
+SPECIES: e / Ar
+PROCESS: E + Ar -> E + Ar(4p'[1/2]1), Excitation
+PARAM.:  E = 13.328 eV, complete set
+COMMENT: [Ar(1S0) + e -> Ar(4p'[1/2]1) + e, Excitation] Chilton J E et al 1998 Phys. Rev. A 57
+COMMENT: 267.
+UPDATED: 2018-04-20 12:54:01
+COLUMNS: Energy (eV) | Cross section (m2)
+-----------------------------
+ 1.332800e+1	0.000000e+0
+ 1.400000e+1	3.978971e-24
+ 1.500000e+1	2.104246e-23
+ 1.600000e+1	4.562633e-23
+ 1.700000e+1	7.258722e-23
+ 1.800000e+1	1.006862e-22
+ 1.900000e+1	1.332168e-22
+ 2.000000e+1	1.529849e-22
+ 2.100000e+1	1.560001e-22
+ 2.200000e+1	1.538275e-22
+ 2.300000e+1	1.489428e-22
+ 2.400000e+1	1.425867e-22
+ 2.500000e+1	1.360000e-22
+ 3.000000e+1	1.147234e-22
+ 3.500000e+1	1.028139e-22
+ 4.000000e+1	9.008108e-23
+ 4.500000e+1	8.102393e-23
+ 5.000000e+1	7.562805e-23
+ 8.000000e+1	6.840000e-23
+ 9.000000e+1	6.680000e-23
+ 1.000000e+2	6.440000e-23
+ 2.000000e+2	4.190000e-23
+ 3.000000e+2	3.010000e-23
+ 4.000000e+2	2.340000e-23
+ 5.000000e+2	1.910000e-23
+ 1.000000e+3	9.933210e-24
+-----------------------------
+
+EXCITATION
+Ar -> Ar(4p'[1/2]0)
+ 1.348000e+1
+SPECIES: e / Ar
+PROCESS: E + Ar -> E + Ar(4p'[1/2]0), Excitation
+PARAM.:  E = 13.48 eV, complete set
+COMMENT: [Ar(1S0) + e -> Ar(4p'[1/2]0) + e, Excitation] Chilton J E et al 1998 Phys. Rev. A 57
+COMMENT: 267.
+UPDATED: 2018-04-20 12:53:46
+COLUMNS: Energy (eV) | Cross section (m2)
+-----------------------------
+ 1.348000e+1	0.000000e+0
+ 1.400000e+1	1.604090e-23
+ 1.500000e+1	7.272488e-23
+ 1.600000e+1	1.474013e-22
+ 1.700000e+1	2.510633e-22
+ 1.800000e+1	3.876606e-22
+ 1.900000e+1	5.059534e-22
+ 2.000000e+1	4.889453e-22
+ 2.100000e+1	4.718934e-22
+ 2.200000e+1	4.625462e-22
+ 2.300000e+1	4.551927e-22
+ 2.400000e+1	4.480999e-22
+ 2.500000e+1	4.406055e-22
+ 3.000000e+1	3.914478e-22
+ 3.500000e+1	3.466530e-22
+ 4.000000e+1	3.252133e-22
+ 4.500000e+1	3.197993e-22
+ 5.000000e+1	3.183589e-22
+ 8.000000e+1	2.800000e-22
+ 9.000000e+1	2.623000e-22
+ 1.000000e+2	2.458000e-22
+ 2.000000e+2	1.447000e-22
+ 3.000000e+2	1.014000e-22
+ 4.000000e+2	7.790000e-23
+ 5.000000e+2	6.320000e-23
+ 1.000000e+3	3.250000e-23
+-----------------------------
+
+EXCITATION
+Ar -> Ar(3d[1/2]0 + 3d[1/2]1)
+ 1.384000e+1
+SPECIES: e / Ar
+PROCESS: E + Ar -> E + Ar(3d[1/2]0 + 3d[1/2]1), Excitation
+PARAM.:  E = 13.84 eV, complete set
+COMMENT: [Ar(1S0) + e -> Ar(3d[1/2]0+3d[1/2]1) + e, Excitation] Hayashi M 2003 Bibliography of
+COMMENT: Electron and Photon Cross-Sections with Atoms and Molecules, Published in the 20th
+COMMENT: Century: Argon NIFS-DATA-7 National Institute for Fusion Science (Jpn), ISSN 0915-6364.
+UPDATED: 2018-04-20 12:48:57
+COLUMNS: Energy (eV) | Cross section (m2)
+-----------------------------
+ 1.384000e+1	0.000000e+0
+ 1.400000e+1	3.000000e-23
+ 1.500000e+1	2.050000e-22
+ 1.600000e+1	3.800000e-22
+ 1.800000e+1	6.000000e-22
+ 1.900000e+1	6.500000e-22
+ 2.000000e+1	6.600000e-22
+ 2.200000e+1	6.400000e-22
+ 2.500000e+1	5.600000e-22
+ 3.000000e+1	3.900000e-22
+ 3.500000e+1	2.650000e-22
+ 4.000000e+1	1.930000e-22
+ 5.000000e+1	1.150000e-22
+ 6.000000e+1	7.500000e-23
+ 8.000000e+1	3.850000e-23
+ 1.000000e+2	2.250000e-23
+ 1.500000e+2	8.900000e-24
+ 2.000000e+2	4.500000e-24
+ 3.000000e+2	1.750000e-24
+ 3.800000e+2	1.000000e-24
+ 5.000000e+2	0.000000e+0
+ 1.000000e+3	0.000000e+0
+-----------------------------
+
+EXCITATION
+Ar -> Ar(3d[3/2]2)
+ 1.390000e+1
+SPECIES: e / Ar
+PROCESS: E + Ar -> E + Ar(3d[3/2]2), Excitation
+PARAM.:  E = 13.9 eV, complete set
+COMMENT: [Ar(1S0) + e -> Ar(3d[3/2]2) + e, Excitation] Hayashi M 2003 Bibliography of Electron
+COMMENT: and Photon Cross-Sections with Atoms and Molecules, Published in the 20th Century: Argon
+COMMENT: NIFS-DATA-7 National Institute for Fusion Science (Jpn), ISSN 0915-6364.
+UPDATED: 2018-04-20 12:50:23
+COLUMNS: Energy (eV) | Cross section (m2)
+-----------------------------
+ 1.390000e+1	0.000000e+0
+ 1.400000e+1	1.500000e-23
+ 1.500000e+1	1.600000e-22
+ 1.600000e+1	3.000000e-22
+ 1.800000e+1	4.750000e-22
+ 1.900000e+1	5.100000e-22
+ 2.000000e+1	5.240000e-22
+ 2.200000e+1	5.200000e-22
+ 2.500000e+1	4.750000e-22
+ 3.000000e+1	3.600000e-22
+ 3.500000e+1	2.450000e-22
+ 4.000000e+1	1.760000e-22
+ 5.000000e+1	1.000000e-22
+ 6.000000e+1	6.400000e-23
+ 8.000000e+1	3.100000e-23
+ 1.000000e+2	1.770000e-23
+ 1.500000e+2	6.500000e-24
+ 2.000000e+2	3.150000e-24
+ 3.000000e+2	1.130000e-24
+ 3.150000e+2	1.000000e-24
+ 5.000000e+2	0.000000e+0
+ 1.000000e+3	0.000000e+0
+-----------------------------
+
+EXCITATION
+Ar -> Ar(3d[7/2]4)
+ 1.398000e+1
+SPECIES: e / Ar
+PROCESS: E + Ar -> E + Ar(3d[7/2]4), Excitation
+PARAM.:  E = 13.98 eV, complete set
+COMMENT: [Ar(1S0) + e -> Ar(3d[7/2]4) + e, Excitation] Hayashi M 2003 Bibliography of Electron
+COMMENT: and Photon Cross-Sections with Atoms and Molecules, Published in the 20th Century: Argon
+COMMENT: NIFS-DATA-7 National Institute for Fusion Science (Jpn), ISSN 0915-6364.
+UPDATED: 2018-04-20 12:52:39
+COLUMNS: Energy (eV) | Cross section (m2)
+-----------------------------
+ 1.398000e+1	0.000000e+0
+ 1.400000e+1	8.000000e-24
+ 1.500000e+1	1.400000e-22
+ 1.600000e+1	2.750000e-22
+ 1.800000e+1	4.700000e-22
+ 1.900000e+1	5.000000e-22
+ 2.000000e+1	5.080000e-22
+ 2.200000e+1	4.900000e-22
+ 2.500000e+1	4.200000e-22
+ 3.000000e+1	2.800000e-22
+ 3.500000e+1	1.850000e-22
+ 4.000000e+1	1.290000e-22
+ 5.000000e+1	7.000000e-23
+ 6.000000e+1	4.300000e-23
+ 8.000000e+1	1.970000e-23
+ 1.000000e+2	1.100000e-23
+ 1.500000e+2	3.700000e-24
+ 2.000000e+2	1.700000e-24
+ 2.420000e+2	1.000000e-24
+ 3.000000e+2	0.000000e+0
+ 1.000000e+3	0.000000e+0
+-----------------------------
+
+EXCITATION
+Ar -> Ar(3d[7/2]3)
+ 1.401000e+1
+SPECIES: e / Ar
+PROCESS: E + Ar -> E + Ar(3d[7/2]3), Excitation
+PARAM.:  E = 14.01 eV, complete set
+COMMENT: [Ar(1S0) + e -> Ar(3d[7/2]3) + e, Excitation] Hayashi M 2003 Bibliography of Electron
+COMMENT: and Photon Cross-Sections with Atoms and Molecules, Published in the 20th Century: Argon
+COMMENT: NIFS-DATA-7 National Institute for Fusion Science (Jpn), ISSN 0915-6364.
+UPDATED: 2018-04-20 12:52:22
+COLUMNS: Energy (eV) | Cross section (m2)
+-----------------------------
+ 1.401000e+1	0.000000e+0
+ 1.500000e+1	8.300000e-23
+ 1.600000e+1	1.430000e-22
+ 1.800000e+1	2.030000e-22
+ 1.900000e+1	2.130000e-22
+ 2.000000e+1	2.160000e-22
+ 2.200000e+1	2.140000e-22
+ 2.500000e+1	2.030000e-22
+ 3.000000e+1	1.680000e-22
+ 3.500000e+1	1.300000e-22
+ 4.000000e+1	1.050000e-22
+ 5.000000e+1	7.200000e-23
+ 6.000000e+1	5.400000e-23
+ 8.000000e+1	3.340000e-23
+ 1.000000e+2	2.300000e-23
+ 1.500000e+2	1.180000e-23
+ 2.000000e+2	7.300000e-24
+ 3.000000e+2	3.750000e-24
+ 5.000000e+2	1.600000e-24
+ 6.600000e+2	1.000000e-24
+ 8.000000e+2	0.000000e+0
+ 1.000000e+3	0.000000e+0
+-----------------------------
+
+EXCITATION
+Ar -> Ar(3d[5/2]2 + 5s[3/2]2)
+ 1.406000e+1
+SPECIES: e / Ar
+PROCESS: E + Ar -> E + Ar(3d[5/2]2 + 5s[3/2]2), Excitation
+PARAM.:  E = 14.06 eV, complete set
+COMMENT: [Ar(1S0) + e -> Ar(3d[5/2]2+5s[3/2]2) + e, Excitation] Hayashi M 2003 Bibliography of
+COMMENT: Electron and Photon Cross-Sections with Atoms and Molecules, Published in the 20th
+COMMENT: Century: Argon NIFS-DATA-7 National Institute for Fusion Science (Jpn), ISSN 0915-6364.
+UPDATED: 2018-04-20 12:51:01
+COLUMNS: Energy (eV) | Cross section (m2)
+-----------------------------
+ 1.406000e+1	0.000000e+0
+ 1.500000e+1	1.050000e-22
+ 1.600000e+1	2.200000e-22
+ 1.700000e+1	2.830000e-22
+ 1.800000e+1	3.150000e-22
+ 1.900000e+1	3.280000e-22
+ 2.000000e+1	3.320000e-22
+ 2.100000e+1	3.260000e-22
+ 2.200000e+1	3.150000e-22
+ 2.500000e+1	2.600000e-22
+ 3.000000e+1	1.930000e-22
+ 3.500000e+1	1.520000e-22
+ 4.000000e+1	1.230000e-22
+ 5.000000e+1	8.600000e-23
+ 6.000000e+1	6.400000e-23
+ 8.000000e+1	4.050000e-23
+ 1.000000e+2	2.800000e-23
+ 1.500000e+2	1.460000e-23
+ 2.000000e+2	9.100000e-24
+ 3.000000e+2	4.750000e-24
+ 5.000000e+2	2.050000e-24
+ 7.800000e+2	1.000000e-24
+ 8.000000e+2	0.000000e+0
+ 1.000000e+3	0.000000e+0
+-----------------------------
+
+EXCITATION
+Ar -> Ar(3d[5/2]3 + 5s[3/2]1)
+ 1.409000e+1
+SPECIES: e / Ar
+PROCESS: E + Ar -> E + Ar(3d[5/2]3 + 5s[3/2]1), Excitation
+PARAM.:  E = 14.09 eV, complete set
+COMMENT: [Ar(1S0) + e -> Ar(3d[5/2]3+5s[3/2]1) + e, Excitation] Hayashi M 2003 Bibliography of
+COMMENT: Electron and Photon Cross-Sections with Atoms and Molecules, Published in the 20th
+COMMENT: Century: Argon NIFS-DATA-7 National Institute for Fusion Science (Jpn), ISSN 0915-6364.
+UPDATED: 2018-04-20 12:51:43
+COLUMNS: Energy (eV) | Cross section (m2)
+-----------------------------
+ 1.409000e+1	0.000000e+0
+ 1.500000e+1	2.200000e-23
+ 1.600000e+1	5.000000e-23
+ 1.800000e+1	9.500000e-23
+ 2.000000e+1	1.230000e-22
+ 2.200000e+1	1.420000e-22
+ 2.500000e+1	1.640000e-22
+ 3.000000e+1	1.910000e-22
+ 3.500000e+1	2.080000e-22
+ 4.000000e+1	2.220000e-22
+ 5.000000e+1	2.390000e-22
+ 6.000000e+1	2.450000e-22
+ 8.000000e+1	2.430000e-22
+ 1.000000e+2	2.300000e-22
+ 1.500000e+2	2.000000e-22
+ 2.000000e+2	1.750000e-22
+ 3.000000e+2	1.400000e-22
+ 5.000000e+2	1.020000e-22
+ 8.000000e+2	7.500000e-23
+ 1.000000e+3	6.400000e-23
+-----------------------------
+
+EXCITATION
+Ar -> Ar(3d[3/2]1)
+ 1.415000e+1
+SPECIES: e / Ar
+PROCESS: E + Ar -> E + Ar(3d[3/2]1), Excitation
+PARAM.:  E = 14.15 eV, complete set
+COMMENT: [Ar(1S0) + e -> Ar(3d[3/2]1) + e, Excitation] Hayashi M 2003 Bibliography of Electron
+COMMENT: and Photon Cross-Sections with Atoms and Molecules, Published in the 20th Century: Argon
+COMMENT: NIFS-DATA-7 National Institute for Fusion Science (Jpn), ISSN 0915-6364.
+UPDATED: 2018-04-20 12:50:01
+COLUMNS: Energy (eV) | Cross section (m2)
+-----------------------------
+ 1.415000e+1	0.000000e+0
+ 1.500000e+1	4.000000e-23
+ 1.600000e+1	9.000000e-23
+ 1.800000e+1	1.750000e-22
+ 2.000000e+1	2.300000e-22
+ 2.200000e+1	2.700000e-22
+ 2.500000e+1	3.150000e-22
+ 3.000000e+1	3.620000e-22
+ 3.500000e+1	4.000000e-22
+ 4.000000e+1	4.250000e-22
+ 5.000000e+1	4.550000e-22
+ 6.000000e+1	4.600000e-22
+ 8.000000e+1	4.500000e-22
+ 1.000000e+2	4.300000e-22
+ 1.500000e+2	3.670000e-22
+ 2.000000e+2	3.160000e-22
+ 3.000000e+2	2.500000e-22
+ 5.000000e+2	1.800000e-22
+ 8.000000e+2	1.300000e-22
+ 1.000000e+3	1.100000e-22
+-----------------------------
+
+EXCITATION
+Ar -> Ar(3d'[5/2]2)
+ 1.421000e+1
+SPECIES: e / Ar
+PROCESS: E + Ar -> E + Ar(3d'[5/2]2), Excitation
+PARAM.:  E = 14.21 eV, complete set
+COMMENT: [Ar(1S0) + e -> Ar(3d'[5/2]2) + e, Excitation] Hayashi M 2003 Bibliography of Electron
+COMMENT: and Photon Cross-Sections with Atoms and Molecules, Published in the 20th Century: Argon
+COMMENT: NIFS-DATA-7 National Institute for Fusion Science (Jpn), ISSN 0915-6364.
+UPDATED: 2018-04-20 12:48:12
+COLUMNS: Energy (eV) | Cross section (m2)
+-----------------------------
+ 1.421000e+1	0.000000e+0
+ 1.500000e+1	4.500000e-23
+ 1.600000e+1	1.100000e-22
+ 1.800000e+1	2.100000e-22
+ 1.900000e+1	2.350000e-22
+ 2.000000e+1	2.480000e-22
+ 2.100000e+1	2.500000e-22
+ 2.200000e+1	2.470000e-22
+ 2.500000e+1	2.250000e-22
+ 3.000000e+1	1.700000e-22
+ 3.500000e+1	1.220000e-22
+ 4.000000e+1	9.400000e-23
+ 5.000000e+1	5.950000e-23
+ 6.000000e+1	4.150000e-23
+ 8.000000e+1	2.330000e-23
+ 1.000000e+2	1.480000e-23
+ 1.500000e+2	6.600000e-24
+ 2.000000e+2	3.700000e-24
+ 3.000000e+2	1.630000e-24
+ 3.850000e+2	1.000000e-24
+ 5.000000e+2	0.000000e+0
+ 1.000000e+3	0.000000e+0
+-----------------------------
+
+EXCITATION
+Ar -> Ar(3d'[5/2or3/2]3or2+5s'[1/2]0or1)
+ 1.423000e+1
+SPECIES: e / Ar
+PROCESS: E + Ar -> E + Ar(3d'[5/2or3/2]3or2+5s'[1/2]0or1), Excitation
+PARAM.:  E = 14.23 eV, complete set
+COMMENT: [Ar(1S0) + e -> Ar(3d'[5/2or3/2]3or2+5s'[1/2]0or1) + e, Excitation] Hayashi M 2003
+COMMENT: Bibliography of Electron and Photon Cross-Sections with Atoms and Molecules, Published in
+COMMENT: the 20th Century: Argon NIFS-DATA-7 National Institute for Fusion Science (Jpn), ISSN
+COMMENT: 0915-6364.
+UPDATED: 2018-04-20 12:47:54
+COLUMNS: Energy (eV) | Cross section (m2)
+-----------------------------
+ 1.423000e+1	0.000000e+0
+ 1.500000e+1	4.000000e-23
+ 1.600000e+1	9.600000e-23
+ 1.800000e+1	1.900000e-22
+ 1.900000e+1	2.280000e-22
+ 2.000000e+1	2.550000e-22
+ 2.200000e+1	2.850000e-22
+ 2.500000e+1	3.100000e-22
+ 3.000000e+1	3.100000e-22
+ 3.500000e+1	2.900000e-22
+ 4.000000e+1	2.650000e-22
+ 5.000000e+1	2.150000e-22
+ 6.000000e+1	1.800000e-22
+ 8.000000e+1	1.380000e-22
+ 1.000000e+2	1.100000e-22
+ 1.500000e+2	7.600000e-23
+ 2.000000e+2	5.800000e-23
+ 3.000000e+2	3.950000e-23
+ 5.000000e+2	2.420000e-23
+ 8.000000e+2	1.570000e-23
+ 1.000000e+3	1.270000e-23
+-----------------------------
+
+EXCITATION
+Ar -> Ar(3d'[3/2]1)
+ 1.430000e+1
+SPECIES: e / Ar
+PROCESS: E + Ar -> E + Ar(3d'[3/2]1), Excitation
+PARAM.:  E = 14.3 eV, complete set
+COMMENT: [Ar(1S0) + e -> Ar(3d'[3/2]1) + e, Excitation] Hayashi M 2003 Bibliography of Electron
+COMMENT: and Photon Cross-Sections with Atoms and Molecules, Published in the 20th Century: Argon
+COMMENT: NIFS-DATA-7 National Institute for Fusion Science (Jpn), ISSN 0915-6364.
+UPDATED: 2018-04-20 12:46:39
+COLUMNS: Energy (eV) | Cross section (m2)
+-----------------------------
+ 1.430000e+1	0.000000e+0
+ 1.500000e+1	3.200000e-23
+ 1.600000e+1	7.300000e-23
+ 1.800000e+1	1.450000e-22
+ 2.000000e+1	1.990000e-22
+ 2.200000e+1	2.400000e-22
+ 2.500000e+1	2.900000e-22
+ 3.000000e+1	3.550000e-22
+ 3.500000e+1	4.050000e-22
+ 4.000000e+1	4.400000e-22
+ 5.000000e+1	4.800000e-22
+ 6.000000e+1	4.950000e-22
+ 8.000000e+1	4.950000e-22
+ 1.000000e+2	4.770000e-22
+ 1.500000e+2	3.950000e-22
+ 2.000000e+2	3.300000e-22
+ 3.000000e+2	2.600000e-22
+ 5.000000e+2	1.920000e-22
+ 8.000000e+2	1.470000e-22
+ 1.000000e+3	1.290000e-22
+-----------------------------
+
+EXCITATION
+Ar -> Ar(5p[1/2]1)
+ 1.446400e+1
+SPECIES: e / Ar
+PROCESS: E + Ar -> E + Ar(5p[1/2]1), Excitation
+PARAM.:  E = 14.464 eV, complete set
+COMMENT: [Ar(1S0) + e -> Ar(5p[1/2]1) + e, Excitation] Weber T et al 2003 Phys. Rev. A 68
+COMMENT: 032719.
+UPDATED: 2018-04-20 13:02:41
+COLUMNS: Energy (eV) | Cross section (m2)
+-----------------------------
+ 1.446400e+1	0.000000e+0
+ 1.500000e+1	1.542955e-23
+ 1.600000e+1	6.241710e-23
+ 1.700000e+1	9.519665e-23
+ 1.800000e+1	1.156745e-22
+ 1.900000e+1	1.264901e-22
+ 2.000000e+1	1.302825e-22
+ 2.100000e+1	1.296910e-22
+ 2.200000e+1	1.269545e-22
+ 2.300000e+1	1.227100e-22
+ 2.400000e+1	1.171941e-22
+ 2.500000e+1	1.106432e-22
+ 3.000000e+1	7.064605e-23
+ 3.500000e+1	3.975916e-23
+ 4.000000e+1	2.801550e-23
+ 4.500000e+1	2.236369e-23
+ 5.000000e+1	1.810561e-23
+ 8.000000e+1	1.100000e-23
+ 9.000000e+1	1.050000e-23
+ 1.000000e+2	9.988360e-24
+ 2.000000e+2	6.149010e-24
+ 3.000000e+2	4.356610e-24
+ 4.000000e+2	3.364290e-24
+ 5.000000e+2	2.738140e-24
+ 1.000000e+3	1.416640e-24
+-----------------------------
+
+EXCITATION
+Ar -> Ar(5p[5/2]3)
+ 1.449900e+1
+SPECIES: e / Ar
+PROCESS: E + Ar -> E + Ar(5p[5/2]3), Excitation
+PARAM.:  E = 14.499 eV, complete set
+COMMENT: [Ar(1S0) + e -> Ar(5p[5/2]3) + e, Excitation] Weber T et al 2003 Phys. Rev. A 68
+COMMENT: 032719.
+UPDATED: 2018-04-20 13:04:00
+COLUMNS: Energy (eV) | Cross section (m2)
+-----------------------------
+ 1.449900e+1	0.000000e+0
+ 1.500000e+1	4.604365e-24
+ 1.600000e+1	3.662966e-23
+ 1.700000e+1	8.864803e-23
+ 1.800000e+1	1.481446e-22
+ 1.900000e+1	2.026045e-22
+ 2.000000e+1	2.395129e-22
+ 2.100000e+1	2.489533e-22
+ 2.200000e+1	2.353784e-22
+ 2.300000e+1	2.081798e-22
+ 2.400000e+1	1.767540e-22
+ 2.500000e+1	1.493607e-22
+ 3.000000e+1	7.788128e-23
+ 3.500000e+1	4.943732e-23
+ 4.000000e+1	3.715308e-23
+ 4.500000e+1	3.274116e-23
+ 5.000000e+1	3.139457e-23
+ 8.000000e+1	2.340000e-23
+ 9.000000e+1	2.160000e-23
+ 1.000000e+2	2.000000e-23
+ 2.000000e+2	1.120000e-23
+ 3.000000e+2	7.756760e-24
+ 4.000000e+2	5.921500e-24
+ 5.000000e+2	4.787480e-24
+ 1.000000e+3	2.445490e-24
+-----------------------------
+
+EXCITATION
+Ar -> Ar(5p[5/2]2)
+ 1.450600e+1
+SPECIES: e / Ar
+PROCESS: E + Ar -> E + Ar(5p[5/2]2), Excitation
+PARAM.:  E = 14.506 eV, complete set
+COMMENT: [Ar(1S0) + e -> Ar(5p[5/2]2) + e, Excitation] Weber T et al 2003 Phys. Rev. A 68
+COMMENT: 032719.
+UPDATED: 2018-04-20 13:03:46
+COLUMNS: Energy (eV) | Cross section (m2)
+-----------------------------
+ 1.450600e+1	0.000000e+0
+ 1.500000e+1	4.356266e-23
+ 1.600000e+1	1.617289e-22
+ 1.700000e+1	2.351285e-22
+ 1.800000e+1	2.722938e-22
+ 1.900000e+1	2.819556e-22
+ 2.000000e+1	2.728445e-22
+ 2.100000e+1	2.536911e-22
+ 2.200000e+1	2.331147e-22
+ 2.300000e+1	2.158178e-22
+ 2.400000e+1	2.016404e-22
+ 2.500000e+1	1.901192e-22
+ 3.000000e+1	1.561933e-22
+ 3.500000e+1	1.342554e-22
+ 4.000000e+1	1.174852e-22
+ 4.500000e+1	1.044230e-22
+ 5.000000e+1	9.420061e-23
+ 8.000000e+1	7.100000e-23
+ 9.000000e+1	6.840000e-23
+ 1.000000e+2	6.540000e-23
+ 2.000000e+2	4.130000e-23
+ 3.000000e+2	2.940000e-23
+ 4.000000e+2	2.280000e-23
+ 5.000000e+2	1.860000e-23
+ 1.000000e+3	9.636250e-24
+-----------------------------
+
+EXCITATION
+Ar -> Ar(5p[3/2]1)
+ 1.452500e+1
+SPECIES: e / Ar
+PROCESS: E + Ar -> E + Ar(5p[3/2]1), Excitation
+PARAM.:  E = 14.525 eV, complete set
+COMMENT: [Ar(1S0) + e -> Ar(5p[3/2]1) + e, Excitation] Weber T et al 2003 Phys. Rev. A 68
+COMMENT: 032719.
+UPDATED: 2018-04-20 13:03:04
+COLUMNS: Energy (eV) | Cross section (m2)
+-----------------------------
+ 1.452500e+1	0.000000e+0
+ 1.500000e+1	1.853305e-24
+ 1.600000e+1	1.421391e-23
+ 1.700000e+1	3.045223e-23
+ 1.800000e+1	4.688188e-23
+ 1.900000e+1	6.247583e-23
+ 2.000000e+1	7.622235e-23
+ 2.100000e+1	8.710968e-23
+ 2.200000e+1	9.412610e-23
+ 2.300000e+1	9.640587e-23
+ 2.400000e+1	9.453620e-23
+ 2.500000e+1	8.993716e-23
+ 3.000000e+1	6.419587e-23
+ 3.500000e+1	5.025642e-23
+ 4.000000e+1	4.385464e-23
+ 4.500000e+1	4.061826e-23
+ 5.000000e+1	3.896977e-23
+ 8.000000e+1	3.560000e-23
+ 9.000000e+1	3.400000e-23
+ 1.000000e+2	3.230000e-23
+ 2.000000e+2	2.000000e-23
+ 3.000000e+2	1.420000e-23
+ 4.000000e+2	1.100000e-23
+ 5.000000e+2	8.917550e-24
+ 1.000000e+3	4.616250e-24
+-----------------------------
+
+EXCITATION
+Ar -> Ar(5p[3/2]2)
+ 1.452900e+1
+SPECIES: e / Ar
+PROCESS: E + Ar -> E + Ar(5p[3/2]2), Excitation
+PARAM.:  E = 14.529 eV, complete set
+COMMENT: [Ar(1S0) + e -> Ar(5p[3/2]2) + e, Excitation] Weber T et al 2003 Phys. Rev. A 68
+COMMENT: 032719.
+UPDATED: 2018-04-20 13:03:28
+COLUMNS: Energy (eV) | Cross section (m2)
+-----------------------------
+ 1.452900e+1	0.000000e+0
+ 1.500000e+1	4.656599e-24
+ 1.600000e+1	3.393915e-23
+ 1.700000e+1	6.447177e-23
+ 1.800000e+1	8.479170e-23
+ 1.900000e+1	9.971334e-23
+ 2.000000e+1	1.116933e-22
+ 2.100000e+1	1.203720e-22
+ 2.200000e+1	1.256928e-22
+ 2.300000e+1	1.280775e-22
+ 2.400000e+1	1.279736e-22
+ 2.500000e+1	1.258284e-22
+ 3.000000e+1	1.000200e-22
+ 3.500000e+1	7.425296e-23
+ 4.000000e+1	5.722985e-23
+ 4.500000e+1	4.905811e-23
+ 5.000000e+1	4.602711e-23
+ 8.000000e+1	3.940000e-23
+ 9.000000e+1	3.730000e-23
+ 1.000000e+2	3.520000e-23
+ 2.000000e+2	2.130000e-23
+ 3.000000e+2	1.500000e-23
+ 4.000000e+2	1.160000e-23
+ 5.000000e+2	9.417230e-24
+ 1.000000e+3	4.861520e-24
+-----------------------------
+
+EXCITATION
+Ar -> Ar(5p[1/2]0)
+ 1.456400e+1
+SPECIES: e / Ar
+PROCESS: E + Ar -> E + Ar(5p[1/2]0), Excitation
+PARAM.:  E = 14.564 eV, complete set
+COMMENT: [Ar(1S0) + e -> Ar(5p[1/2]0) + e, Excitation] Weber T et al 2003 Phys. Rev. A 68
+COMMENT: 032719.
+UPDATED: 2018-04-20 13:02:12
+COLUMNS: Energy (eV) | Cross section (m2)
+-----------------------------
+ 1.456400e+1	0.000000e+0
+ 1.500000e+1	1.979824e-25
+ 1.600000e+1	2.272483e-24
+ 1.700000e+1	6.898764e-24
+ 1.800000e+1	1.444005e-23
+ 1.900000e+1	2.525958e-23
+ 2.000000e+1	3.972056e-23
+ 2.100000e+1	5.796617e-23
+ 2.200000e+1	7.673807e-23
+ 2.300000e+1	9.031920e-23
+ 2.400000e+1	9.688381e-23
+ 2.500000e+1	9.807544e-23
+ 3.000000e+1	8.031849e-23
+ 3.500000e+1	7.484686e-23
+ 4.000000e+1	7.252241e-23
+ 4.500000e+1	7.049263e-23
+ 5.000000e+1	6.870139e-23
+ 8.000000e+1	5.940000e-23
+ 9.000000e+1	5.410000e-23
+ 1.000000e+2	4.960000e-23
+ 2.000000e+2	2.680000e-23
+ 3.000000e+2	1.830000e-23
+ 4.000000e+2	1.390000e-23
+ 5.000000e+2	1.120000e-23
+ 1.000000e+3	5.699810e-24
+-----------------------------
+
+EXCITATION
+Ar -> Ar(5p'[3/2]1)
+ 1.468100e+1
+SPECIES: e / Ar
+PROCESS: E + Ar -> E + Ar(5p'[3/2]1), Excitation
+PARAM.:  E = 14.681 eV, complete set
+COMMENT: [Ar(1S0) + e -> Ar(5p'[3/2]1) + e, Excitation] Weber T et al 2003 Phys. Rev. A 68
+COMMENT: 032719.
+UPDATED: 2018-04-20 13:01:02
+COLUMNS: Energy (eV) | Cross section (m2)
+-----------------------------
+ 1.468100e+1	0.000000e+0
+ 1.500000e+1	1.150330e-23
+ 1.600000e+1	3.878034e-23
+ 1.700000e+1	5.777586e-23
+ 1.800000e+1	8.096198e-23
+ 1.900000e+1	9.494578e-23
+ 2.000000e+1	9.839737e-23
+ 2.100000e+1	9.851431e-23
+ 2.200000e+1	9.816305e-23
+ 2.300000e+1	9.665771e-23
+ 2.400000e+1	9.321662e-23
+ 2.500000e+1	8.712344e-23
+ 3.000000e+1	5.427662e-23
+ 3.500000e+1	3.981022e-23
+ 4.000000e+1	3.250255e-23
+ 4.500000e+1	2.774789e-23
+ 5.000000e+1	2.418667e-23
+ 8.000000e+1	1.680000e-23
+ 9.000000e+1	1.580000e-23
+ 1.000000e+2	1.480000e-23
+ 2.000000e+2	8.806050e-24
+ 3.000000e+2	6.182570e-24
+ 4.000000e+2	4.754380e-24
+ 5.000000e+2	3.860200e-24
+ 1.000000e+3	1.988000e-24
+-----------------------------
+
+EXCITATION
+Ar -> Ar(5p'[1/2]1)
+ 1.468700e+1
+SPECIES: e / Ar
+PROCESS: E + Ar -> E + Ar(5p'[1/2]1), Excitation
+PARAM.:  E = 14.687 eV, complete set
+COMMENT: [Ar(1S0) + e -> Ar(5p'[1/2]1) + e, Excitation] Weber T et al 2003 Phys. Rev. A 68
+COMMENT: 032719.
+UPDATED: 2018-04-20 13:00:46
+COLUMNS: Energy (eV) | Cross section (m2)
+-----------------------------
+ 1.468700e+1	0.000000e+0
+ 1.500000e+1	5.285348e-25
+ 1.600000e+1	6.241178e-24
+ 1.700000e+1	2.721486e-23
+ 1.800000e+1	7.382389e-23
+ 1.900000e+1	7.484897e-23
+ 2.000000e+1	6.887614e-23
+ 2.100000e+1	6.200818e-23
+ 2.200000e+1	5.573776e-23
+ 2.300000e+1	5.063524e-23
+ 2.400000e+1	4.687623e-23
+ 2.500000e+1	4.424823e-23
+ 3.000000e+1	4.011106e-23
+ 3.500000e+1	3.838203e-23
+ 4.000000e+1	3.679859e-23
+ 4.500000e+1	3.535870e-23
+ 5.000000e+1	3.404180e-23
+ 8.000000e+1	2.780000e-23
+ 9.000000e+1	2.590000e-23
+ 1.000000e+2	2.420000e-23
+ 2.000000e+2	1.400000e-23
+ 3.000000e+2	9.757740e-24
+ 4.000000e+2	7.478860e-24
+ 5.000000e+2	6.060660e-24
+ 1.000000e+3	3.109770e-24
+-----------------------------
+
+EXCITATION
+Ar -> Ar(5p'[3/2]2)
+ 1.468800e+1
+SPECIES: e / Ar
+PROCESS: E + Ar -> E + Ar(5p'[3/2]2), Excitation
+PARAM.:  E = 14.688 eV, complete set
+COMMENT: [Ar(1S0) + e -> Ar(5p'[3/2]2) + e, Excitation] Weber T et al 2003 Phys. Rev. A 68
+COMMENT: 032719.
+UPDATED: 2018-04-20 13:01:25
+COLUMNS: Energy (eV) | Cross section (m2)
+-----------------------------
+ 1.468800e+1	0.000000e+0
+ 1.500000e+1	2.735872e-24
+ 1.600000e+1	3.440066e-23
+ 1.700000e+1	6.516938e-23
+ 1.800000e+1	7.869299e-23
+ 1.900000e+1	8.446172e-23
+ 2.000000e+1	8.766062e-23
+ 2.100000e+1	8.843571e-23
+ 2.200000e+1	8.693541e-23
+ 2.300000e+1	8.355158e-23
+ 2.400000e+1	7.868918e-23
+ 2.500000e+1	7.275318e-23
+ 3.000000e+1	4.099756e-23
+ 3.500000e+1	2.461483e-23
+ 4.000000e+1	2.007606e-23
+ 4.500000e+1	1.976305e-23
+ 5.000000e+1	1.918489e-23
+ 8.000000e+1	1.430000e-23
+ 9.000000e+1	1.340000e-23
+ 1.000000e+2	1.250000e-23
+ 2.000000e+2	7.277800e-24
+ 3.000000e+2	5.080740e-24
+ 4.000000e+2	3.896790e-24
+ 5.000000e+2	3.159090e-24
+ 1.000000e+3	1.622180e-24
+-----------------------------
+
+EXCITATION
+Ar -> Ar(5p'[1/2]0)
+ 1.473800e+1
+SPECIES: e / Ar
+PROCESS: E + Ar -> E + Ar(5p'[1/2]0), Excitation
+PARAM.:  E = 14.738 eV, complete set
+COMMENT: [Ar(1S0) + e -> Ar(5p'[1/2]0) + e, Excitation] Weber T et al 2003 Phys. Rev. A 68
+COMMENT: 032719.
+UPDATED: 2018-04-20 13:00:27
+COLUMNS: Energy (eV) | Cross section (m2)
+-----------------------------
+ 1.473800e+1	0.000000e+0
+ 1.500000e+1	1.652755e-24
+ 1.600000e+1	2.723469e-23
+ 1.700000e+1	5.413498e-23
+ 1.800000e+1	6.933798e-23
+ 1.900000e+1	7.662215e-23
+ 2.000000e+1	8.003230e-23
+ 2.100000e+1	8.276762e-23
+ 2.200000e+1	8.464472e-23
+ 2.300000e+1	8.468688e-23
+ 2.400000e+1	8.287434e-23
+ 2.500000e+1	8.002499e-23
+ 3.000000e+1	7.164520e-23
+ 3.500000e+1	6.846143e-23
+ 4.000000e+1	6.495267e-23
+ 4.500000e+1	6.192371e-23
+ 5.000000e+1	5.971318e-23
+ 8.000000e+1	5.160000e-23
+ 9.000000e+1	4.850000e-23
+ 1.000000e+2	4.560000e-23
+ 2.000000e+2	2.720000e-23
+ 3.000000e+2	1.910000e-23
+ 4.000000e+2	1.470000e-23
+ 5.000000e+2	1.190000e-23
+ 1.000000e+3	6.147250e-24
+-----------------------------
+
+EXCITATION
+Ar -> Ar(4d)
+ 1.478000e+1
+SPECIES: e / Ar
+PROCESS: E + Ar -> E + Ar(4d), Excitation
+PARAM.:  E = 14.78 eV, complete set
+COMMENT: [Ar(1S0) + e -> Ar(4d) + e, Excitation] Drawin H W 1967 Fontenay-aux-Roses Report
+COMMENT: EUR-CEA-FC-383.
+UPDATED: 2018-04-20 12:53:13
+COLUMNS: Energy (eV) | Cross section (m2)
+-----------------------------
+ 1.478000e+1	0.000000e+0
+ 1.500000e+1	5.218821e-24
+ 1.600000e+1	3.233615e-23
+ 1.700000e+1	6.256972e-23
+ 1.800000e+1	9.369428e-23
+ 1.900000e+1	1.243855e-22
+ 2.000000e+1	1.538761e-22
+ 2.100000e+1	1.817456e-22
+ 2.200000e+1	2.077905e-22
+ 2.300000e+1	2.319418e-22
+ 2.400000e+1	2.542135e-22
+ 2.500000e+1	2.746685e-22
+ 3.000000e+1	3.532295e-22
+ 3.500000e+1	4.018518e-22
+ 4.000000e+1	4.309664e-22
+ 4.500000e+1	4.474586e-22
+ 5.000000e+1	4.557077e-22
+ 8.000000e+1	4.370884e-22
+ 9.000000e+1	4.228437e-22
+ 1.000000e+2	4.081799e-22
+ 2.000000e+2	2.937922e-22
+ 3.000000e+2	2.298979e-22
+ 4.000000e+2	1.901955e-22
+ 5.000000e+2	1.630400e-22
+ 1.000000e+3	9.808172e-23
+-----------------------------
+
+EXCITATION
+Ar -> Ar(6s)
+ 1.484200e+1
+SPECIES: e / Ar
+PROCESS: E + Ar -> E + Ar(6s), Excitation
+PARAM.:  E = 14.842 eV, complete set
+COMMENT: [Ar(1S0) + e -> Ar(6s) + e, Excitation] Drawin H W 1967 Fontenay-aux-Roses Report
+COMMENT: EUR-CEA-FC-383.
+UPDATED: 2018-04-20 13:04:17
+COLUMNS: Energy (eV) | Cross section (m2)
+-----------------------------
+ 1.484200e+1	0.000000e+0
+ 1.500000e+1	6.019327e-25
+ 1.600000e+1	4.948030e-24
+ 1.700000e+1	9.828197e-24
+ 1.800000e+1	1.487199e-23
+ 1.900000e+1	1.985817e-23
+ 2.000000e+1	2.465793e-23
+ 2.100000e+1	2.920008e-23
+ 2.200000e+1	3.344952e-23
+ 2.300000e+1	3.739363e-23
+ 2.400000e+1	4.103365e-23
+ 2.500000e+1	4.437914e-23
+ 3.000000e+1	5.724992e-23
+ 3.500000e+1	6.523810e-23
+ 4.000000e+1	7.003704e-23
+ 4.500000e+1	7.276896e-23
+ 5.000000e+1	7.414913e-23
+ 8.000000e+1	7.122819e-23
+ 9.000000e+1	6.892436e-23
+ 1.000000e+2	6.654736e-23
+ 2.000000e+2	4.794012e-23
+ 3.000000e+2	3.752542e-23
+ 4.000000e+2	3.104999e-23
+ 5.000000e+2	2.661954e-23
+ 1.000000e+3	1.601764e-23
+-----------------------------
+
+EXCITATION
+Ar -> Ar(4d')
+ 1.496700e+1
+SPECIES: e / Ar
+PROCESS: E + Ar -> E + Ar(4d'), Excitation
+PARAM.:  E = 14.967 eV, complete set
+COMMENT: [Ar(1S0) + e -> Ar(4d') + e, Excitation] Drawin H W 1967 Fontenay-aux-Roses Report
+COMMENT: EUR-CEA-FC-383.
+UPDATED: 2018-04-20 12:53:00
+COLUMNS: Energy (eV) | Cross section (m2)
+-----------------------------
+ 1.496700e+1	0.000000e+0
+ 1.500000e+1	4.452730e-25
+ 1.600000e+1	1.575874e-23
+ 1.700000e+1	3.321814e-23
+ 1.800000e+1	5.141263e-23
+ 1.900000e+1	6.949443e-23
+ 2.000000e+1	8.696497e-23
+ 2.100000e+1	1.035445e-22
+ 2.200000e+1	1.190904e-22
+ 2.300000e+1	1.335463e-22
+ 2.400000e+1	1.469093e-22
+ 2.500000e+1	1.592085e-22
+ 3.000000e+1	2.066881e-22
+ 3.500000e+1	2.363208e-22
+ 4.000000e+1	2.542376e-22
+ 4.500000e+1	2.645358e-22
+ 5.000000e+1	2.698378e-22
+ 8.000000e+1	2.600093e-22
+ 9.000000e+1	2.517284e-22
+ 1.000000e+2	2.431446e-22
+ 2.000000e+2	1.754683e-22
+ 3.000000e+2	1.374328e-22
+ 4.000000e+2	1.137544e-22
+ 5.000000e+2	9.754345e-23
+ 1.000000e+3	5.872263e-23
+-----------------------------
+
+IONIZATION
+Ar -> Ar+
+ 1.576000e+1
+SPECIES: e / Ar
+PROCESS: E + Ar -> E + E + Ar+, Ionization
+PARAM.:  E = 15.76 eV, complete set
+COMMENT: [Ar(1S0) + e -> Ar(+,gnd) + e + e, Ionization] Rapp D and Englander-Golden P 1965 J.
+COMMENT: Chem. Phys. 43 1464.
+UPDATED: 2018-04-20 13:04:45
+COLUMNS: Energy (eV) | Cross section (m2)
+-----------------------------
+ 1.576000e+1	0.000000e+0
+ 1.600000e+1	2.024000e-22
+ 1.650000e+1	6.688000e-22
+ 1.700000e+1	1.337600e-21
+ 1.800000e+1	2.939200e-21
+ 1.900000e+1	4.602400e-21
+ 2.000000e+1	6.274400e-21
+ 2.200000e+1	9.328000e-21
+ 2.400000e+1	1.179200e-20
+ 2.600000e+1	1.408000e-20
+ 2.800000e+1	1.601600e-20
+ 3.000000e+1	1.804000e-20
+ 3.400000e+1	2.112000e-20
+ 4.000000e+1	2.393600e-20
+ 4.500000e+1	2.490400e-20
+ 5.000000e+1	2.534400e-20
+ 6.000000e+1	2.657600e-20
+ 7.000000e+1	2.772000e-20
+ 8.000000e+1	2.842400e-20
+ 9.000000e+1	2.860000e-20
+ 1.000000e+2	2.851200e-20
+ 1.500000e+2	2.684000e-20
+ 2.000000e+2	2.393600e-20
+ 2.500000e+2	2.173600e-20
+ 3.000000e+2	1.980000e-20
+ 4.000000e+2	1.680800e-20
+ 5.000000e+2	1.460800e-20
+ 1.000000e+3	9.152000e-21
+-----------------------------
+xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
