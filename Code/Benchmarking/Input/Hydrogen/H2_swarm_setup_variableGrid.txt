@@ -1,0 +1,93 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%   SWARM ANALYSIS HYDROGEN   %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% --- configuration of the working conditions ---
+workingConditions:
+  reducedField: 10%logspace(-4,2.699,100)        % in Td
+  electronTemperature: linspace(0.03, 5, 100) % in eV
+  excitationFrequency: 0                      % in Hz
+  gasPressure: 133.32                         % in Pa
+  gasTemperature: 300                         % in K   (average gas temperature)
+  wallTemperature: 130                        % in K   (wall temperature)
+  extTemperature: 300                         % in K   (external temperature)
+  surfaceSiteDensity: 1e19                    % in m-2 (used for surface kinetics)
+  electronDensity: 1e19                       % in m-3
+  chamberLength: 1.0                          % in m
+  chamberRadius: 1.0                          % in m
+
+% --- configuration of the electron kinetics ---
+electronKinetics:
+  isOn: true                           % true or false (to activate or deactivate the electron kinetics)
+  eedfType: boltzmann                  % boltzmann or prescribedEedf (generalized expression Maxwellian/Druyvesteyn)
+%   shapeParameter: 1                  % prescribedEedf shape parameter from 1 (Maxwellian) to 2 (Druyvesteyn)
+  ionizationOperatorType: conservative % conservative, oneTakesAll, equalSharing or usingSDCS
+  growthModelType: temporal            % temporal or spatial
+  includeEECollisions: true            % true or false (to include / remove e-e collisions)
+  LXCatFiles:                          % cross section files
+    - Hydrogen/H2_elastic_LXCat.txt
+%   - Hydrogen/H2_rot_LXCat.txt
+%   LXCatFilesExtra: extra_LXCat.txt    % extra cross section files
+%   effectiveCrossSectionPopulations:   % see doc
+%     - H2_effectivePop.txt
+  CARgases:                           % gases for which CAR is activated
+    - H2
+  gasProperties:                       % properties of the gases (S.I. Units)
+    mass: Databases/masses.txt
+    fraction:
+      - H2 = 1
+    harmonicFrequency: Databases/harmonicFrequencies.txt
+    anharmonicFrequency: Databases/anharmonicFrequencies.txt
+    rotationalConstant: Databases/rotationalConstants.txt
+    electricQuadrupoleMoment: Databases/quadrupoleMoment.txt
+    OPBParameter: Databases/OPBParameter.txt
+  stateProperties:                     % properties of the states (S.I. Units except for the energy [eV])
+%    energy:
+%       - H2(X,v=*) = harmonicOscillatorEnergy
+%      - H2(X,v=0,J=*) = rigidRotorEnergy  
+%    statisticalWeight:
+%      - H2(X,v=*) = 1.0
+%      - H2(X,v=0,J=*) = rotationalDegeneracy_H2  
+    population:
+      - H2(X) = 1.0
+%      - H2(X,v=*) = 0.0
+%      - H2(X,v=0) = 1.0
+%      - H2(X,v=0,J=*) = boltzmannRotationalPopulation_H2@gasTemperature
+  numerics:                            % configuration of numerical details of the simulation
+    energyGrid:                        % properties of the energy grid (in eV)
+      variableGrid: true              % if true, sets a geometric progression as energy steps   
+      firstEnergyStep: 4e-4          % (only considered if variableGrid = true)1e-4
+      maxEnergy: 10                     % (use 18-20 for time-dependent simulations)
+      cellNumber: 200                 % (use 1800-2000 for time-dependent simulations)
+%       smartGrid:                       % configuration of the smart grid
+%         minEedfDecay: 20               % minimum number of decade-fall for the EEDF
+%         maxEedfDecay: 25               % maximum number of decade-fall for the EEDF
+%         updateFactor: 0.05             % factor used to increase or decrease the maximum value of the energy grid
+    maxPowerBalanceRelError: 1e-9      % threshold for the relative power balance warning message (use at least 100 for time dependent simulations)
+    nonLinearRoutines:
+      algorithm: mixingDirectSolutions % mixingDirectSolutions or temporalIntegration
+      mixingParameter: 0.7             % mixingDirectSolutions mixing parameter from 0 to 1
+      maxEedfRelError: 1e-9            % maximum rel. variation for EEDF between two iterations (stop criterion)
+%       odeSetParameters:                % optional parameters for the ode solver of the "temporalIntegration" algorithm	           
+%         AbsTol: 1e-300
+%         RelTol: 1e-6
+%         MaxStep: 1e-7
+          
+% --- configuration of the graphical user interface ---
+gui: 
+  isOn: true
+  refreshFrequency: 1
+
+% ---  configuration of the output files ---
+output: 
+  isOn: true
+  dataFormat: txt % txt or hdf5 or hdf5+txt
+  folder: H2Swarm_elastic
+  dataSets:
+%     - inputs
+    - log
+    - eedf
+    - swarmParameters
+    - rateCoefficients
+    - powerBalance
+    - lookUpTable
