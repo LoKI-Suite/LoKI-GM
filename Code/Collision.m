@@ -313,12 +313,15 @@ classdef Collision < handle
     
       % evaluate auxiliary variables
       gamma = Constant.gamma;
-      lmin = floor(collision.threshold/collision.energyGrid.step);
+      
+      % variable energy grid - use findCellNumber method
+      lmin = collision.energyGrid.findCellNumber(collision.threshold);
+      
       cellCrossSection = (collision.crossSection(lmin+1:end-1)+collision.crossSection(lmin+2:end))./2;
       aux = cellCrossSection.*collision.energyGrid.cell(lmin+1:end);
-    
-      % evaluate inelastic rate coefficient
-      ineRateCoeff = gamma*sum(aux.*eedf(lmin+1:end))*collision.energyGrid.step;
+
+      % evaluate inelastic rate coefficient - variable energy grid
+      ineRateCoeff = gamma*sum(aux.*eedf(lmin+1:end).*collision.energyGrid.energyStep(lmin+1:end));
       collision.ineRateCoeff = ineRateCoeff;
       
       % evaluate superelastic rate coefficient (if collision is reverse)
@@ -334,7 +337,8 @@ classdef Collision < handle
         else
           statWeightRatio = targetStatWeight/productStatWeight;
         end
-        supRateCoeff = gamma*statWeightRatio*sum(aux.*eedf(1:end-lmin))*collision.energyGrid.step;
+        % For superelastic, use energyStep array for variable grid (same approach as inelastic)
+        supRateCoeff = gamma*statWeightRatio*sum(aux.*eedf(1:end-lmin).*collision.energyGrid.energyStep(1:end-lmin));
         collision.supRateCoeff = supRateCoeff;
       else
         supRateCoeff = [];

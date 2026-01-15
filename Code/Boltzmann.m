@@ -276,13 +276,46 @@ classdef Boltzmann < handle
       
       % evaluate discrete operators of the Boltzmann equation (inelastic and superelastic operators without including
       % the contributions from ionization nor attachment)
-      boltzmann.evaluateInelasticOperators();
+      % to be updated for variable energy grid 
+      % boltzmann.evaluateInelasticOperators();
+      
+      % % 8-VariableGrid
+      % % Initialize discrete matrices as zeros (since discrete operators are not yet implemented for variable grid)
+      % cellNumber = boltzmann.energyGrid.cellNumber;
+      % boltzmann.inelasticMatrix = zeros(cellNumber);
+      % 
+      % % evaluate ionization operator of the Boltzmann equation
+      % % to be updated for variable energy grid 
+      % % boltzmann.evaluateIonizationOperator();
+      % 
+      % % Initialize ionization matrices as zeros
+      % boltzmann.ionizationConservativeMatrix = zeros(cellNumber);
+      % boltzmann.ionizationMatrix = zeros(cellNumber);
+      % boltzmann.ionizationThresholdIsSmallerThanUmax = false;
+      % boltzmann.includeNonConservativeIonization = false;
+      % 
+      % % evaluate attachment operator of the Boltzmann equation
+      % % to be updated for variable energy grid 
+      % % boltzmann.evaluateAttachmentOperator();
+      % 
+      % % Initialize attachment matrices as zeros
+      % boltzmann.attachmentConservativeMatrix = zeros(cellNumber);
+      % boltzmann.attachmentMatrix = zeros(cellNumber);
+      % boltzmann.attachmentThresholdIsSmallerThanUmax = false;
+      % boltzmann.includeNonConservativeAttachment = false;
+
+      % evaluate discrete operators of the Boltzmann equation (inelastic and superelastic operators without including
+      % the contributions from ionization nor attachment)
+      % to be updated for variable energy grid 
+      % boltzmann.evaluateInelasticOperators();
       
       % evaluate ionization operator of the Boltzmann equation
-      boltzmann.evaluateIonizationOperator();
+      % to be updated for variable energy grid 
+      % boltzmann.evaluateIonizationOperator();
       
       % evaluate attachment operator of the Boltzmann equation
-      boltzmann.evaluateAttachmentOperator();
+      % to be updated for variable energy grid 
+      % boltzmann.evaluateAttachmentOperator();
       
     end
     
@@ -366,6 +399,7 @@ classdef Boltzmann < handle
       gamma = Constant.gamma;                       % gamma parameter (sqrt(2e/me))
       WoN = boltzmann.workCond.reducedExcFreqSI;    % reduced angular exitation frequency (SI units)
       cellNumber = boltzmann.energyGrid.cellNumber; % number of energy cells in the energy grid
+      energyStep = boltzmann.energyGrid.energyStep; % variable energy step of the grid 
       
       % evaluation of the elements of the operator
       boltzmann.g_E = boltzmann.energyGrid.node./(3*boltzmann.totalCrossSection.*(1+(WoN/gamma)^2./...
@@ -379,15 +413,28 @@ classdef Boltzmann < handle
       if isempty(boltzmann.fieldMatrix)
         boltzmann.fieldMatrix = zeros(boltzmann.energyGrid.cellNumber);
       end
-      % evaluate diagonal elements
-      boltzmann.fieldMatrix(1:cellNumber+1:cellNumber*cellNumber) = ...
-        - (boltzmann.g_E(1:cellNumber)+boltzmann.g_E(2:cellNumber+1))./boltzmann.energyGrid.step^2;
-      % evaluate inferior diagonal elements
+      
+      % evaluate weights for variable energy grid
+      weightGrid(1:cellNumber-1) = energyStep(1:cellNumber-1)./...
+          (energyStep(2:cellNumber)+energyStep(1:cellNumber-1));
+      
+      % evaluate diagonal elements - variable energy grid
+      boltzmann.fieldMatrix(cellNumber+2:cellNumber+1:cellNumber*cellNumber-1) = ...
+        - boltzmann.g_E(3:cellNumber).*weightGrid(2:cellNumber-1).*2./energyStep(2:cellNumber-1).^2 ...
+        - boltzmann.g_E(2:cellNumber-1).*weightGrid(1:cellNumber-2).*2./...
+          (energyStep(1:cellNumber-2).*energyStep(2:cellNumber-1));
+      boltzmann.fieldMatrix(1) = - boltzmann.g_E(2).*weightGrid(1).*2./energyStep(1).^2;
+      boltzmann.fieldMatrix(cellNumber*cellNumber) = - boltzmann.g_E(cellNumber).*weightGrid(cellNumber-1).*2./...
+          (energyStep(cellNumber-1).*energyStep(cellNumber));
+      
+      % evaluate inferior diagonal elements - variable energy grid
       boltzmann.fieldMatrix(2:cellNumber+1:cellNumber*cellNumber) = ...
-        boltzmann.g_E(2:cellNumber)./boltzmann.energyGrid.step^2;
-      % evaluate superior diagonal elements
+        boltzmann.g_E(2:cellNumber).*weightGrid(1:cellNumber-1).*2./...
+          (energyStep(1:cellNumber-1).*energyStep(2:cellNumber));
+
+      % evaluate superior diagonal elements - variable energy grid      
       boltzmann.fieldMatrix(cellNumber+1:cellNumber+1:cellNumber*cellNumber) = ...
-        boltzmann.g_E(2:cellNumber)./boltzmann.energyGrid.step^2;
+        boltzmann.g_E(2:cellNumber).*weightGrid(1:cellNumber-1).*2./energyStep(1:cellNumber-1).^2;
       
     end
     
@@ -403,8 +450,16 @@ classdef Boltzmann < handle
       kb = Constant.boltzmannInEV;                  % boltzmann constant in eV
       Tg = boltzmann.workCond.gasTemperature;       % gas temperature in K
       cellNumber = boltzmann.energyGrid.cellNumber; % number of energy cells in the energy grid
-      factor1 = (kb*Tg/boltzmann.energyGrid.step+0.5)/boltzmann.energyGrid.step;
-      factor2 = (kb*Tg/boltzmann.energyGrid.step-0.5)/boltzmann.energyGrid.step;
+      energyStep = boltzmann.energyGrid.energyStep; % variable energy step of the grid 
+
+      % evaluate weights for variable energy grid
+      weightGrid(1:cellNumber-1) = energyStep(1:cellNumber-1)./...
+          (energyStep(2:cellNumber)+energyStep(1:cellNumber-1));
+      % evaluate factors - variable energy grid
+      factor1(1:cellNumber-1) = (kb*Tg*2.*weightGrid(1:cellNumber-1)./energyStep(1:cellNumber-1) + ...
+          weightGrid(1:cellNumber-1));
+      factor2(1:cellNumber-1) = (kb*Tg*2.*weightGrid(1:cellNumber-1)./energyStep(1:cellNumber-1) - ...
+          (1 - weightGrid(1:cellNumber-1)));
       
       % evaluation of the elements of the operator
       boltzmann.g_c = 2*boltzmann.energyGrid.node.^2.*boltzmann.elasticCrossSection;
@@ -417,13 +472,22 @@ classdef Boltzmann < handle
       if isempty(boltzmann.elasticMatrix)
         boltzmann.elasticMatrix = zeros(boltzmann.energyGrid.cellNumber);
       end
-      % evaluate diagonal elements
-      boltzmann.elasticMatrix(1:cellNumber+1:cellNumber*cellNumber) = ...
-        - (boltzmann.g_c(1:cellNumber)*factor1+boltzmann.g_c(2:cellNumber+1)*factor2);
-      % evaluate inferior diagonal elements
-      boltzmann.elasticMatrix(2:cellNumber+1:cellNumber*cellNumber) = boltzmann.g_c(2:cellNumber).*factor2;
-      % evaluate superior diagonal elements
-      boltzmann.elasticMatrix(cellNumber+1:cellNumber+1:cellNumber*cellNumber) = boltzmann.g_c(2:cellNumber).*factor1;
+      
+      % evaluate diagonal elements - variable energy grid
+      boltzmann.elasticMatrix(cellNumber+2:cellNumber+1:cellNumber*cellNumber-1) = ...
+        - boltzmann.g_c(2:cellNumber-1).*factor1(1:cellNumber-2)./energyStep(2:cellNumber-1) ...
+        - boltzmann.g_c(3:cellNumber).*factor2(2:cellNumber-1)./energyStep(2:cellNumber-1);
+      boltzmann.elasticMatrix(1) = - boltzmann.g_c(2).*factor2(1)./energyStep(1);
+      boltzmann.elasticMatrix(cellNumber*cellNumber) = - boltzmann.g_c(cellNumber).*factor1(cellNumber-1)./...
+          energyStep(cellNumber);
+      
+      % evaluate inferior diagonal elements - variable energy grid
+      boltzmann.elasticMatrix(2:cellNumber+1:cellNumber*cellNumber) = ...
+          boltzmann.g_c(2:cellNumber).*factor2(1:cellNumber-1)./energyStep(2:cellNumber);
+      
+      % evaluate superior diagonal elements - variable energy grid
+      boltzmann.elasticMatrix(cellNumber+1:cellNumber+1:cellNumber*cellNumber) = ...
+          boltzmann.g_c(2:cellNumber).*factor1(1:cellNumber-1)./energyStep(1:cellNumber-1);
       
     end
     
@@ -443,9 +507,17 @@ classdef Boltzmann < handle
       kb = Constant.boltzmannInEV;                  % boltzmann constant in eV
       Tg = boltzmann.workCond.gasTemperature;       % gas temperature in K
       cellNumber = boltzmann.energyGrid.cellNumber; % number of energy cells in the energy grid
-      factor1 = (kb*Tg/boltzmann.energyGrid.step+0.5)/boltzmann.energyGrid.step;
-      factor2 = (kb*Tg/boltzmann.energyGrid.step-0.5)/boltzmann.energyGrid.step;
+      energyStep = boltzmann.energyGrid.energyStep; % variable energy step of the grid 
       
+      % evaluate weights for variable energy grid
+      weightGrid(1:cellNumber-1) = energyStep(1:cellNumber-1)./...
+          (energyStep(2:cellNumber)+energyStep(1:cellNumber-1));
+      % evaluate factors - variable energy grid
+      factor1(1:cellNumber-1) = (kb*Tg*2.*weightGrid(1:cellNumber-1)./energyStep(1:cellNumber-1) + ...
+          weightGrid(1:cellNumber-1));
+      factor2(1:cellNumber-1) = (kb*Tg*2.*weightGrid(1:cellNumber-1)./energyStep(1:cellNumber-1) - ...
+          (1 - weightGrid(1:cellNumber-1)));
+    
       % evaluation of the elements of the operator
       sigma0B = 0;
       for gasName = boltzmann.CARgases
@@ -454,261 +526,272 @@ classdef Boltzmann < handle
         sigma0B = sigma0B + gas.fraction*gas.electricQuadrupoleMoment^2*gas.rotationalConstant;
       end
       sigma0B = 8.0*pi*sigma0B/(15.0*Constant.electronCharge^2*Constant.bohrRadius^2);
-      boltzmann.g_car =4*boltzmann.energyGrid.node.*sigma0B;
-      
+      boltzmann.g_car =4.*boltzmann.energyGrid.node.*sigma0B;
+    
       % evaluation of the boundary conditions
       boltzmann.g_car(1) = 0;
       boltzmann.g_car(end) = 0;
-      
+    
       % loading of the matrix
       if isempty(boltzmann.CARMatrix)
         boltzmann.CARMatrix = zeros(boltzmann.energyGrid.cellNumber);
-      end
+      end 
+    
+      % expression for variable energy grid
+      boltzmann.CARMatrix(cellNumber+2:cellNumber+1:cellNumber*cellNumber-1) = ...
+        - boltzmann.g_car(2:cellNumber-1).*factor1(1:cellNumber-2)./energyStep(2:cellNumber-1) ...
+        - boltzmann.g_car(3:cellNumber).*factor2(2:cellNumber-1)./energyStep(2:cellNumber-1);
+      boltzmann.CARMatrix(1) = - boltzmann.g_car(2).*factor2(1)./energyStep(1);
+      boltzmann.CARMatrix(cellNumber*cellNumber) = - boltzmann.g_car(cellNumber).*factor1(cellNumber-1)./...
+          energyStep(cellNumber);
       
-      % evaluate diagonal elements
-      boltzmann.CARMatrix(1:cellNumber+1:cellNumber*cellNumber) = ...
-        - (boltzmann.g_car(1:cellNumber)*factor1+boltzmann.g_car(2:cellNumber+1)*factor2);
-      % evaluate inferior diagonal elements
-      boltzmann.CARMatrix(2:cellNumber+1:cellNumber*cellNumber) = boltzmann.g_car(2:cellNumber).*factor2;
-      % evaluate superior diagonal elements
-      boltzmann.CARMatrix(cellNumber+1:cellNumber+1:cellNumber*cellNumber) = boltzmann.g_car(2:cellNumber).*factor1;
+      % evaluate inferior diagonal elements - variable energy grid
+      boltzmann.CARMatrix(2:cellNumber+1:cellNumber*cellNumber) = ...
+          boltzmann.g_car(2:cellNumber).*factor2(1:cellNumber-1)./energyStep(2:cellNumber);
+          
+      % evaluate superior diagonal elements - variable energy grid
+      boltzmann.CARMatrix(cellNumber+1:cellNumber+1:cellNumber*cellNumber) = ...
+          boltzmann.g_car(2:cellNumber).*factor1(1:cellNumber-1)./energyStep(1:cellNumber-1);
       
     end
     
-    function evaluateInelasticOperators(boltzmann)
-      % evaluateInelasticOperators is in charge of the evaluation of the elements of the inelastic and superelastic 
-      % collision operator (it does not include the contribution due to ionization nor attachment collisions)
-      %
-      % For more information see the notes about the discretisation of the boltzmann equation.
-      
-      % define local copies of variables used multiple times along the function
-      energyNode = boltzmann.energyGrid.node;
-      energyCell = boltzmann.energyGrid.cell;
-      energyStep = boltzmann.energyGrid.step;
-      cellNumber = boltzmann.energyGrid.cellNumber;
-      
-      % allocate memory for the matrix
-      inelasticMatrixAux = zeros(cellNumber);
-      
-      % loop over each gas in the mixture
-      for gas = boltzmann.gasArray
-        % loop over each collision with the gas
-        for collision = gas.collisionArray
-          collisionType = collision.type;
-          threshold = collision.threshold;
-          % avoid Effective, Elastic, Ionization and attachment collisions, also avoid collisions which threshold is 
-          % larger than the maximum energy or smaller than the energy step
-          if strcmp(collisionType, 'Effective') || strcmp(collisionType, 'Elastic') || ...
-              strcmp(collisionType, 'Ionization') || strcmp(collisionType, 'Attachment') || ...
-              threshold > energyNode(end) || threshold < energyStep
-            continue;
-          end
-          % evaluate numerical threshold
-          numThreshold=floor(threshold/energyStep);
-          % evaluate cross section at cell positions
-          nodeCrossSection = collision.crossSection;
-          cellCrossSection = 0.5*(nodeCrossSection(1:end-1)+nodeCrossSection(2:end));
-          % store density of the target of the collision
-          targetDensity = collision.target.density;
-          % load matrix
-
-          % evaluation of core inelastic/superelastic matrix elements
-          energyTimesCrossSection = energyCell.*cellCrossSection;
-          % evaluation of inleastic matrix elements
-          inelasticMatrixElements = targetDensity*energyTimesCrossSection;
-          % fill "exits" in the inelastic matrix (inelastic contribution)
-          inelasticMatrixAux(1:cellNumber+1:cellNumber*cellNumber) = ...
-            inelasticMatrixAux(1:cellNumber+1:cellNumber*cellNumber) - ...
-            inelasticMatrixElements;
-          % fill "entrances" in the inelastic matrix (inelastic contribution)
-          inelasticMatrixAux(cellNumber*numThreshold+1:cellNumber+1:cellNumber*cellNumber) = ...
-            inelasticMatrixAux(cellNumber*numThreshold+1:cellNumber+1:cellNumber*cellNumber) + ...
-            inelasticMatrixElements(1+numThreshold:cellNumber);
-          if collision.isReverse
-            statWeightRatio = collision.target.statisticalWeight/collision.productArray.statisticalWeight;
-            productDensity = collision.productArray.density;
-            % evaluation of superelastic matrix elements
-            superelasticMatrixElements = statWeightRatio*productDensity*energyTimesCrossSection;
-            % fill "exits" in the superelastic matrix (superelastic contribution)
-            inelasticMatrixAux(1:cellNumber+1:cellNumber*(cellNumber-numThreshold)) = ...
-              inelasticMatrixAux(1:cellNumber+1:cellNumber*(cellNumber-numThreshold)) - ...
-              superelasticMatrixElements(1+numThreshold:cellNumber);
-            % fill "entrances" in the superelastic matrix (superelastic contribution)
-            inelasticMatrixAux(1+numThreshold:cellNumber+1:cellNumber*(cellNumber-numThreshold)) = ...
-              inelasticMatrixAux(1+numThreshold:cellNumber+1:cellNumber*(cellNumber-numThreshold)) + ...
-              superelasticMatrixElements(1+numThreshold:cellNumber);
-          end
-
-        end
-      end
-      
-      % save discrete matrix in the boltzmann object
-      boltzmann.inelasticMatrix = inelasticMatrixAux;
-      
-    end
+    % to be updated for variable energy grid 
+    % function evaluateInelasticOperators(boltzmann)
+    %   % evaluateInelasticOperators is in charge of the evaluation of the elements of the inelastic and superelastic 
+    %   % collision operator (it does not include the contribution due to ionization nor attachment collisions)
+    %   %
+    %   % For more information see the notes about the discretisation of the boltzmann equation.
+    %   
+    %   % define local copies of variables used multiple times along the function
+    %   energyNode = boltzmann.energyGrid.node;
+    %   energyCell = boltzmann.energyGrid.cell;
+    %   energyStep = boltzmann.energyGrid.step;
+    %   cellNumber = boltzmann.energyGrid.cellNumber;
+    %   
+    %   % allocate memory for the matrix
+    %   inelasticMatrixAux = zeros(cellNumber);
+    %   
+    %   % loop over each gas in the mixture
+    %   for gas = boltzmann.gasArray
+    %     % loop over each collision with the gas
+    %     for collision = gas.collisionArray
+    %       collisionType = collision.type;
+    %       threshold = collision.threshold;
+    %       % avoid Effective, Elastic, Ionization and attachment collisions, also avoid collisions which threshold is 
+    %       % larger than the maximum energy or smaller than the energy step
+    %       if strcmp(collisionType, 'Effective') || strcmp(collisionType, 'Elastic') || ...
+    %           strcmp(collisionType, 'Ionization') || strcmp(collisionType, 'Attachment') || ...
+    %           threshold > energyNode(end) || threshold < energyStep
+    %         continue;
+    %       end
+    %       % evaluate numerical threshold
+    %       numThreshold=floor(threshold/energyStep);
+    %       % evaluate cross section at cell positions
+    %       nodeCrossSection = collision.crossSection;
+    %       cellCrossSection = 0.5*(nodeCrossSection(1:end-1)+nodeCrossSection(2:end));
+    %       % store density of the target of the collision
+    %       targetDensity = collision.target.density;
+    %       % load matrix
+    %
+    %       % evaluation of core inelastic/superelastic matrix elements
+    %       energyTimesCrossSection = energyCell.*cellCrossSection;
+    %       % evaluation of inleastic matrix elements
+    %       inelasticMatrixElements = targetDensity*energyTimesCrossSection;
+    %       % fill "exits" in the inelastic matrix (inelastic contribution)
+    %       inelasticMatrixAux(1:cellNumber+1:cellNumber*cellNumber) = ...
+    %         inelasticMatrixAux(1:cellNumber+1:cellNumber*cellNumber) - ...
+    %         inelasticMatrixElements;
+    %       % fill "entrances" in the inelastic matrix (inelastic contribution)
+    %       inelasticMatrixAux(cellNumber*numThreshold+1:cellNumber+1:cellNumber*cellNumber) = ...
+    %         inelasticMatrixAux(cellNumber*numThreshold+1:cellNumber+1:cellNumber*cellNumber) + ...
+    %         inelasticMatrixElements(1+numThreshold:cellNumber);
+    %       if collision.isReverse
+    %         statWeightRatio = collision.target.statisticalWeight/collision.productArray.statisticalWeight;
+    %         productDensity = collision.productArray.density;
+    %         % evaluation of superelastic matrix elements
+    %         superelasticMatrixElements = statWeightRatio*productDensity*energyTimesCrossSection;
+    %         % fill "exits" in the superelastic matrix (superelastic contribution)
+    %         inelasticMatrixAux(1:cellNumber+1:cellNumber*(cellNumber-numThreshold)) = ...
+    %           inelasticMatrixAux(1:cellNumber+1:cellNumber*(cellNumber-numThreshold)) - ...
+    %           superelasticMatrixElements(1+numThreshold:cellNumber);
+    %         % fill "entrances" in the superelastic matrix (superelastic contribution)
+    %         inelasticMatrixAux(1+numThreshold:cellNumber+1:cellNumber*(cellNumber-numThreshold)) = ...
+    %           inelasticMatrixAux(1+numThreshold:cellNumber+1:cellNumber*(cellNumber-numThreshold)) + ...
+    %           superelasticMatrixElements(1+numThreshold:cellNumber);
+    %       end
+    %
+    %     end
+    %   end
+    %   
+    %   % save discrete matrix in the boltzmann object
+    %   boltzmann.inelasticMatrix = inelasticMatrixAux;
+    %   
+    % end
     
-    function evaluateIonizationOperator(boltzmann)
-      % evaluateIonizationOperator is in charge of the evaluation of the elements of the ionization
-      % conservative or non-conservative collision operator
-      
-      % define local copies of variables used multiple times along the function
-      energyNode = boltzmann.energyGrid.node;
-      energyCell = boltzmann.energyGrid.cell;
-      energyStep = boltzmann.energyGrid.step;
-      cellNumber = boltzmann.energyGrid.cellNumber;
-      ionConservativeMatrix = zeros(cellNumber);
-      ionNonConservativeMatrix = zeros(cellNumber);
-      thresholdIsSmallerThanUmax = false;
-      
-      for gas = boltzmann.gasArray
-        % loop over each collision with the gas
-        for collision = gas.collisionArray
-          threshold = collision.threshold;
-          if strcmp(collision.type, 'Ionization') && threshold <= energyNode(end)
-            % set flag for non-conservative algorithms
-            thresholdIsSmallerThanUmax = true;
-            % evaluate cross section at cell positions
-            cellCrossSection = 0.5*(collision.crossSection(1:end-1) + collision.crossSection(2:end));
-            % local copy of target density
-            density = collision.target.density;
-            % evaluate numerical threhold
-            numThreshold=floor(threshold/energyStep);
-            % evaluate elements of the operator
-            operatorElements = density.*energyCell.*cellCrossSection;
-            % evaluation of nonconservative ionization collisional operator (in case it is needed)
-            switch boltzmann.ionCollOpType
-              case 'oneTakesAll'
-                % fill "exits" in the ionNonConservativeMatrix
-                ionNonConservativeMatrix(1:cellNumber+1:cellNumber*cellNumber) = ...
-                  ionNonConservativeMatrix(1:cellNumber+1:cellNumber*cellNumber) - operatorElements;
-                % fill "entrances" in the ionNonConservativeMatrix (scattered electrons)
-                ionNonConservativeMatrix(cellNumber*numThreshold+1:cellNumber+1:cellNumber*cellNumber) = ...
-                  ionNonConservativeMatrix(cellNumber*numThreshold+1:cellNumber+1:cellNumber*cellNumber) + ...
-                  operatorElements(1+numThreshold:cellNumber);
-                % fill "entrances" in the ionNonConservativeMatrix (secondary electrons)
-                ionNonConservativeMatrix(1,:) = ionNonConservativeMatrix(1,:) + operatorElements;
-              case 'equalSharing'
-                % fill "exits" in the ionNonConservativeMatrix
-                ionNonConservativeMatrix(1:cellNumber+1:cellNumber*cellNumber) = ...
-                  ionNonConservativeMatrix(1:cellNumber+1:cellNumber*cellNumber) - operatorElements;
-                % fill "entrances" in the ionNonConservativeMatrix (both scattered and secondary electrons)
-                ionNonConservativeMatrix(cellNumber*(numThreshold+1)+1:2*cellNumber+1:cellNumber*cellNumber) = ...
-                  ionNonConservativeMatrix(cellNumber*(numThreshold+1)+1:2*cellNumber+1:cellNumber*cellNumber) + ...
-                  4*operatorElements(2+numThreshold:2:2*floor((cellNumber-numThreshold)/2)+numThreshold);
-              case 'usingSDCS'
-                W = gas.OPBParameter;
-                if isempty(W)
-                  W = threshold;
-                end
-                aux1 = 1./(W.*atan((energyCell-threshold)./(2*W)));
-                aux2 = 1./(1+(energyCell./W).^2);
-                aux3 = energyStep*operatorElements.*aux1;
-                aux4 = cumsum(aux2);
-                for k=1:cellNumber
-                  half = floor((k-numThreshold)/2);
-                  final = min([2*k+numThreshold cellNumber]);
-                  % fill "exits" in the ionNonConservativeMatrix
-                  if half>0
-                    ionNonConservativeMatrix(k,k)= ionNonConservativeMatrix(k,k) - aux3(k)*aux4(half);
-                  end
-                  % fill "entrances" in the ionNonConservativeMatrix (both scattered and secondary electrons)
-                  if k+numThreshold+1<=cellNumber
-                    ionNonConservativeMatrix(k,k+numThreshold+1:final) = ...
-                      ionNonConservativeMatrix(k,k+numThreshold+1:final) + aux3(k+numThreshold+1:final).*...
-                      aux2(1:final-k-numThreshold);
-                  end
-                  ionNonConservativeMatrix(k,(2*k+numThreshold):cellNumber) = ...
-                    ionNonConservativeMatrix(k,(2*k+numThreshold):cellNumber) + aux3(2*k+numThreshold:cellNumber).*...
-                    aux2(k);
-                end
-            end
-            % avoid writing of conservative collision operator if threshold is smaller than the energy step
-            if numThreshold==0
-              continue
-            end
-            % evaluation of conservative ionization collisional operator (always needed)
-            % fill "exits" in the ionConservativeMatrix
-            ionConservativeMatrix(1:cellNumber+1:cellNumber*cellNumber) = ...
-              ionConservativeMatrix(1:cellNumber+1:cellNumber*cellNumber) - ...
-              operatorElements;
-            % fill "entrances" in the ionConservativeMatrix
-            ionConservativeMatrix(cellNumber*numThreshold+1:cellNumber+1:cellNumber*cellNumber) = ...
-              ionConservativeMatrix(cellNumber*numThreshold+1:cellNumber+1:cellNumber*cellNumber) + ...
-              operatorElements(1+numThreshold:cellNumber);
-          end
-        end
-      end
-      
-      % save matrixes in as properties of the boltzmann object
-      boltzmann.ionizationConservativeMatrix = ionConservativeMatrix;
-      boltzmann.ionizationMatrix = ionNonConservativeMatrix;
-      boltzmann.ionizationThresholdIsSmallerThanUmax = thresholdIsSmallerThanUmax;
-      
-      if ~strcmp(boltzmann.ionCollOpType, 'conservative') && thresholdIsSmallerThanUmax
-        boltzmann.includeNonConservativeIonization = true;
-      end
-      
-    end
+    % to be updated for variable energy grid 
+    % function evaluateIonizationOperator(boltzmann)
+    %   % evaluateIonizationOperator is in charge of the evaluation of the elements of the ionization
+    %   % conservative or non-conservative collision operator
+    %   
+    %   % define local copies of variables used multiple times along the function
+    %   energyNode = boltzmann.energyGrid.node;
+    %   energyCell = boltzmann.energyGrid.cell;
+    %   energyStep = boltzmann.energyGrid.step;
+    %   cellNumber = boltzmann.energyGrid.cellNumber;
+    %   ionConservativeMatrix = zeros(cellNumber);
+    %   ionNonConservativeMatrix = zeros(cellNumber);
+    %   thresholdIsSmallerThanUmax = false;
+    %   
+    %   for gas = boltzmann.gasArray
+    %     % loop over each collision with the gas
+    %     for collision = gas.collisionArray
+    %       threshold = collision.threshold;
+    %       if strcmp(collision.type, 'Ionization') && threshold <= energyNode(end)
+    %         % set flag for non-conservative algorithms
+    %         thresholdIsSmallerThanUmax = true;
+    %         % evaluate cross section at cell positions
+    %         cellCrossSection = 0.5*(collision.crossSection(1:end-1) + collision.crossSection(2:end));
+    %         % local copy of target density
+    %         density = collision.target.density;
+    %         % evaluate numerical threhold
+    %         numThreshold=floor(threshold/energyStep);
+    %         % evaluate elements of the operator
+    %         operatorElements = density.*energyCell.*cellCrossSection;
+    %         % evaluation of nonconservative ionization collisional operator (in case it is needed)
+    %         switch boltzmann.ionCollOpType
+    %           case 'oneTakesAll'
+    %             % fill "exits" in the ionNonConservativeMatrix
+    %             ionNonConservativeMatrix(1:cellNumber+1:cellNumber*cellNumber) = ...
+    %               ionNonConservativeMatrix(1:cellNumber+1:cellNumber*cellNumber) - operatorElements;
+    %             % fill "entrances" in the ionNonConservativeMatrix (scattered electrons)
+    %             ionNonConservativeMatrix(cellNumber*numThreshold+1:cellNumber+1:cellNumber*cellNumber) = ...
+    %               ionNonConservativeMatrix(cellNumber*numThreshold+1:cellNumber+1:cellNumber*cellNumber) + ...
+    %               operatorElements(1+numThreshold:cellNumber);
+    %             % fill "entrances" in the ionNonConservativeMatrix (secondary electrons)
+    %             ionNonConservativeMatrix(1,:) = ionNonConservativeMatrix(1,:) + operatorElements;
+    %           case 'equalSharing'
+    %             % fill "exits" in the ionNonConservativeMatrix
+    %             ionNonConservativeMatrix(1:cellNumber+1:cellNumber*cellNumber) = ...
+    %               ionNonConservativeMatrix(1:cellNumber+1:cellNumber*cellNumber) - operatorElements;
+    %             % fill "entrances" in the ionNonConservativeMatrix (both scattered and secondary electrons)
+    %             ionNonConservativeMatrix(cellNumber*(numThreshold+1)+1:2*cellNumber+1:cellNumber*cellNumber) = ...
+    %               ionNonConservativeMatrix(cellNumber*(numThreshold+1)+1:2*cellNumber+1:cellNumber*cellNumber) + ...
+    %               4*operatorElements(2+numThreshold:2:2*floor((cellNumber-numThreshold)/2)+numThreshold);
+    %           case 'usingSDCS'
+    %             W = gas.OPBParameter;
+    %             if isempty(W)
+    %               W = threshold;
+    %             end
+    %             aux1 = 1./(W.*atan((energyCell-threshold)./(2*W)));
+    %             aux2 = 1./(1+(energyCell./W).^2);
+    %             aux3 = energyStep*operatorElements.*aux1;
+    %             aux4 = cumsum(aux2);
+    %             for k=1:cellNumber
+    %               half = floor((k-numThreshold)/2);
+    %               final = min([2*k+numThreshold cellNumber]);
+    %               % fill "exits" in the ionNonConservativeMatrix
+    %               if half>0
+    %                 ionNonConservativeMatrix(k,k)= ionNonConservativeMatrix(k,k) - aux3(k)*aux4(half);
+    %               end
+    %               % fill "entrances" in the ionNonConservativeMatrix (both scattered and secondary electrons)
+    %               if k+numThreshold+1<=cellNumber
+    %                 ionNonConservativeMatrix(k,k+numThreshold+1:final) = ...
+    %                   ionNonConservativeMatrix(k,k+numThreshold+1:final) + aux3(k+numThreshold+1:final).*...
+    %                   aux2(1:final-k-numThreshold);
+    %               end
+    %               ionNonConservativeMatrix(k,(2*k+numThreshold):cellNumber) = ...
+    %                 ionNonConservativeMatrix(k,(2*k+numThreshold):cellNumber) + aux3(2*k+numThreshold:cellNumber).*...
+    %                 aux2(k);
+    %             end
+    %         end
+    %         % avoid writing of conservative collision operator if threshold is smaller than the energy step
+    %         if numThreshold==0
+    %           continue
+    %         end
+    %         % evaluation of conservative ionization collisional operator (always needed)
+    %         % fill "exits" in the ionConservativeMatrix
+    %         ionConservativeMatrix(1:cellNumber+1:cellNumber*cellNumber) = ...
+    %           ionConservativeMatrix(1:cellNumber+1:cellNumber*cellNumber) - ...
+    %           operatorElements;
+    %         % fill "entrances" in the ionConservativeMatrix
+    %         ionConservativeMatrix(cellNumber*numThreshold+1:cellNumber+1:cellNumber*cellNumber) = ...
+    %           ionConservativeMatrix(cellNumber*numThreshold+1:cellNumber+1:cellNumber*cellNumber) + ...
+    %           operatorElements(1+numThreshold:cellNumber);
+    %       end
+    %     end
+    %   end
+    %   
+    %   % save matrixes in as properties of the boltzmann object
+    %   boltzmann.ionizationConservativeMatrix = ionConservativeMatrix;
+    %   boltzmann.ionizationMatrix = ionNonConservativeMatrix;
+    %   boltzmann.ionizationThresholdIsSmallerThanUmax = thresholdIsSmallerThanUmax;
+    %   
+    %   if ~strcmp(boltzmann.ionCollOpType, 'conservative') && thresholdIsSmallerThanUmax
+    %     boltzmann.includeNonConservativeIonization = true;
+    %   end
+    %   
+    % end
     
-    function evaluateAttachmentOperator(boltzmann)
-      % evaluateAttachmentOperator is in charge of the evaluation of the elements of the attachment
-      % conservative or non-conservative collision operator
-      
-      % define local copies of variables used multiple times along the function
-      energyNode = boltzmann.energyGrid.node;
-      energyCell = boltzmann.energyGrid.cell;
-      energyStep = boltzmann.energyGrid.step;
-      cellNumber = boltzmann.energyGrid.cellNumber;
-      attConservativeMatrix = zeros(cellNumber);
-      attNonConservativeMatrix = zeros(cellNumber);
-      thresholdIsSmallerThanUmax = false;
-      
-      for gas = boltzmann.gasArray
-        % loop over each collision with the gas
-        for collision = gas.collisionArray
-          threshold = collision.threshold;
-          if strcmp(collision.type, 'Attachment') && threshold <= energyNode(end)
-            % set flag for non-conservative algorithms
-            thresholdIsSmallerThanUmax = true;
-            % evaluate cross section at cell positions
-            cellCrossSection = 0.5*(collision.crossSection(1:end-1) + collision.crossSection(2:end));
-            % local copy of target density
-            density = collision.target.density;
-            % evaluate numerical threshold
-            numThreshold=floor(threshold/energyStep);
-            
-            % evaluation of nonconservative attachment collisional operator (always)
-            for k=1:cellNumber
-              attNonConservativeMatrix(k,k) = attNonConservativeMatrix(k,k) - ...
-                density*energyCell(k)*cellCrossSection(k);
-            end
-            % avoid writing of conservative operator if threshold is smaller than the energy step
-            if numThreshold==0
-              continue
-            end
-            % evaluation of conservative attachment collisional operator (always needed)
-            for k=1:cellNumber
-              if (k<=cellNumber-numThreshold)
-                attConservativeMatrix(k,k+numThreshold) = attConservativeMatrix(k,k+numThreshold) + ...
-                  density*energyCell(k+numThreshold)*cellCrossSection(k+numThreshold);
-              end
-              attConservativeMatrix(k,k) = attConservativeMatrix(k,k) - density*energyCell(k)*cellCrossSection(k);
-            end
-            
-          end
-        end
-      end
-      
-      % save matrixes in as properties of the boltzmann object
-      boltzmann.attachmentConservativeMatrix = attConservativeMatrix;
-      boltzmann.attachmentMatrix = attNonConservativeMatrix;
-      boltzmann.attachmentThresholdIsSmallerThanUmax = thresholdIsSmallerThanUmax;
-      
-      if thresholdIsSmallerThanUmax
-        boltzmann.includeNonConservativeAttachment = true;
-      end
-      
-    end
+    % to be updated for variable energy grid 
+    % function evaluateAttachmentOperator(boltzmann)
+    %   % evaluateAttachmentOperator is in charge of the evaluation of the elements of the attachment
+    %   % conservative or non-conservative collision operator
+    %   
+    %   % define local copies of variables used multiple times along the function
+    %   energyNode = boltzmann.energyGrid.node;
+    %   energyCell = boltzmann.energyGrid.cell;
+    %   energyStep = boltzmann.energyGrid.step;
+    %   cellNumber = boltzmann.energyGrid.cellNumber;
+    %   attConservativeMatrix = zeros(cellNumber);
+    %   attNonConservativeMatrix = zeros(cellNumber);
+    %   thresholdIsSmallerThanUmax = false;
+    %   
+    %   for gas = boltzmann.gasArray
+    %     % loop over each collision with the gas
+    %     for collision = gas.collisionArray
+    %       threshold = collision.threshold;
+    %       if strcmp(collision.type, 'Attachment') && threshold <= energyNode(end)
+    %         % set flag for non-conservative algorithms
+    %         thresholdIsSmallerThanUmax = true;
+    %         % evaluate cross section at cell positions
+    %         cellCrossSection = 0.5*(collision.crossSection(1:end-1) + collision.crossSection(2:end));
+    %         % local copy of target density
+    %         density = collision.target.density;
+    %         % evaluate numerical threshold
+    %         numThreshold=floor(threshold/energyStep);
+    %         
+    %         % evaluation of nonconservative attachment collisional operator (always)
+    %         for k=1:cellNumber
+    %           attNonConservativeMatrix(k,k) = attNonConservativeMatrix(k,k) - ...
+    %             density*energyCell(k)*cellCrossSection(k);
+    %         end
+    %         % avoid writing of conservative operator if threshold is smaller than the energy step
+    %         if numThreshold==0
+    %           continue
+    %         end
+    %         % evaluation of conservative attachment collisional operator (always needed)
+    %         for k=1:cellNumber
+    %           if (k<=cellNumber-numThreshold)
+    %             attConservativeMatrix(k,k+numThreshold) = attConservativeMatrix(k,k+numThreshold) + ...
+    %               density*energyCell(k+numThreshold)*cellCrossSection(k+numThreshold);
+    %           end
+    %           attConservativeMatrix(k,k) = attConservativeMatrix(k,k) - density*energyCell(k)*cellCrossSection(k);
+    %         end
+    %         
+    %       end
+    %     end
+    %   end
+    %   
+    %   % save matrixes in as properties of the boltzmann object
+    %   boltzmann.attachmentConservativeMatrix = attConservativeMatrix;
+    %   boltzmann.attachmentMatrix = attNonConservativeMatrix;
+    %   boltzmann.attachmentThresholdIsSmallerThanUmax = thresholdIsSmallerThanUmax;
+    %   
+    %   if thresholdIsSmallerThanUmax
+    %     boltzmann.includeNonConservativeAttachment = true;
+    %   end
+    %   
+    % end
 
     function obtainTimeIndependentSolution(boltzmann)
       % obtainTimeIndependentSolution solves the time-independent electron boltzmann equation 
@@ -931,9 +1014,9 @@ classdef Boltzmann < handle
       % operators (non-conservative ionization or attachment, growth models, e-e collisions) in order to obtain an eedf
       
       % sum all contributions to the boltzmann matrix and reescale it to avoid very small numbers
+      % TO BE UPDATED: discrete operators commented out (not yet adapted for variable energy grid)
       matrix = 1.e20*(boltzmann.workCond.reducedFieldSI^2*boltzmann.fieldMatrix + boltzmann.elasticMatrix + ...
-        boltzmann.CARMatrix + boltzmann.inelasticMatrix + boltzmann.ionizationConservativeMatrix + ...
-        boltzmann.attachmentConservativeMatrix);
+        boltzmann.CARMatrix);
       
       % invert the matrix
       eedf = matrixInversion(matrix, boltzmann.energyGrid);
@@ -967,7 +1050,7 @@ classdef Boltzmann < handle
       end
       
       % ensure proper normalization
-      norm = sum(eedf.*sqrt(boltzmann.energyGrid.cell))*boltzmann.energyGrid.step;
+      norm = sum(eedf.*sqrt(boltzmann.energyGrid.cell).*boltzmann.energyGrid.energyStep);
       eedf = eedf/norm;
       
       % store eedf in the properties of the boltzmann object
@@ -1233,8 +1316,8 @@ classdef Boltzmann < handle
       growthMatrix = zeros(cellNumber);
       
       % writing of the Boltzmann matrix without the growth model and the electron-electron collisional operator
-      baseMatrix = boltzmann.elasticMatrix + boltzmann.CARMatrix + boltzmann.inelasticMatrix + ...
-        ionizationMatrixAux + attachmentMatrixAux;
+      % TO BE UPDATED: discrete operators commented out (not yet adapted for variable energy grid)
+      baseMatrix = boltzmann.elasticMatrix + boltzmann.CARMatrix + EoN^2*boltzmann.fieldMatrix;
       
       % electron-electron collisions terms (not updated in the density growth operator)
       Mee = zeros(cellNumber);
@@ -1348,7 +1431,7 @@ classdef Boltzmann < handle
       EoNTd = boltzmann.workCond.reducedField;    % reduced electric field (Td)
       
       energyCell = boltzmann.energyGrid.cell;
-      energyStep = boltzmann.energyGrid.step;
+      energyStep = boltzmann.energyGrid.energyStep; % variable energy step array
       cellNumber = boltzmann.energyGrid.cellNumber;
       energyNode = boltzmann.energyGrid.node;
       eedf = boltzmann.eedf;
@@ -1368,26 +1451,49 @@ classdef Boltzmann < handle
               boltzmann.ionTemporalGrowth;
         end
       else
-        baseMatrix = boltzmann.ionizationConservativeMatrix + boltzmann.attachmentConservativeMatrix + ...
-          boltzmann.elasticMatrix + boltzmann.CARMatrix + boltzmann.inelasticMatrix + EoN^2*boltzmann.fieldMatrix ;
+        % TO BE UPDATED: discrete operators commented out (not yet adapted for variable energy grid)
+        baseMatrix = boltzmann.elasticMatrix + boltzmann.CARMatrix + EoN^2*boltzmann.fieldMatrix;
       end
+      
+       % uniform energy grid
+%       % writing auxiliary matrix A, without constant alpha
+%       auxA = zeros(cellNumber);
+%       auxMatrix = zeros(cellNumber);
+%       auxEnergyArray = -(energyStep/2)*sqrt(energyCell)+(2/3)*energyCell.^(3/2);
+%       % from power conservation, terms on the last row (cellNumber,:) and on the first column (:,1) are zero
+%       for k=1:cellNumber-1
+%         auxMatrix(k,2:k) = auxEnergyArray(2:k);
+%         auxMatrix(k,k+1:cellNumber) = (2/3)*energyNode(k+1)^(3/2);
+%       end
+%       % detailed balance condition
+%       for k=1:cellNumber-1
+%         auxA(k,2:cellNumber) = sqrt(auxMatrix(k,2:cellNumber).*auxMatrix(1:cellNumber-1,k+1)'); 
+%       end
+
+
+      % variable energy grid
+      N = cellNumber;
+      % evaluate weights for variable energy grid
+      weightGrid(1:N-1) = energyStep(1:N-1)./...
+          (energyStep(2:N)+energyStep(1:N-1));
       
       % writing auxiliary matrix A, without constant alpha
       auxA = zeros(cellNumber);
+      auxB = zeros(cellNumber);
       auxMatrix = zeros(cellNumber);
-      auxEnergyArray = -(energyStep/2)*sqrt(energyCell)+(2/3)*energyCell.^(3/2);
-      % from power conservation, terms on the last row (cellNumber,:) and on the first column (:,1) are zero
-      for k=1:cellNumber-1
-        auxMatrix(k,2:k) = auxEnergyArray(2:k);
-        auxMatrix(k,k+1:cellNumber) = (2/3)*energyNode(k+1)^(3/2);
-      end
-      % detailed balance condition
-      for k=1:cellNumber-1
-        auxA(k,2:cellNumber) = sqrt(auxMatrix(k,2:cellNumber).*auxMatrix(1:cellNumber-1,k+1)'); 
-      end
       
-      % writing auxiliary matrix B, without constant alpha
-      auxB = transpose(auxA);
+      % from power conservation, terms on the last row (cellNumber,:) and on the first column (:,1) are zero
+      for k=2:cellNumber
+        auxMatrix(k,1:k-1) = energyStep(1:k-1).*((weightGrid(k-1)).*sqrt(energyCell(1:k-1))+...
+            (2/3)*2*weightGrid(k-1)./energyStep(k-1).*energyCell(1:k-1).^(3/2));        
+        auxMatrix(k,k:cellNumber) = (2/3)*energyStep(k:cellNumber).*...
+            2*weightGrid(k-1)./energyStep(k-1).*energyNode(k).^(3/2);
+      end
+
+
+      % uniform grid
+%       % writing auxiliary matrix B, without constant alpha
+%       auxB = transpose(auxA);
 
       % initial value for eedfOld (calculated without electron-electron collisional operator)
       eedfOld = eedf;
@@ -1395,20 +1501,60 @@ classdef Boltzmann < handle
       iteration = 0;
       
       while true
+          % uniform energy grid
+%         % Calculation of constant alpha
+%         meanEnergy = dot(energyStep.*energyCell.^(3/2),eedf);  % mean energy
+%         Te = (2/3)*meanEnergy;                                % electron temperature in eV Te = (2/3)*meanEnergy
+%         logC = log(12*pi*(e0*Te/e)^(3/2)/sqrt(ne));           % Coulomb logarithm
+%         alpha = (ne/n0)*(e^2/(8*pi*e0^2))*logC;               % alpha
+% 
+%         % calculation of electron-electron collisions vectors of upflux (A) and downflux (B)
+%         A = (alpha/energyStep)*(auxA*eedf');
+%         B = (alpha/energyStep)*(auxB*eedf');
+%         
+        % variable energy grid
         % Calculation of constant alpha
-        meanEnergy = energyStep*dot(energyCell.^(3/2),eedf);  % mean energy
+        meanEnergy = dot(energyStep.*energyCell.^(3/2),eedf);  % mean energy
         Te = (2/3)*meanEnergy;                                % electron temperature in eV Te = (2/3)*meanEnergy
         logC = log(12*pi*(e0*Te/e)^(3/2)/sqrt(ne));           % Coulomb logarithm
         alpha = (ne/n0)*(e^2/(8*pi*e0^2))*logC;               % alpha
 
-        % calculation of electron-electron collisions vectors of upflux (A) and downflux (B)
-        A = (alpha/energyStep)*(auxA*eedf');
-        B = (alpha/energyStep)*(auxB*eedf');
+        % detailed balance condition
+        for k=1:cellNumber-1
+          maxwellianExponent(2:cellNumber,k) = 1/Te*0.5*(energyStep(1:cellNumber-1)./...
+              weightGrid(1:cellNumber-1)-energyStep(k)./weightGrid(k));
+          maxwellianFactor(2:cellNumber,k) = weightGrid(1:cellNumber-1)./weightGrid(k).*...
+             energyStep(k)./energyStep(1:cellNumber-1).*exp(maxwellianExponent(2:cellNumber,k)');
+          
+          auxB(2:cellNumber,k) = sqrt(maxwellianFactor(2:cellNumber,k).*auxMatrix(2:cellNumber,k).*...
+              auxMatrix(k+1,1:cellNumber-1)'); 
+          % %debugging
+          % auxB(2:cellNumber,k) = sqrt(auxMatrix(2:cellNumber,k).*...
+          %     auxMatrix(k+1,1:cellNumber-1)'); 
+
+          
+        end
+
+        % variable grid
+        % writing auxiliary matrix B, without constant alpha
+        for k=2:cellNumber
+            for j=1:cellNumber-1
+              auxA(j,k) = weightGrid(j)/weightGrid(k-1)*energyStep(k-1)/energyStep(j)*auxB(k,j);
+            end
+        end
         
+        
+        % calculation of electron-electron collisions vectors of upflux (A) and downflux (B)
+        A = alpha*(auxA*eedf');
+        B = alpha*(auxB*eedf');
+  
         % writing of the electron-electron operator
-        Mee(1:cellNumber+1:cellNumber*cellNumber) = -(A(1:cellNumber)+B(1:cellNumber));
-        Mee(cellNumber+1:cellNumber+1:cellNumber*cellNumber) = B(2:cellNumber);
-        Mee(2:cellNumber+1:cellNumber*cellNumber) = A(1:cellNumber-1);
+        Mee(1:cellNumber+1:cellNumber*cellNumber) = -(A(1:cellNumber)+B(1:cellNumber))./...
+            energyStep(1:cellNumber)';
+        Mee(cellNumber+1:cellNumber+1:cellNumber*cellNumber) = B(2:cellNumber)./...
+            energyStep(1:cellNumber-1)';
+        Mee(2:cellNumber+1:cellNumber*cellNumber) = A(1:cellNumber-1)./...
+            energyStep(2:cellNumber)';
         
         % sum all contributions to the Boltzmann matrix and reescale it to avoid very small numbers
         matrixAux = 1e20*(baseMatrix + Mee);
@@ -1482,28 +1628,50 @@ classdef Boltzmann < handle
       % save a local copy of the energy grid information
       energyGridLocal = boltzmann.energyGrid;   % energyGrid object
       N = energyGridLocal.cellNumber;           % number of cells in the energy grid
-      energyStep = energyGridLocal.step;        % energy step
+      energyStep = energyGridLocal.energyStep;        % energy step
       energyCell = energyGridLocal.cell;        % value of the energy at the cells
       energyNode = energyGridLocal.node;        % value of the energy at the nodes
       
       % multiplicative constant to obtain the right units
       gamma = Constant.gamma;
       
+      % evaluate weights for variable energy grid
+      weightGrid(1:N-1) = energyStep(1:N-1)./...
+          (energyStep(2:N)+energyStep(1:N-1));
+      
       % auxiliary quantities needed to evaluate the elastic and CAR powers
       kTg = Constant.boltzmannInEV*boltzmann.workCond.gasTemperature;
-      aux1 = kTg+energyStep*0.5;
-      aux2 = kTg-energyStep*0.5;
+      aux1(1:N-1) = kTg+energyStep(1:N-1).*0.5;
+      aux2(1:N-1) = kTg-energyStep(1:N-1).*(1 - weightGrid(1:N-1))./weightGrid(1:N-1).*0.5;
+      
+%       % original - constant energy grid
+%       % evaluate power absorved per electron at unit gas density due to elastic collisions
+%       g_cLocal = boltzmann.g_c; % elements of the elastic collision operator (local copy)
+%       power.elasticNet = gamma*sum(eedfLocal.*(g_cLocal(2:end)*aux2-g_cLocal(1:end-1)*aux1));
+%       power.elasticGain = gamma*kTg*sum(eedfLocal.*(g_cLocal(2:end)-g_cLocal(1:end-1)));
+%       power.elasticLoss = power.elasticNet-power.elasticGain;
       
       % evaluate power absorved per electron at unit gas density due to elastic collisions
       g_cLocal = boltzmann.g_c; % elements of the elastic collision operator (local copy)
-      power.elasticNet = gamma*sum(eedfLocal.*(g_cLocal(2:end)*aux2-g_cLocal(1:end-1)*aux1));
+      power.elasticNet = gamma*sum(g_cLocal(2:N).*(eedfLocal(1:N-1).*aux2(1:N-1)-eedfLocal(2:N).*aux1(1:N-1)));      
       power.elasticGain = gamma*kTg*sum(eedfLocal.*(g_cLocal(2:end)-g_cLocal(1:end-1)));
       power.elasticLoss = power.elasticNet-power.elasticGain;
       
+      
+%       % original - constant energy grid
+%       % evaluate power absorved per electron at unit gas density due to rotations CAR
+%       if ~isempty(boltzmann.CARgases)
+%         g_carLocal = boltzmann.g_car; % elements of the CAR operator (local copy)
+%         power.carNet = gamma*sum(eedfLocal.*(g_carLocal(2:end)*aux2-g_carLocal(1:end-1)*aux1));
+%         power.carGain = gamma*kTg*sum(eedfLocal.*(g_carLocal(2:end)-g_carLocal(1:end-1)));
+%         power.carLoss = power.carNet-power.carGain;
+%       end
+      
+%     % variable energy grid
       % evaluate power absorved per electron at unit gas density due to rotations CAR
       if ~isempty(boltzmann.CARgases)
         g_carLocal = boltzmann.g_car; % elements of the CAR operator (local copy)
-        power.carNet = gamma*sum(eedfLocal.*(g_carLocal(2:end)*aux2-g_carLocal(1:end-1)*aux1));
+        power.carNet = gamma*sum(g_carLocal(2:N).*(eedfLocal(1:N-1).*aux2(1:N-1)-eedfLocal(2:N).*aux1(1:N-1)));      
         power.carGain = gamma*kTg*sum(eedfLocal.*(g_carLocal(2:end)-g_carLocal(1:end-1)));
         power.carLoss = power.carNet-power.carGain;
       end
@@ -1569,13 +1737,35 @@ classdef Boltzmann < handle
         power.field = gamma*sum(eedfLocal.*(g_ELocal(2:end)-g_ELocal(1:end-1)));
       end
       
+%       % uniform variable grid
+%       % power absorved per electron at unit gas density due to electron-electron collisions (to be revised)
+%       if boltzmann.includeEECollisions
+%         A = boltzmann.Afinal;
+%         B = boltzmann.Bfinal;
+%         power.electronElectronNet = gamma*sum((A(1:N)-B(1:N)).*eedfLocal(1:N)').*energyStep^2;
+%         % Note that B_(n+1) + A_n = 2 * A_(J_n) and B_n + A_(n-1) = 2 * B_(J_n)
+%         power.electronElectronGain = gamma*0.5*( sum((A(2:N-1)+B(3:N)-A(1:N-2)-B(2:N-1)).*eedfLocal(2:N-1)')+...
+%           (A(1)+B(2))*eedfLocal(1)-(A(N-1)+B(N))*eedfLocal(N) )*energyStep^2;
+%         power.electronElectronLoss = power.electronElectronNet - power.electronElectronGain;
+%       end
+
+      % variable energy grid
       % power absorved per electron at unit gas density due to electron-electron collisions (to be revised)
       if boltzmann.includeEECollisions
-        A = boltzmann.Afinal;
-        B = boltzmann.Bfinal;
-        power.electronElectronNet = gamma*sum((A(1:N)-B(1:N)).*eedfLocal(1:N)')*energyStep^2;
-        power.electronElectronGain = gamma*0.5*( sum((A(2:N-1)+B(3:N)-A(1:N-2)-B(2:N-1)).*eedfLocal(2:N-1)')+...
-          (A(1)+B(2))*eedfLocal(1)-(A(N-1)+B(N))*eedfLocal(N) )*energyStep^2;
+        A = boltzmann.Afinal';
+        B = boltzmann.Bfinal';
+        weightGrid(1:N-1) = energyStep(1:N-1)./(energyStep(2:N)+energyStep(1:N-1));        
+        power.electronElectronNet = gamma*0.5*(sum((energyStep(2:N-1)./weightGrid(2:N-1).*A(2:N-1)-...
+            energyStep(1:N-2)./weightGrid(1:N-2).*B(2:N-1)).*eedfLocal(2:N-1))+...
+            energyStep(1)/weightGrid(1)*A(1)*eedfLocal(1)-...
+            energyStep(N-1)/weightGrid(N-1)*B(N)*eedfLocal(N));
+        % Note that B_(n+1) + A_n = 2 * A_(J_n) and B_n + A_(n-1) = 2 * B_(J_n)
+        % had to transpose A and B
+        power.electronElectronGain = gamma*0.5*(sum((energyStep(2:N-1)./weightGrid(2:N-1).*...
+            (A(2:N-1).*weightGrid(2:N-1)+B(3:N).*(1-weightGrid(2:N-1)))-...
+            energyStep(1:N-2)./weightGrid(1:N-2).*(A(1:N-2).*weightGrid(1:N-2)-B(2:N-1).*(1-weightGrid(1:N-2)))).*eedfLocal(2:N-1))+...
+          (energyStep(1)/weightGrid(1)*(A(1)*weightGrid(1)+B(2)*(1-weightGrid(1))))*eedfLocal(1)-...
+          energyStep(N-1)/weightGrid(N-1)*(A(N-1)*weightGrid(N-1)+B(N)*(1-weightGrid(N-1)))*eedfLocal(N));
         power.electronElectronLoss = power.electronElectronNet - power.electronElectronGain;
       end
       
@@ -1599,7 +1789,7 @@ classdef Boltzmann < handle
             cellCrossSection = 0.5*(collision.crossSection(1:end-1)+collision.crossSection(2:end));
             
             threshold = collision.threshold;
-            lmin=floor(threshold/energyStep);
+            lmin = boltzmann.energyGrid.findCellNumber(threshold);  % Fixed for variable grid
             
             switch boltzmann.ionCollOpType
               case 'equalSharing'
@@ -1638,7 +1828,7 @@ classdef Boltzmann < handle
             % evaluate cross section at cell positions
             cellCrossSection = 0.5*(collision.crossSection(1:end-1)+collision.crossSection(2:end));
             threshold = collision.threshold;
-            lmin=floor(threshold/energyStep);
+            lmin = boltzmann.energyGrid.findCellNumber(collision.threshold);  % Fixed for variable grid
             gasPower.attachmentIne = gasPower.attachmentIne - gamma*collision.target.density*energyStep*...
               sum(eedfLocal(1+lmin:N).*energyCell(1+lmin:N).^2.*cellCrossSection(1+lmin:N));
             continue;
@@ -1649,7 +1839,7 @@ classdef Boltzmann < handle
           % evaluate cross section at cell positions
           cellCrossSection = 0.5*(collision.crossSection(1:end-1)+collision.crossSection(2:end));
           % evaluate departure cell
-          lmin=floor(collision.threshold/energyStep);
+          lmin = boltzmann.energyGrid.findCellNumber(collision.threshold);  % Fixed for variable grid
           % add contribution to the power due to the inelastic collisions
           gasPower.([lower(collType) 'Ine']) = gasPower.([lower(collType) 'Ine']) - gamma*collision.target.density*...
             energyStep*energyNode(lmin+1)*sum(eedfLocal(1+lmin:N).*energyCell(1+lmin:N).*cellCrossSection(1+lmin:N));
@@ -1725,7 +1915,8 @@ classdef Boltzmann < handle
       gamma = Constant.gamma;
       energyNode = boltzmann.energyGrid.node;
       energyCell = boltzmann.energyGrid.cell;
-      energyStep = boltzmann.energyGrid.step;
+      energyStep = boltzmann.energyGrid.energyStep;
+      N = boltzmann.energyGrid.cellNumber;
       eedfLocal = boltzmann.eedf;
       WoN = boltzmann.workCond.reducedExcFreqSI;
       
@@ -1742,15 +1933,28 @@ classdef Boltzmann < handle
         'redMobilityEnergy', [], 'redTownsendCoeff', [], 'redAttCoeff', [], 'meanEnergy', [], 'characEnergy', [], ...
         'Te', [], 'driftVelocity', []);
       
+      % evaluate weights for variable energy grid
+      weightGrid(1:N-1) = energyStep(1:N-1)./(energyStep(2:N)+energyStep(1:N-1));
+      
       % evaluate reduced diffusion coefficient
-      swarmParam.redDiffCoeff = (2*gamma/3)*energyStep*sum(energyCell.*eedfLocal./...
-        (totalCrossSectionAux(1:end-1)+totalCrossSectionAux(2:end)));
+      % swarmParam.redDiffCoeff = (2*gamma/3)*energyStep*sum(energyCell.*eedfLocal./...
+      %   (totalCrossSectionAux(1:end-1)+totalCrossSectionAux(2:end)));
+
+      % evaluate reduced diffusion coefficient - variable energy grid
+      swarmParam.redDiffCoeff = (gamma/3)*sum(energyNode(2:N)./totalCrossSectionAux(2:N).*...
+          ((1-weightGrid(1:N-1)).*eedfLocal(1:N-1) + weightGrid(1:N-1).*eedfLocal(2:N)).*...
+          (energyStep(1:N-1)+energyStep(2:N))./2);
       
       % evaluate reduced mobility (DC expression)
-      swarmParam.redMobility = -gamma/3*sum(energyNode(2:end-1).*(eedfLocal(2:end)-eedfLocal(1:end-1))./...
-        (totalCrossSectionAux(2:end-1)));
+      % swarmParam.redMobility = -gamma/3*sum(energyNode(2:end-1).*(eedfLocal(2:end)-eedfLocal(1:end-1))./...
+      %   (totalCrossSectionAux(2:end-1)));
+
+      % evaluate reduced mobility (DC expression) - variable energy grid
+      swarmParam.redMobility = -gamma/3*sum(energyNode(2:N).*(eedfLocal(2:N)-eedfLocal(1:N-1))./...
+        (totalCrossSectionAux(2:N)));
 
       % evaluate complex HF reduced mobility (in case the excitation frequency is not zero)
+      % to be updated - variable energy grid
       if WoN ~= 0
         swarmParam.redMobilityHF = -gamma/3*sum(energyNode(2:end-1).*(eedfLocal(2:end)-eedfLocal(1:end-1))./...
           (totalCrossSectionAux(2:end-1)+(WoN/gamma)^2./(energyNode(2:end-1).*totalCrossSectionAux(2:end-1))));
@@ -1762,8 +1966,13 @@ classdef Boltzmann < handle
       % evaluate reduced energy diffusion coefficient
       % this coefficient corresponds to the heat diffusion (G) defined in Allis 1956
       % here, and contrary to other references, the reduced energy diffusion coefficient (in eV m-1 s-1) is not normalized to the electron mean energy
-      swarmParam.redDiffCoeffEnergy = 2*gamma/3*energyStep*sum(energyCell.^2.*eedfLocal./...
-        (totalCrossSectionAux(1:end-1)+totalCrossSectionAux(2:end)));
+      % swarmParam.redDiffCoeffEnergy = 2*gamma/3*energyStep*sum(energyCell.^2.*eedfLocal./...
+      %   (totalCrossSectionAux(1:end-1)+totalCrossSectionAux(2:end)));
+
+      % evaluate reduced energy diffusion coefficient - variable energy grid
+      swarmParam.redDiffCoeffEnergy = (gamma/3)*sum(energyNode(2:N).^2./totalCrossSectionAux(2:N).*...
+          ((1-weightGrid(1:N-1)).*eedfLocal(1:N-1) + weightGrid(1:N-1).*eedfLocal(2:N)).*...
+          (energyStep(1:N-1)+energyStep(2:N))./2);
     
       % evaluate reduced energy mobility
       % this coefficient corresponds to the thermoelectricity (beta) defined in Allis 1956
@@ -1802,7 +2011,10 @@ classdef Boltzmann < handle
       swarmParam.redAttCoeff = totalAttRateCoeff / swarmParam.driftVelocity;
       
       % evaluate mean energy
-      swarmParam.meanEnergy = sum(energyCell(1:end).^(1.5).*eedfLocal(1:end))*energyStep;
+      % swarmParam.meanEnergy = sum(energyCell(1:end).^(1.5).*eedfLocal(1:end))*energyStep;
+      
+      % evaluate mean energy - variable energy grid
+      swarmParam.meanEnergy = sum(energyCell(1:end).^(1.5).*eedfLocal(1:end).*energyStep(1:end));
       
       % evaluate characteristic energy
       swarmParam.characEnergy = swarmParam.redDiffCoeff/swarmParam.redMobility;
@@ -1855,40 +2067,74 @@ classdef Boltzmann < handle
       % local copy of variables
       localEedf = boltzmann.eedf;                             % electron energy distribution function (isotropic)
       energyCell = boltzmann.energyGrid.cell;                 % values of energy at cell position (same as eedf)
-      energyStep = boltzmann.energyGrid.step;                 % energy step of the energy grid
+      energyNode = boltzmann.energyGrid.node;                 % energy at nodes of the energy grid
+      energyStep = boltzmann.energyGrid.energyStep;           % energy step of the energy grid
+      cellNumber = boltzmann.energyGrid.cellNumber;           % number of cells
       localTotalCrossSection = boltzmann.totalCrossSection;   % total momentum transfer cross section
       gamma = Constant.gamma;                                 % gamma parameter (sqrt(2e/me))
       EoN = boltzmann.workCond.reducedFieldSI;                % reduced electric field (SI units)
       WoN = boltzmann.workCond.reducedExcFreqSI;              % reduced angular exitation frequency (SI units)
       
-      % evaluate derivative of the eedf
-      eedfDerivative = zeros(size(localEedf));
-      eedfDerivative(1) = (localEedf(2)-localEedf(1))/energyStep;                     % 1st order forward approximation
-      eedfDerivative(end) = (localEedf(end)-localEedf(end-1))/energyStep;             % 1st order backward approximation
-      eedfDerivative(2:end-1) = (localEedf(3:end)-localEedf(1:end-2))/(energyStep*2); % 2nd order centered approximation
+      % evaluate weights for variable energy grid
+      weightGrid = energyStep(1:cellNumber-1)./(energyStep(2:cellNumber)+energyStep(1:cellNumber-1));
       
-      % evaluate total momentum transfer cross section at cell positions
+      % evaluate derivative of the eedf - uniform energy grid
+%       eedfDerivative = zeros(size(localEedf));
+%       eedfDerivative(1) = (localEedf(2)-localEedf(1))/energyStep;                     % 1st order forward approximation
+%       eedfDerivative(end) = (localEedf(end)-localEedf(end-1))/energyStep;             % 1st order backward approximation
+%       eedfDerivative(2:end-1) = (localEedf(3:end)-localEedf(1:end-2))/(energyStep*2); % 2nd order centered approximation
+      
+      % evaluate derivative of the eedf on energy nodes - variable energy grid
+      eedfDerivativeNode = zeros(size(localTotalCrossSection));
+      eedfDerivativeNode(1) = 2*(localEedf(2)-localEedf(1))/...
+          (energyStep(1) + energyStep(2));                                              % 1st order forward approximation
+      eedfDerivativeNode(end) = 2*(localEedf(end)-localEedf(end-1))/...
+          (energyStep(end-1) + energyStep(end));                                        % 1st order backward approximation
+      eedfDerivativeNode(2:end-1) = 2*(localEedf(2:end)-localEedf(1:end-1))./...
+          (energyStep(2:end)+energyStep(1:end-1));                                      % 1st order centered approximation
+
+      
+      % for debugging
+      relDerivative = (eedfDerivativeNode(2:end)+eedfDerivativeNode(1:end-1))./2;
+      relDerivative = relDerivative ./ localEedf;
+
+
+      % % evaluate total momentum transfer cross section at cell positions -
+      % % uniform energy grid
       totalCrossSectionCell = (localTotalCrossSection(1:end-1)+localTotalCrossSection(2:end))/2.0;
+
+      % evaluate total momentum transfer cross section at cell positions -
+      % variable energy grid
+      totalCrossSectionNode = localTotalCrossSection;
       
       % evaluate the first anisotropy
       if boltzmann.includeNonConservativeIonization || boltzmann.includeNonConservativeAttachment
         switch boltzmann.eDensGrowthModel
-          case 'temporal'
+          case 'temporal' % to be updated - variable energy grid
             totalCrossSectionCell = totalCrossSectionCell + (boltzmann.CIEff/gamma)./(sqrt(energyCell));
             if WoN == 0
-              boltzmann.firstAnisotropy = -EoN.*eedfDerivative./totalCrossSectionCell;
+              % Calculate on cells by averaging node values
+              anisotropyNode = -EoN.*eedfDerivativeNode./localTotalCrossSection;
+              boltzmann.firstAnisotropy = (anisotropyNode(2:end) + anisotropyNode(1:end-1))./2;
             else
-              boltzmann.firstAnisotropy = -EoN*sqrt(2).*eedfDerivative./(totalCrossSectionCell+(WoN/gamma)^2./...
-                (energyCell.*totalCrossSectionCell));
+              % Calculate on cells by averaging node values
+              anisotropyNode = -EoN*sqrt(2).*eedfDerivativeNode./(localTotalCrossSection+(WoN/gamma)^2./...
+                (energyNode.*localTotalCrossSection));
+              boltzmann.firstAnisotropy = (anisotropyNode(2:end) + anisotropyNode(1:end-1))./2;
             end
-          case 'spatial'
-            boltzmann.firstAnisotropy = -(boltzmann.alphaRedEff.*localEedf+EoN.*eedfDerivative)./totalCrossSectionCell;
+          case 'spatial' % to be updated - variable energy grid
+            anisotropyNode = -(boltzmann.alphaRedEff.*((localEedf(1:end-1).*(1-weightGrid) + localEedf(2:end).*weightGrid))+EoN.*eedfDerivativeNode)./localTotalCrossSection;
+            boltzmann.firstAnisotropy = (anisotropyNode(2:end) + anisotropyNode(1:end-1))./2;
         end
       elseif WoN == 0
-        boltzmann.firstAnisotropy = -EoN.*eedfDerivative./totalCrossSectionCell;
-      else
-        boltzmann.firstAnisotropy = -EoN*sqrt(2).*eedfDerivative./(totalCrossSectionCell+(WoN/gamma)^2./...
-          (energyCell.*totalCrossSectionCell));
+        % boltzmann.firstAnisotropy = -EoN.*eedfDerivative./totalCrossSectionCell;
+        % first anisotropy calculation (on energy cells for graphical purposes) - variable energy grid 
+        boltzmann.firstAnisotropy = -EoN.*(eedfDerivativeNode(2:end)./localTotalCrossSection(2:end) +...
+            eedfDerivativeNode(1:end-1)./localTotalCrossSection(1:end-1))./2;
+      else % to be updated - variable energy grid
+        anisotropyNode = -EoN*sqrt(2).*eedfDerivativeNode./(localTotalCrossSection+(WoN/gamma)^2./...
+          (energyNode.*localTotalCrossSection));
+        boltzmann.firstAnisotropy = (anisotropyNode(2:end) + anisotropyNode(1:end-1))./2;
       end
       
     end
@@ -1903,17 +2149,17 @@ function eedf = matrixInversion(matrix, energyGrid)
 
   % local copies of energy grid variables
   energyCell = energyGrid.cell;
-  energyStep = energyGrid.step;
+  energyStep = energyGrid.energyStep; % variable energy step array
   cellNumber = energyGrid.cellNumber;
 
   % include normalization condition for the EEDF in the Boltzmann matrix
-  matrix(1,:) = matrix(1,:) + energyStep*sqrt(energyCell);
+  matrix(1,:) = matrix(1,:) + energyStep.*sqrt(energyCell);
 
   % invert the Boltzmann matrix
   eedf = (matrix\([1 zeros(1,cellNumber-1)]'))';
 
   % renormalize of the EEDF
-  eedf = eedf/dot(eedf,sqrt(energyCell)*energyStep);
+  eedf = eedf/dot(eedf,sqrt(energyCell).*energyStep);
 
   end
 
@@ -1976,7 +2222,8 @@ function derivatives = eedfTimeDerivative(time,variables,boltzmann,clearPersiste
   persistent eeMatrixAuxB;
   if isempty(matrix)
     % evaluate basic boltzmann matrix (without field, ionization, attachment or e-e collisions operators)
-    matrix = boltzmann.elasticMatrix + boltzmann.CARMatrix + boltzmann.inelasticMatrix;
+    % TO BE UPDATED: discrete operators commented out (not yet adapted for variable energy grid)
+    matrix = boltzmann.elasticMatrix + boltzmann.CARMatrix;
     % save local copy of the regular field operator (without growth models)
     fieldMatrix = boltzmann.fieldMatrix;
     
