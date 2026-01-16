@@ -613,7 +613,7 @@ classdef Output < handle
     
       % create subfolder name in case of time-dependent boltzmann calculations
       if isa(electronKinetics, 'Boltzmann') && electronKinetics.isTimeDependent
-        output.subFolder = sprintf('%stime_%e', filesep, electronKinetics.workCond.currentTime);
+        output.subFolder = sprintf('%s%s%stime_%e', filesep, output.subFolderBatches, filesep, electronKinetics.workCond.currentTime);
       end
       % create subfolder in case it is needed (when performing runs of simmulations or in time-dependent Boltzmann)
       if ~isempty(output.subFolder) && (output.eedfIsToBeSaved || output.powerBalanceIsToBeSaved || ...
@@ -1121,7 +1121,7 @@ classdef Output < handle
     end
     
     function saveLookUpTable(output, electronKinetics)
-    % NOTE: lookUpTables are only created if (output.dataFormat is 'txt'
+    % NOTE: lookUpTables are only created if output.dataFormat is 'txt'
 
       % name of the files containing the different lookup tables
       persistent fileName1;
@@ -1185,7 +1185,7 @@ classdef Output < handle
             fprintf(fileID2, '%-21s ', 'Time(s)');
             fprintf(fileID3, '%-21s ', 'Time(s)');
             % create lookup table for the eedf
-            fileName4 = [output.folder filesep 'lookUpTableEedf.txt'];
+            fileName4 = [output.folder filesep output.subFolderBatches filesep 'lookUpTableEedf.txt'];
             fileID4 = fopen(fileName4, 'wt');
             % add first line with energies to eedf lookup table (eedfs will be saved as rows)
             fprintf(fileID4, '%-21.14e ', [0 electronKinetics.energyGrid.cell]);
@@ -1193,7 +1193,7 @@ classdef Output < handle
             fclose(fileID4);
             % create lookup table for the electron density (if needed)
             if electronKinetics.eDensIsTimeDependent
-              fileName5 = [output.folder filesep 'lookUpTableElectronDensity.txt'];
+              fileName5 = [output.folder filesep output.subFolderBatches filesep 'lookUpTableElectronDensity.txt'];
               fileID5 = fopen(fileName5, 'wt');
               fprintf(fileID5, '%-21s %-21s\n', 'time(s)', 'ne(m^-3)\n');
               fclose(fileID5);

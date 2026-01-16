@@ -180,7 +180,13 @@ classdef GUI < handle
             if setup.electronKinetics.isTimeDependent
               xLabelText = 'Time (s)';
               gui.evolvingParameter = 'currentTime';
-              gui.evolvingParameterPopUpMenuStr = 't = %9.3e (s)';
+              if isscalar(setup.info.workingConditions.gasTemperature)
+                gui.evolvingParameterPopUpMenuStr = 't = %9.3e (s)';
+              else
+                gui.evolvingParameter2 = 'gasTemperature';
+                gui.evolvingParameterPopUpMenuStr2 = 't = %9.3e (s); Tg = %9.3e (K)';
+                gui.evolvingParameterSwarm = 'Tg = %9.3e (K)';
+              end                  
             else
               xLabelText = 'Reduced Field (Td)';
               gui.evolvingParameter = 'reducedField';
@@ -607,11 +613,15 @@ classdef GUI < handle
       redAtt(idx) = gui.solutions(idx).swarmParam.redAttCoeff;
       
       % Select legends to write in cases of evolvingParameter2 solution
-      % (e.g., avoiding repetitions of Tg-legends for different E/N values)
+      % (e.g., avoiding repetitions of Tg-legends for different E/N or t values)
+      % idxCurrent = 0;
       if ~isempty(gui.swarmLegend)
         for idxLegend = 1:idx
           if strcmp(gui.swarmLegend(idxLegend,:),gui.swarmLegend(idx,:))
-            idxCurrent = idxLegend;
+            idxCurrent = 1;
+            for idx2 = 1:idx-1
+                idxCurrent = idxCurrent + ~strcmp(gui.swarmLegend(idx2,:),gui.swarmLegend(idx2+1,:));
+            end
             if idxLegend == idx
                 if gui.isSimulationHF
                     gui.redMobLegend{3*idx-2} = gui.swarmLegend(idx,:);
@@ -649,7 +659,7 @@ classdef GUI < handle
 
         % Generate a different marker for each evolvingParameter2 solution 
         % (e.g., for different Tg)
-        markers = {'o', '+', '*',   '.', 'x', '_', '|', 'square', 'diamond', '^', 'v', '>', '<', 'pentagram', 'hexagram'};
+        markers = {'o', '+', '*', '.', 'x', '_', '|', 'square', 'diamond', '^', 'v', '>', '<', 'pentagram', 'hexagram'};
         % Circular selection of markers
         % Example:  getprop(markers, 3) = '*'
         getFirst = @(v)v{1}; 
@@ -942,7 +952,7 @@ classdef GUI < handle
 
       % Legend groups
       % to enable selecting legends to write in cases of evolvingParameter2 solution
-      % (e.g., avoiding repetitions of Tg-legends for different power channels and E/N values)
+      % (e.g., avoiding repetitions of Tg-legends for different power channels, and E/N or t values)
       legendLabels = unique(swarmLegendx, 'stable');
       nLegends = numel(legendLabels);
       % Particular case for a single Tg-value 
