@@ -27,8 +27,7 @@ classdef Output < handle
     subFolderBatches = '';              % sub folder (higher level) for output of different jobs    
     h5file = '';                        % output file name if dataFormat is hdf5
     dataFormat = '';                    % data format to save results. Options are: 'txt' and 'hdf5'
-
-    isSimulationHF = false;             % boolean to know if the electron kinetics (Boltzmann only) is HF
+    isSimulationHF = [];                % boolean vector (dim = number of jobs) to know if the electron kinetics (Boltzmann only) is HF
     isBoltzmann = true;                 % boolean to know if the electron kinetics is Boltzmann (true) of prescribedEedf (false)
 
     logIsToBeSaved = false;             % boolean to know if the log (as written by the CLI) must be saved
@@ -68,10 +67,20 @@ classdef Output < handle
             setup.batches(i).value(1));
           end
           % locate the output subfolder at next level, 
-          % in case multiple jobs refer to a parameter different from 'reduced field' 
+          % in case multiple jobs refer to a parameter different from 'reduced field'
+          outputSubFolderBatches = '';
           if ~strcmp(setup.batches(iBatches).property, 'reducedField')
-            outputSubFolderBatches = sprintf('%s_%g', setup.batches(iBatches).property, ...
-                setup.batches(iBatches).value(1));
+            % set higher-order folder for a single job or a single 'reduced field' value
+            if setup.numberOfBatches == 1 || isscalar(setup.info.workingConditions.reducedField)
+               firstFolder = 1;
+            % set higher-order folder in other cases
+            else
+               firstFolder = 2;
+            end
+            for i = setup.numberOfBatches:-1:firstFolder
+                outputSubFolderBatches = sprintf('%s%s%s_%g', outputSubFolderBatches, filesep, ...
+                    setup.batches(i).property, setup.batches(i).value(1));
+            end     
           end 
         end
         % save output subfolder info (folder inside the output.folder folder)
@@ -160,8 +169,24 @@ classdef Output < handle
       end
 
       % save the information if the electron kinetics is HF
-      if setup.workCond.reducedExcFreqSI > 0
-        output.isSimulationHF = true;
+      if isempty(setup.pulseInfo)
+        numberOfJobs = setup.numberOfJobs;
+      else
+        numberOfJobs = setup.numberOfJobs*(setup.pulseInfo.samplingPoints+1);
+      end  
+      workCond = setup.info.workingConditions;
+      numberOfJobsFreq = length(workCond.excitationFrequency);
+      numberOfJobsModFreq = numberOfJobs/numberOfJobsFreq;
+      for idx = 1:numberOfJobsFreq
+        if workCond.excitationFrequency(idx) > 0
+            for idxJobs = 1:numberOfJobsModFreq
+                output.isSimulationHF(end+1) = true;
+            end 
+        else
+            for idxJobs = 1:numberOfJobsModFreq  
+                output.isSimulationHF(end+1) = false;
+            end
+        end
       end
 
       for dataSet = dataSets
@@ -289,7 +314,7 @@ classdef Output < handle
               sz(1:9) = H5T.get_size(doubleType);
               offset(1)=0;
               % get dims
-              if output.isSimulationHF
+              if output.isSimulationHF(output.currentJobID)
                 offset(2:9)=cumsum(sz(1:8));
                 if output.isBoltzmann
                   name = ["meanEnergy" "characEnergy" "Te" "redMobility" ...
@@ -761,18 +786,18 @@ classdef Output < handle
         fprintf(fileID, '                          Mean energy = %#.14e (eV)\n', swarmParam.meanEnergy);
         fprintf(fileID, '                Characteristic energy = %#.14e (eV)\n', swarmParam.characEnergy);
         fprintf(fileID, '                 Electron temperature = %#.14e (eV)\n', swarmParam.Te);
-        if ~output.isSimulationHF
+        if ~output.isSimulationHF(output.currentJobID)
           fprintf(fileID, '                       Drift velocity = %#.14e (ms^-1)\n', swarmParam.driftVelocity);
         end
         fprintf(fileID, '                     Reduced mobility = %#.14e ((msV)^-1)\n', swarmParam.redMobility);
-        if output.isSimulationHF
+        if output.isSimulationHF(output.currentJobID)
           fprintf(fileID, '                  Reduced mobility HF = %#.14e%+#.14ei ((msV)^-1)\n', ...
             real(swarmParam.redMobilityHF), imag(swarmParam.redMobilityHF));
         end
         fprintf(fileID, '        Reduced diffusion coefficient = %#.14e ((ms)^-1)\n', swarmParam.redDiffCoeff);
         fprintf(fileID, '              Reduced energy mobility = %#.14e (eV(msV)^-1)\n', swarmParam.redMobilityEnergy);
         fprintf(fileID, ' Reduced energy diffusion coefficient = %#.14e (eV(ms)^-1)\n', swarmParam.redDiffCoeffEnergy);
-        if ~output.isSimulationHF
+        if ~output.isSimulationHF(output.currentJobID)
           fprintf(fileID, '         Reduced Townsend coefficient = %#.14e (m^2)\n', swarmParam.redTownsendCoeff);
           fprintf(fileID, '       Reduced attachment coefficient = %#.14e (m^2)\n', swarmParam.redAttCoeff);
         end
@@ -788,7 +813,7 @@ classdef Output < handle
         sz(1:9) = H5T.get_size(doubleType);
         offset(1)=0;
         % get offset and name
-        if output.isSimulationHF
+        if output.isSimulationHF(output.currentJobID)
           offset(2:9)=cumsum(sz(1:8));
           if output.isBoltzmann
             name = ["meanEnergy" "characEnergy" "Te" "redMobility" ...
@@ -1148,9 +1173,9 @@ classdef Output < handle
       if (isempty(fileName1) || ~strcmp(folderLookUpTables,localFolderLookUpTables)) 
         folderLookUpTables = output.subFolderBatches;
         % create file names
-        fileName1 = [output.folder filesep output.subFolderBatches filesep 'lookUpTableSwarm.txt'];
-        fileName2 = [output.folder filesep output.subFolderBatches filesep 'lookUpTablePower.txt'];
-        fileName3 = [output.folder filesep output.subFolderBatches filesep 'lookUpTableRateCoeff.txt'];
+        fileName1 = [output.folder output.subFolderBatches filesep 'lookUpTableSwarm.txt'];
+        fileName2 = [output.folder output.subFolderBatches filesep 'lookUpTablePower.txt'];
+        fileName3 = [output.folder output.subFolderBatches filesep 'lookUpTableRateCoeff.txt'];
         % open files
         fileID1 = fopen(fileName1, 'wt');
         fileID2 = fopen(fileName2, 'wt');
@@ -1199,7 +1224,7 @@ classdef Output < handle
               fclose(fileID5);
             end
           end
-          if output.isSimulationHF
+          if output.isSimulationHF(output.currentJobID)
             fprintf(fileID1, [repmat('%-21s ', 1, 10) '\n'], 'RedField(Td)', 'RedDiff((ms)^-1)', 'RedMob((msV)^-1)', ...
               'R[RedMobHF]((msV)^-1)', 'I[RedMobHF]((msV)^-1)', 'RedDiffE(eV(ms)^-1)', 'RedMobE(eV(msV)^-1)', ...
               'MeanE(eV)', 'CharE(eV)', 'EleTemp(eV)');
@@ -1211,7 +1236,7 @@ classdef Output < handle
           fprintf(fileID2, '%-21s ', 'RedField(Td)');
           fprintf(fileID3, '%-21s ', 'RedField(Td)');
         else
-          if output.isSimulationHF
+          if output.isSimulationHF(output.currentJobID)
             fprintf(fileID1, [repmat('%-21s ', 1, 10) '\n'], 'EleTemp(eV)', 'RedField(Td)', 'RedDiff(1/(ms))', ...
               'RedMob(1/(msV))', 'R[RedMobHF](1/(msV))', 'I[RedMobHF](1/(msV))', 'RedDiffE(eV/(ms))', ...
               'RedMobE(eV/(msV))', 'MeanE(eV)', 'CharE(eV)');
@@ -1262,7 +1287,7 @@ classdef Output < handle
           fprintf(fileID2, '%-+21.14e ', workCond.currentTime);
           fprintf(fileID3, '%-+21.14e ', workCond.currentTime);
         end
-        if output.isSimulationHF
+        if output.isSimulationHF(output.currentJobID)
           fprintf(fileID1, [repmat('%-+21.14e ', 1, 10) '\n'], ...
             workCond.reducedField, swarmParams.redDiffCoeff, swarmParams.redMobility, ...
             real(swarmParams.redMobilityHF), imag(swarmParams.redMobilityHF), swarmParams.redDiffCoeffEnergy, ...
@@ -1276,7 +1301,7 @@ classdef Output < handle
         fprintf(fileID2, '%-+21.14e ', workCond.reducedField);
         fprintf(fileID3, '%-+21.14e ', workCond.reducedField);
       else
-        if output.isSimulationHF
+        if output.isSimulationHF(output.currentJobID)
           fprintf(fileID1, [repmat('%-+21.14e ', 1, 10) '\n'], ...
             swarmParams.Te, workCond.reducedField, swarmParams.redDiffCoeff, swarmParams.redMobility, ...
              real(swarmParams.redMobilityHF), imag(swarmParams.redMobilityHF), swarmParams.redDiffCoeffEnergy, ...

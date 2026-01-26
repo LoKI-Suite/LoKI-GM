@@ -170,6 +170,15 @@ classdef Setup < handle
         if ~isscalar(setup.info.workingConditions.gasTemperature)
             auxWorkingConditions.gasTemperature = setup.info.workingConditions.gasTemperature;
         end    
+        if ~isscalar(setup.info.workingConditions.gasPressure)
+            auxWorkingConditions.gasPressure = setup.info.workingConditions.gasPressure;
+        end    
+        if ~isscalar(setup.info.workingConditions.electronDensity)
+            auxWorkingConditions.electronDensity = setup.info.workingConditions.electronDensity;
+        end    
+        if ~isscalar(setup.info.workingConditions.excitationFrequency)
+            auxWorkingConditions.excitationFrequency = setup.info.workingConditions.excitationFrequency;
+        end    
 
         % evaluate jobs
         for field = fieldnames(auxWorkingConditions)'
@@ -261,11 +270,21 @@ classdef Setup < handle
             setup.batches(i).value(newJobIndeces{i}));
         end
         % locate the output subfolder at next level, 
-        % in case multiple jobs refer to a parameter different from 'reduced field' 
+        % in case multiple jobs refer to a parameter different from 'reduced field'
+        outputSubFolderBatches = '';
         iBatches = setup.numberOfBatches;
         if ~strcmp(setup.batches(iBatches).property, 'reducedField')
-            outputSubFolderBatches = sprintf('%s_%g', setup.batches(iBatches).property, ...
-                setup.batches(iBatches).value(newJobIndeces{iBatches}));
+            % set higher-order folder for a single job or a single 'reduced field' value
+            if setup.numberOfBatches == 1 || isscalar(setup.info.workingConditions.reducedField)
+               firstFolder = 1;
+            % set higher-order folder in other cases
+            else
+               firstFolder = 2;
+            end
+            for i = setup.numberOfBatches:-1:firstFolder
+                outputSubFolderBatches = sprintf('%s%s%s_%g', outputSubFolderBatches, filesep, ...
+                    setup.batches(i).property, setup.batches(i).value(newJobIndeces{i}));
+            end     
         end
 
         % set subFolder for the output of the next job
@@ -725,6 +744,40 @@ classdef Setup < handle
         end
       end
 
+      % check if multiple jobs are limited to LoKI-B working conditions parameters 
+      if isfield(setup.info.workingConditions,'wallTemperature') && ... 
+              ~isscalar(setup.info.workingConditions.wallTemperature)
+            error([str1 ['Multiple jobs are supported only for LoKI-B ' ...
+                'working conditions parameters .'] str2],1);
+      elseif isfield(setup.info.workingConditions,'extTemperature') && ... 
+              ~isscalar(setup.info.workingConditions.extTemperature)
+            error([str1 ['Multiple jobs are supported only for LoKI-B ' ...
+                'working conditions parameters .'] str2],1);
+      elseif isfield(setup.info.workingConditions,'surfaceSiteDensity') && ... 
+              ~isscalar(setup.info.workingConditions.surfaceSiteDensity)
+            error([str1 ['Multiple jobs are supported only for LoKI-B ' ...
+                'working conditions parameters .'] str2],1);
+      elseif isfield(setup.info.workingConditions,'chamberLength') && ... 
+              ~isscalar(setup.info.workingConditions.chamberLength)
+            error([str1 ['Multiple jobs are supported only for LoKI-B ' ...
+                'working conditions parameters .'] str2],1);
+      elseif isfield(setup.info.workingConditions,'chamberRadius') && ... 
+              ~isscalar(setup.info.workingConditions.chamberRadius)
+            error([str1 ['Multiple jobs are supported only for LoKI-B ' ...
+                'working conditions parameters .'] str2],1);
+      elseif isfield(setup.info.workingConditions,'dischargeCurrent') && ... 
+              ~isscalar(setup.info.workingConditions.dischargeCurrent)
+            error([str1 ['Multiple jobs are supported only for LoKI-B ' ...
+                'working conditions parameters .'] str2],1);
+      elseif isfield(setup.info.workingConditions,'dischargePowerDensity') && ... 
+              ~isscalar(setup.info.workingConditions.dischargePowerDensity)
+            error([str1 ['Multiple jobs are supported only for LoKI-B ' ...
+                'working conditions parameters .'] str2],1);
+      elseif isfield(setup.info.workingConditions,'totalSccmInFlow') && ... 
+              ~isscalar(setup.info.workingConditions.totalSccmInFlow)
+            error([str1 ['Multiple jobs are supported only for LoKI-B ' ...
+                'working conditions parameters .'] str2],1);
+      end
       
       % check configuration of the electron kinetic module (in case it is present in the setup file)
       if isfield(setupInfo, 'electronKinetics')
@@ -983,6 +1036,13 @@ classdef Setup < handle
               setupInfo.gui.refreshFrequency <= 0 || mod(setupInfo.gui.refreshFrequency,1) ~= 0
             error([str1 'Wrong value for the field ''gui>refreshFrequency''.\nValue should be a single positive ' ...
               'integer.' str2],1);
+          end
+        % check that multiple jobs refer only to reduced field and gas temperature when isOn field is true
+          if ~isscalar(setup.info.workingConditions.gasPressure) || ...
+                ~isscalar(setup.info.workingConditions.electronDensity) || ...
+                ~isscalar(setup.info.workingConditions.excitationFrequency)
+            error([str1 ['When ''gui>isOn = true'', multiple jobs are supported only for ''reducedField'', ' ...
+                '''electronTemperature'' and ''gasTemperature''.'] str2],1);
           end
         end
       end
