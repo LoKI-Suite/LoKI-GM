@@ -614,7 +614,6 @@ classdef GUI < handle
       
       % Select legends to write in cases of evolvingParameter2 solution
       % (e.g., avoiding repetitions of Tg-legends for different E/N or t values)
-      % idxCurrent = 0;
       if ~isempty(gui.swarmLegend)
         for idxLegend = 1:idx
           if strcmp(gui.swarmLegend(idxLegend,:),gui.swarmLegend(idx,:))
