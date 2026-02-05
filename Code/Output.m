@@ -37,7 +37,7 @@ classdef Output < handle
     swarmParamsIsToBeSaved = false;     % boolean to know if the swarm parameters info must be saved
     rateCoeffsIsToBeSaved = false;      % boolean to know if the rate coefficients info must be saved
     powerBalanceIsToBeSaved = false;    % boolean to know if the power balance info must be saved
-    lookUpTableIsToBeSaved = false;     % boolean to know if look-up tables with results must be saved
+    lookUpTablesAreToBeSaved = false;   % boolean to know if look-up tables with results must be saved
   end
   
   methods (Access = public)
@@ -454,9 +454,9 @@ classdef Output < handle
               H5T.close(strType);
               H5T.close(intType);
             end
-          case 'lookUpTable'
-            % lookUpTable is always written as a txt file
-            output.lookUpTableIsToBeSaved = true;
+          case 'lookUpTables'
+            % lookUpTables are always written as a txt file
+            output.lookUpTablesAreToBeSaved = true;
         end     % switch dataSet{1}
       end     % for dataSet = dataSets
 
@@ -654,9 +654,9 @@ classdef Output < handle
       if output.powerBalanceIsToBeSaved
         output.savePower(electronKinetics.power);
       end
-      if output.lookUpTableIsToBeSaved
+      if output.lookUpTablesAreToBeSaved
         if contains(output.dataFormat, 'txt')        % hdf5 format is already a lookUptable!
-          output.saveLookUpTable(electronKinetics);
+          output.saveLookUpTables(electronKinetics);
         end
       end
       
@@ -1107,7 +1107,7 @@ classdef Output < handle
 
     end
     
-    function saveLookUpTable(output, electronKinetics)
+    function saveLookUpTables(output, electronKinetics)
     % NOTE: lookUpTables are only created if (output.dataFormat is 'txt'
 
       % name of the files containing the different lookup tables

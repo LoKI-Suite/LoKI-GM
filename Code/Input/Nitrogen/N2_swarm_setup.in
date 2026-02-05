@@ -91,4 +91,4 @@ output:
     - swarmParameters
     - rateCoefficients
     - powerBalance
-    - lookUpTable
+    - lookUpTables
