@@ -165,7 +165,7 @@ classdef INPUT_GUI < handle
             % Electron Kinetics [cite: 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]
             gui.Setup.electronKinetics.isOn = true;
             gui.Setup.electronKinetics.eedfType = 'boltzmann'; % 'boltzmann' or 'prescribedEedf'
-            gui.Setup.electronKinetics.shapeParameter = 'Maxwellian'; % Only used for prescribedEedf
+            gui.Setup.electronKinetics.shapeParameter = 1; % Only used for prescribedEedf
             gui.Setup.electronKinetics.ionizationOperatorType = 'usingSDCS'; % 'conservative', 'oneTakesAll', 'usingSDCS'
             gui.Setup.electronKinetics.growthModelType = 'temporal'; % 'temporal' or 'spatial'
             gui.Setup.electronKinetics.includeEECollisions = false;
@@ -654,15 +654,27 @@ classdef INPUT_GUI < handle
             gui.UIControls.electronKinetics.eedfType.Layout.Column = 2;
 
             row = row + 1;
-            % Shape Parameter [cite: 4] - Only visible for prescribedEedf
-            shapeParamLabel = uilabel(generalGrid, 'Text', 'Shape Parameter:');
-            shapeParamLabel.Layout.Row = row;
-            shapeParamLabel.Layout.Column = 1;
-            gui.UIControls.electronKinetics.shapeParameter = uidropdown(generalGrid, 'Items', {'Maxwellian', 'Druyvesteyn'}, ...
-                'ValueChangedFcn', @(src, evt) gui.updateField(src, 'electronKinetics.shapeParameter', evt.Value), ...
-                'Visible', 'off');
-            gui.UIControls.electronKinetics.shapeParameter.Layout.Row = row;
-            gui.UIControls.electronKinetics.shapeParameter.Layout.Column = 2;
+            % Shape Parameter [cite: 4] - Only visible for prescribedEedf 
+            uilabel(generalGrid, 'Text', 'Shape Parameter:');
+            shapeParamGrid = uigridlayout(generalGrid, [1, 2]);
+            shapeParamGrid.ColumnWidth = {'0.6x', '0.4x'}; % Give more space to text field
+            shapeParamGrid.Padding = [0 0 0 0];
+            shapeParamGrid.ColumnSpacing = 5;
+            
+            gui.UIControls.electronKinetics.shapeParameter = uislider(shapeParamGrid, ...
+                'Limits', [1, 2], 'Value', 1, 'MajorTicks', [1, 2], 'MajorTickLabels', {'1 (Maxwellian)', '2 (Druyvesteyn)'}, 'ValueChangedFcn', ...
+                @(src, evt) gui.sliderShapeParameterChanged(src, evt.Value), 'Visible', 'off');
+            gui.UIControls.electronKinetics.shapeParameter.Layout.Row = 1;
+            gui.UIControls.electronKinetics.shapeParameter.Layout.Column = 1;
+
+            gui.UIControls.electronKinetics.shapeParameterPrecise = uieditfield(shapeParamGrid, 'numeric', 'Limits', ...
+                 [1, 2], 'Value', 1, 'HorizontalAlignment', 'left', 'ValueChangedFcn', @(src, evt) gui.textShapeParameterChanged(src, evt.Value), ...
+                 'Visible', 'off');
+            gui.UIControls.electronKinetics.shapeParameterPrecise.Layout.Row = 1;
+            gui.UIControls.electronKinetics.shapeParameterPrecise.Layout.Column = 2;
+            
+            shapeParamGrid.Layout.Row = row;
+            shapeParamGrid.Layout.Column = 2;
 
             row = row + 1;
             % Ionization Operator Type [cite: 5]
@@ -1735,7 +1747,8 @@ classdef INPUT_GUI < handle
                contains(dataPath, 'CARaddButton') || ...
                contains(dataPath, 'CARremoveButton') || ...
                contains(dataPath, 'odeSetParameters.isOn') || ...
-               contains(dataPath, 'smartGrid.isOn')
+               contains(dataPath, 'smartGrid.isOn') || ...
+               contains(dataPath, 'electronKinetics.shapeParameterPrecise')
                 return;
             end
             
@@ -2097,6 +2110,38 @@ classdef INPUT_GUI < handle
                 gui.updateField(gui.UIControls.electronKinetics.numerics.nonLinearRoutines.mixingParameterPrecise, 'electronKinetics.numerics.nonLinearRoutines.mixingParameter', value);
             catch ME
                 warning('Error updating mixing parameter from text field: %s', ME.message);
+            end
+        end
+
+        function sliderShapeParameterChanged(gui, ~, value)
+            % Callback for slider value change
+            try
+                % Update the text field
+                gui.UIControls.electronKinetics.shapeParameterPrecise.Value = value;
+                % Update the setup struct
+                gui.updateField(gui.UIControls.electronKinetics.shapeParameter, 'electronKinetics.shapeParameter', value);
+                gui.updateField(gui.UIControls.electronKinetics.shapeParameterPrecise, 'electronKinetics.shapeParameter', value);
+            catch ME
+                warning('Error updating shape parameter from slider: %s', ME.message);
+            end
+        end
+
+        function textShapeParameterChanged(gui, ~, value)
+            % Callback for text field value change
+            try
+                % Validate the value
+                if value < 1 || value > 2
+                    warning('Shape parameter must be between 1 and 2. Value reset to 1');
+                    value = 1;
+                    gui.UIControls.electronKinetics.shapeParameterPrecise.Value = value;
+                end
+                % Update the slider
+                gui.UIControls.electronKinetics.shapeParameter.Value = value;
+                % Update the setup struct
+                gui.updateField(gui.UIControls.electronKinetics.shapeParameter, 'electronKinetics.shapeParameter', value);
+                gui.updateField(gui.UIControls.electronKinetics.shapeParameterPrecise, 'electronKinetics.shapeParameter', value);
+            catch ME
+                warning('Error updating shape parameter from text field: %s', ME.message);
             end
         end
 
@@ -2903,6 +2948,8 @@ classdef INPUT_GUI < handle
             % Show/hide shape parameter based on EEDF type
             if strcmp(eedfType, 'prescribedEedf')
                 gui.UIControls.electronKinetics.shapeParameter.Visible = 'on';
+                gui.UIControls.electronKinetics.shapeParameterPrecise.Visible = 'on';
+
                 % Update the label visibility as well
                 parent = gui.UIControls.electronKinetics.shapeParameter.Parent;
                 children = parent.Children;
@@ -2913,6 +2960,7 @@ classdef INPUT_GUI < handle
                 end
             else
                 gui.UIControls.electronKinetics.shapeParameter.Visible = 'off';
+                gui.UIControls.electronKinetics.shapeParameterPrecise.Visible = 'off';
                 % Update the label visibility as well
                 parent = gui.UIControls.electronKinetics.shapeParameter.Parent;
                 children = parent.Children;
@@ -2930,6 +2978,7 @@ classdef INPUT_GUI < handle
             % Show/hide shape parameter based on EEDF type (for initialization)
             if strcmp(eedfType, 'prescribedEedf')
                 gui.UIControls.electronKinetics.shapeParameter.Visible = 'on';
+                gui.UIControls.electronKinetics.shapeParameterPrecise.Visible = 'on';
                 % Update the label visibility as well
                 parent = gui.UIControls.electronKinetics.shapeParameter.Parent;
                 children = parent.Children;
@@ -2940,6 +2989,7 @@ classdef INPUT_GUI < handle
                 end
             else
                 gui.UIControls.electronKinetics.shapeParameter.Visible = 'off';
+                gui.UIControls.electronKinetics.shapeParameterPrecise.Visible = 'off';
                 % Update the label visibility as well
                 parent = gui.UIControls.electronKinetics.shapeParameter.Parent;
                 children = parent.Children;
@@ -4029,18 +4079,11 @@ classdef INPUT_GUI < handle
                 fprintf(fid, '%seedfType: %s\n', indent, ek.eedfType);
             end
             if isfield(ek, 'shapeParameter')
-                try
-                    if strcmp(gui.UIControls.electronKinetics.eedfType.Value, 'prescribedEedf')
-                        % Convert shape parameter to numeric (1 for Maxwellian, 2 for Druyvesteyn)
-                        shapeValue = 1; % default to Maxwellian
-                        if strcmp(ek.shapeParameter, 'Druyvesteyn')
-                            shapeValue = 2;
-                        end
-                        fprintf(fid, '%s shapeParameter: %d\n', indent, shapeValue);
-                    end
-                catch
-                    % Skip if not prescribedEedf
+                if strcmp(gui.UIControls.electronKinetics.eedfType.Value, 'prescribedEedf')
+                    fprintf(fid, '%sshapeParameter: %f\n', indent, ek.shapeParameter);
                 end
+                % Skip if not prescribedEedf
+       
             end
             if isfield(ek, 'ionizationOperatorType')
                 fprintf(fid, '%sionizationOperatorType: %s\n', indent, ek.ionizationOperatorType);
