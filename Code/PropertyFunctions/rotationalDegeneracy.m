@@ -20,7 +20,9 @@
 % along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 function statisticalWeight = rotationalDegeneracy(state, ~, ~)
-  % rotationalDegeneracy (have to be writen)
+  % rotationalDegeneracy is a property function that evaluates the statistical weight of the intrinsic partition function 
+  %  of a (generic) rotational state J
+  % Ridenti M A, Alves L L, Guerra V and Amorim J 2015 Plasma Sources Sci. Technol. 24 035002
   
   if ~strcmp(state.type, 'rot')
     error(['Trying to asign rotational degeneracy to non rotational state %s. Check input file', state.name]);

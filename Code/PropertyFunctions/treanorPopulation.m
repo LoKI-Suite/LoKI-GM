@@ -20,7 +20,8 @@
 % along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 function population = treanorPopulation(state, argumentArray, workCond)
-  % treanorPopulation (have to be writen)
+  % treanorPopulation is a property function that evaluates a Treanor distribution
+  %  with certain temperatures (specified as the first two arguments provided to the function in the setup file)
   
   temp0 = argumentArray{1};
   temp1 = argumentArray{2};
