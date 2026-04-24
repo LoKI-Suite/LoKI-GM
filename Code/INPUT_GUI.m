@@ -92,6 +92,16 @@ classdef INPUT_GUI < handle
             localSetProgress(80);
             
             gui.populateGUIFromSetup(); % Populate GUI fields with Setup data
+            % Ensure run button reflects current electron kinetics state
+            try
+                gui.updateRunButtonState();
+            catch
+            end
+            % Ensure run button reflects current electron kinetics state
+            try
+                gui.updateRunButtonState();
+            catch
+            end
             
             % Update progress: 100% - Complete
             localSetProgress(100);
@@ -170,8 +180,8 @@ classdef INPUT_GUI < handle
             gui.Setup.electronKinetics.growthModelType = 'temporal'; % 'temporal' or 'spatial'
             gui.Setup.electronKinetics.includeEECollisions = false;
             gui.Setup.electronKinetics.LXCatFiles = {'Nitrogen/N2_LXCat.txt', 'Nitrogen/N2_rot_LXCat.txt'}; % Cell array of strings
-            gui.Setup.electronKinetics.LXCatExtraFiles = {'Nitrogen/extra_LXCat.txt'}; % Optional
-            gui.Setup.electronKinetics.effectiveCrossSectionPopulations = {'Nitrogen/N2_effectivePop.txt'}; % Optional
+            gui.Setup.electronKinetics.LXCatExtraFiles = {}; % Optional
+            gui.Setup.electronKinetics.effectiveCrossSectionPopulations = {}; % Optional
             gui.Setup.electronKinetics.CARgases = {}; % Optional
             
             % Gas Properties [cite: 5] - Inside electronKinetics
@@ -606,7 +616,7 @@ classdef INPUT_GUI < handle
 
             % Description text
             descText = sprintf(['\n\n\n' ...
-                'Developed by the IST-Lisbon Plasma Physics Group.\n' ...
+                'Developed by group N-PRiME of IPFN/IST (Lisbon, Portugal) \n' ...
                 'Build hash: 0x4D522D41525047']);
             descLabel = uilabel(infoContainer, 'Text', descText, ...
                 'FontSize', 15, ...
@@ -655,7 +665,7 @@ classdef INPUT_GUI < handle
 
             row = row + 1;
             % Shape Parameter [cite: 4] - Only visible for prescribedEedf 
-            uilabel(generalGrid, 'Text', 'Shape Parameter:');
+            gui.UIControls.electronKinetics.shapeParameterLabel = uilabel(generalGrid, 'Text', 'Shape Parameter:');
             shapeParamGrid = uigridlayout(generalGrid, [1, 2]);
             shapeParamGrid.ColumnWidth = {'0.6x', '0.4x'}; % Give more space to text field
             shapeParamGrid.Padding = [0 0 0 0];
@@ -1748,7 +1758,8 @@ classdef INPUT_GUI < handle
                contains(dataPath, 'CARremoveButton') || ...
                contains(dataPath, 'odeSetParameters.isOn') || ...
                contains(dataPath, 'smartGrid.isOn') || ...
-               contains(dataPath, 'electronKinetics.shapeParameterPrecise')
+               contains(dataPath, 'electronKinetics.shapeParameterPrecise') || ...
+               contains(dataPath, 'electronKinetics.shapeParameterLabel')
                 return;
             end
             
@@ -2372,7 +2383,7 @@ classdef INPUT_GUI < handle
             if strcmp(fieldPath, 'electronKinetics.LXCatFiles')
                 gui.updateRunButtonState();
             end
-         end
+        end
 
         function editListItem(gui, listBox, fieldPath)
             % Edit an existing item in a listbox (called on double-click)
@@ -2666,24 +2677,28 @@ classdef INPUT_GUI < handle
 
         function updateRunButtonState(gui)
             % Update the state of the "Generate & Run" button based on LXCat files
-            % Button is disabled if Electron Kinetics is enabled but no LXCat files are present
+            % Button is disabled if Electron Kinetics is disabled, or if it is
+            % enabled but no LXCat files are present
             try
                 if isfield(gui.UIControls, 'runButton')
-                    if gui.Setup.electronKinetics.isOn
-                        items = gui.UIControls.electronKinetics.LXCatFiles.Items;
+                    % If Electron Kinetics is missing or explicitly disabled -> disable run
+                    if ~isfield(gui.Setup, 'electronKinetics') || ~gui.Setup.electronKinetics.isOn
+                        gui.UIControls.runButton.Enable = 'off';
+                    else
+                        % When Electron Kinetics is enabled, require at least one LXCat file
+                        items = {};
+                        try
+                            items = gui.UIControls.electronKinetics.LXCatFiles.Items;
+                        catch
+                        end
                         if isempty(items)
-                            % Disable button if no LXCat files
                             gui.UIControls.runButton.Enable = 'off';
                         else
-                            % Enable button if LXCat files are present
                             gui.UIControls.runButton.Enable = 'on';
                         end
-                    else
-                        % Enable button if Electron Kinetics is disabled (no LXCat requirement)
-                        gui.UIControls.runButton.Enable = 'on';
                     end
                 end
-            catch ME
+            catch
                 % Fail safe: enable button if something goes wrong
                 try
                     if isfield(gui.UIControls, 'runButton')
@@ -2851,6 +2866,7 @@ classdef INPUT_GUI < handle
             coreControls = {
                 'eedfType', ...
                 'shapeParameter', ...
+                'shapeParameterPrecise', ...
                 'ionizationOperatorType', ...
                 'growthModelType', ...
                 'includeEECollisions', ...
@@ -2875,6 +2891,24 @@ classdef INPUT_GUI < handle
             
             % Update run button state when Electron Kinetics is toggled
             gui.updateRunButtonState();
+
+            % If electronKinetics is disabled, LXCat cross sections should not be added or removed
+            try
+                % LXCat Files
+                if isfield(gui.UIControls.electronKinetics, 'LXCatFiles')
+                    gui.UIControls.electronKinetics.LXCatFiles.Enable = state;
+                    % Enable/disable add/remove buttons (they're at columns 3 and 4, row 1)
+                    parent = gui.UIControls.electronKinetics.LXCatFiles.Parent;
+                    for i = 1:length(parent.Children)
+                        child = parent.Children(i);
+                        if strcmp(child.Type, 'uibutton') && child.Layout.Row == 1 && (child.Layout.Column == 3 || child.Layout.Column == 4)
+                            child.Enable = state;
+                        end
+                    end
+                end
+
+            catch
+            end
 
             % Optional groups (extra LXCat, effective pops, CAR gases) depend on both
             % the master flag AND their individual checkboxes
@@ -2949,6 +2983,10 @@ classdef INPUT_GUI < handle
             if strcmp(eedfType, 'prescribedEedf')
                 gui.UIControls.electronKinetics.shapeParameter.Visible = 'on';
                 gui.UIControls.electronKinetics.shapeParameterPrecise.Visible = 'on';
+                gui.UIControls.electronKinetics.shapeParameterLabel.Visible = 'on';
+
+                gui.UIControls.electronKinetics.includeEECollisions.Value = false;
+                gui.UIControls.electronKinetics.includeEECollisions.Enable = 'off';
 
                 % Update the label visibility as well
                 parent = gui.UIControls.electronKinetics.shapeParameter.Parent;
@@ -2961,6 +2999,9 @@ classdef INPUT_GUI < handle
             else
                 gui.UIControls.electronKinetics.shapeParameter.Visible = 'off';
                 gui.UIControls.electronKinetics.shapeParameterPrecise.Visible = 'off';
+                gui.UIControls.electronKinetics.shapeParameterLabel.Visible = 'off';
+
+                gui.UIControls.electronKinetics.includeEECollisions.Enable = 'on';
                 % Update the label visibility as well
                 parent = gui.UIControls.electronKinetics.shapeParameter.Parent;
                 children = parent.Children;
@@ -2979,6 +3020,8 @@ classdef INPUT_GUI < handle
             if strcmp(eedfType, 'prescribedEedf')
                 gui.UIControls.electronKinetics.shapeParameter.Visible = 'on';
                 gui.UIControls.electronKinetics.shapeParameterPrecise.Visible = 'on';
+                gui.UIControls.electronKinetics.shapeParameterLabel.Visible = 'on';
+
                 % Update the label visibility as well
                 parent = gui.UIControls.electronKinetics.shapeParameter.Parent;
                 children = parent.Children;
@@ -2990,6 +3033,8 @@ classdef INPUT_GUI < handle
             else
                 gui.UIControls.electronKinetics.shapeParameter.Visible = 'off';
                 gui.UIControls.electronKinetics.shapeParameterPrecise.Visible = 'off';
+                gui.UIControls.electronKinetics.shapeParameterLabel.Visible = 'off';
+
                 % Update the label visibility as well
                 parent = gui.UIControls.electronKinetics.shapeParameter.Parent;
                 children = parent.Children;
