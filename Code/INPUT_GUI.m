@@ -2641,6 +2641,13 @@ classdef INPUT_GUI < handle
 
         function handleIonizationOperatorChange(gui, value)
             % Update Setup and enable/disable growth model depending on operator
+            % Ensure the UI dropdown reflects the chosen value when called programmatically
+            try
+                if isfield(gui.UIControls.electronKinetics, 'ionizationOperatorType') && isprop(gui.UIControls.electronKinetics.ionizationOperatorType, 'Value')
+                    gui.UIControls.electronKinetics.ionizationOperatorType.Value = value;
+                end
+            catch
+            end
             gui.updateField(gui.UIControls.electronKinetics.ionizationOperatorType, 'electronKinetics.ionizationOperatorType', value);
 
             if strcmp(value, 'conservative')
@@ -2714,6 +2721,22 @@ classdef INPUT_GUI < handle
             try
                 oldTab = evt.OldValue;
                 newTab = evt.NewValue;
+
+                % If Electron Kinetics is disabled, prevent entering several tabs
+                try
+                    if isfield(gui.Setup, 'electronKinetics') && ~gui.Setup.electronKinetics.isOn
+                        blockedTitles = {'Gas Properties', 'State Properties', 'Numerics', 'Output'};
+                        try
+                            if isprop(newTab, 'Title') && any(strcmp(newTab.Title, blockedTitles))
+                                evt.Source.SelectedTab = gui.UIControls.tabs.kineticsTab;
+                                uialert(gui.Fig, sprintf('%s is unavailable when Electron Kinetics is disabled.', newTab.Title), 'Tab Disabled');
+                                return;
+                            end
+                        catch
+                        end
+                    end
+                catch
+                end
 
                 % Only enforce when leaving the Electron Kinetics tab
                 if isequal(oldTab, gui.UIControls.tabs.kineticsTab) && ~isequal(newTab, gui.UIControls.tabs.kineticsTab)
@@ -2950,6 +2973,19 @@ classdef INPUT_GUI < handle
                 end
             catch
             end
+
+            % If Enable Electron Kinetics is turned off and then on again, reset all of the "General Kinetics Settings" 
+            % fields to their default values
+            if isEnabled
+                gui.Setup.electronKinetics.shapeParameter = 1; % Only used for prescribedEedf, but reset it anyway
+                gui.handleEedfTypeChange('boltzmann'); % This will also update the setup field for eedfType
+
+                gui.Setup.electronKinetics.ionizationOperatorType = 'usingSDCS'; % Default to using SDCS
+                gui.handleIonizationOperatorChange(gui.Setup.electronKinetics.ionizationOperatorType); % This will also enable/disable growth model
+
+                gui.UIControls.electronKinetics.includeEECollisions.Value = false; % Default to no e-e collisions
+                gui.handleEECollisionsChange(false); % This will also enable/disable related fields
+            end
         end
 
         function toggleLXCatExtraEnable(gui, isEnabled)
@@ -2980,6 +3016,13 @@ classdef INPUT_GUI < handle
 
         function handleEedfTypeChange(gui, eedfType)
             % Show/hide shape parameter based on EEDF type
+            % Ensure the UI dropdown reflects the chosen type when called programmatically
+            try
+                if isfield(gui.UIControls.electronKinetics, 'eedfType') && isprop(gui.UIControls.electronKinetics.eedfType, 'Value')
+                    gui.UIControls.electronKinetics.eedfType.Value = eedfType;
+                end
+            catch
+            end
             if strcmp(eedfType, 'prescribedEedf')
                 gui.UIControls.electronKinetics.shapeParameter.Visible = 'on';
                 gui.UIControls.electronKinetics.shapeParameterPrecise.Visible = 'on';
@@ -2997,11 +3040,27 @@ classdef INPUT_GUI < handle
                     end
                 end
             else
+                gui.Setup.electronKinetics.shapeParameter = 1; % Reset to default when not using prescribed EEDF
                 gui.UIControls.electronKinetics.shapeParameter.Visible = 'off';
                 gui.UIControls.electronKinetics.shapeParameterPrecise.Visible = 'off';
                 gui.UIControls.electronKinetics.shapeParameterLabel.Visible = 'off';
 
                 gui.UIControls.electronKinetics.includeEECollisions.Enable = 'on';
+
+                % Directly update the UI controls so the change is visible
+                try
+                    if isfield(gui.UIControls.electronKinetics, 'shapeParameter') && isprop(gui.UIControls.electronKinetics.shapeParameter, 'Value')
+                        gui.UIControls.electronKinetics.shapeParameter.Value = 1;
+                    end
+                    if isfield(gui.UIControls.electronKinetics, 'shapeParameterPrecise') && isprop(gui.UIControls.electronKinetics.shapeParameterPrecise, 'Value')
+                        gui.UIControls.electronKinetics.shapeParameterPrecise.Value = 1;
+                    end
+                catch
+                end
+                % Also update the underlying Setup field
+                gui.setNestedField('electronKinetics.shapeParameter', 1);
+                drawnow;
+                
                 % Update the label visibility as well
                 parent = gui.UIControls.electronKinetics.shapeParameter.Parent;
                 children = parent.Children;
