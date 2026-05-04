@@ -403,15 +403,12 @@ classdef INPUT_GUI < handle
 
             row = row + 1;
             % Gas Temperature [cite: 1]
-            gasTempCheckbox = uicheckbox(grid, 'Text', 'Gas Temperature (K):', ...
-                'ValueChangedFcn', @(src, evt) gui.toggleGasTemperatureEnable(evt.Value));
-            gasTempCheckbox.Layout.Row = row;
-            gasTempCheckbox.Layout.Column = 1;
-            gui.UIControls.workingConditions.gasTemperatureCheckbox = gasTempCheckbox;
+            gasTempLabel = uilabel(grid, 'Text', 'Gas Temperature (K):');
+            gasTempLabel.Layout.Row = row;
+            gasTempLabel.Layout.Column = 1;
             
             gui.UIControls.workingConditions.gasTemperature = uieditfield(grid, 'numeric', ...
                 'Limits', [0, Inf], ...
-                'Enable', 'off', ...
                 'HorizontalAlignment', 'left', ...
                 'ValueChangedFcn', @(src, evt) gui.updateField(src, 'workingConditions.gasTemperature', evt.Value));
             gui.UIControls.workingConditions.gasTemperature.Layout.Row = row;
@@ -424,6 +421,7 @@ classdef INPUT_GUI < handle
             wallTempLabel.Layout.Column = 1;
             gui.UIControls.workingConditions.wallTemperature = uieditfield(grid, 'numeric', ...
                 'Limits', [0, Inf], ...
+                'Enable', 'off', ...
                 'HorizontalAlignment', 'left', ...
                 'ValueChangedFcn', @(src, evt) gui.updateField(src, 'workingConditions.wallTemperature', evt.Value));
             gui.UIControls.workingConditions.wallTemperature.Layout.Row = row;
@@ -436,6 +434,7 @@ classdef INPUT_GUI < handle
             extTempLabel.Layout.Column = 1;
             gui.UIControls.workingConditions.extTemperature = uieditfield(grid, 'numeric', ...
                 'Limits', [0, Inf], ...
+                'Enable', 'off', ...
                 'HorizontalAlignment', 'left', ...
                 'ValueChangedFcn', @(src, evt) gui.updateField(src, 'workingConditions.extTemperature', evt.Value));
             gui.UIControls.workingConditions.extTemperature.Layout.Row = row;
@@ -443,11 +442,9 @@ classdef INPUT_GUI < handle
 
             row = row + 1;
             % Surface Site Density [cite: 2]
-            surfaceSiteDensityCheckbox = uicheckbox(grid, 'Text', 'Surface Site Density (m^-2):', ...
-                'ValueChangedFcn', @(src, evt) gui.toggleSurfaceSiteDensityEnable(evt.Value));
-            surfaceSiteDensityCheckbox.Layout.Row = row;
-            surfaceSiteDensityCheckbox.Layout.Column = 1;
-            gui.UIControls.workingConditions.surfaceSiteDensityCheckbox = surfaceSiteDensityCheckbox;
+            surfaceSiteDensityLabel = uilabel(grid, 'Text', 'Surface Site Density (m^-2):');
+            surfaceSiteDensityLabel.Layout.Row = row;
+            surfaceSiteDensityLabel.Layout.Column = 1;
             
             gui.UIControls.workingConditions.surfaceSiteDensity = uieditfield(grid, 'numeric', ...
                 'Limits', [0, Inf], ...
@@ -480,6 +477,7 @@ classdef INPUT_GUI < handle
             chamberLengthLabel.Layout.Column = 1;
             gui.UIControls.workingConditions.chamberLength = uieditfield(grid, 'numeric', ...
                 'Limits', [0, Inf], ...
+                'Enable', 'off', ...
                 'HorizontalAlignment', 'left', ...
                 'ValueChangedFcn', @(src, evt) gui.updateField(src, 'workingConditions.chamberLength', evt.Value));
             gui.UIControls.workingConditions.chamberLength.Layout.Row = row;
@@ -492,6 +490,7 @@ classdef INPUT_GUI < handle
             chamberRadiusLabel.Layout.Column = 1;
             gui.UIControls.workingConditions.chamberRadius = uieditfield(grid, 'numeric', ...
                 'Limits', [0, Inf], ...
+                'Enable', 'off', ...
                 'HorizontalAlignment', 'left', ...
                 'ValueChangedFcn', @(src, evt) gui.updateField(src, 'workingConditions.chamberRadius', evt.Value));
             gui.UIControls.workingConditions.chamberRadius.Layout.Row = row;
@@ -499,11 +498,9 @@ classdef INPUT_GUI < handle
 
             row = row + 1;
             % Total SCCM Inflow [cite: 3]
-            totalSccmInFlowCheckbox = uicheckbox(grid, 'Text', 'Total SCCM Inflow (sccm):', ...
-                'ValueChangedFcn', @(src, evt) gui.toggleTotalSccmInFlowEnable(evt.Value));
-            totalSccmInFlowCheckbox.Layout.Row = row;
-            totalSccmInFlowCheckbox.Layout.Column = 1;
-            gui.UIControls.workingConditions.totalSccmInFlowCheckbox = totalSccmInFlowCheckbox;
+            totalSccmInFlowLabel = uilabel(grid, 'Text', 'Total SCCM Inflow (sccm):');
+            totalSccmInFlowLabel.Layout.Row = row;
+            totalSccmInFlowLabel.Layout.Column = 1;
             
             gui.UIControls.workingConditions.totalSccmInFlow = uieditfield(grid, 'numeric', ...
                 'Limits', [0, Inf], ...
@@ -515,12 +512,9 @@ classdef INPUT_GUI < handle
 
             row = row + 1;
             % Total SCCM Outflow [cite: 3]
-            totalSccmOutFlowCheckbox = uicheckbox(grid, 'Text', 'Total SCCM Outflow:', ...
-                'ValueChangedFcn', @(src, evt) gui.toggleTotalSccmOutFlowEnable(evt.Value));
-            totalSccmOutFlowCheckbox.Layout.Row = row;
-            totalSccmOutFlowCheckbox.Layout.Column = 1;
-            gui.UIControls.workingConditions.totalSccmOutFlowCheckbox = totalSccmOutFlowCheckbox;
-            
+            totalSccmOutFlowLabel = uilabel(grid, 'Text', 'Total SCCM Outflow (sccm):');
+            totalSccmOutFlowLabel.Layout.Row = row;
+            totalSccmOutFlowLabel.Layout.Column = 1;
             % One-row overlay behavior:
             % - dropdown always visible
             % - when 'Number' is selected, show a numeric edit field on top,
@@ -537,7 +531,7 @@ classdef INPUT_GUI < handle
             dd = uidropdown(outFlowPanel, ...
                 'Items', {'ensureIsobaric', 'totalSccmInFlow', 'Number'}, ...
                 'Value', 'ensureIsobaric', ...
-                'ValueChangedFcn', @(src, evt) gui.handleSccmOutFlowTypeChange(src, evt.Value));
+                'Enable', 'off');
             gui.UIControls.workingConditions.totalSccmOutFlowType = dd;
 
             ef = uieditfield(outFlowPanel, 'numeric', ...
@@ -552,13 +546,12 @@ classdef INPUT_GUI < handle
             gui.layoutTotalSccmOutFlowOverlay();
 
             row = row + 1;
-            % Discharge Current [cite: 3] - Optional
-            dischargeCurrentCheckbox = uicheckbox(grid, 'Text', 'Discharge Current (A):', ...
-                'ValueChangedFcn', @(src, evt) gui.toggleDischargeCurrentEnable(evt.Value));
-            dischargeCurrentCheckbox.Layout.Row = row;
-            dischargeCurrentCheckbox.Layout.Column = 1;
-            gui.UIControls.workingConditions.dischargeCurrentCheckbox = dischargeCurrentCheckbox;
-            
+
+            % % Discharge Current [cite: 3] - Optional
+            dischargeCurrentLabel = uilabel(grid, 'Text', 'Discharge Current (A):');
+            dischargeCurrentLabel.Layout.Row = row;
+            dischargeCurrentLabel.Layout.Column = 1;
+
             gui.UIControls.workingConditions.dischargeCurrent = uieditfield(grid, 'numeric', ...
                 'Limits', [0, Inf], ...
                 'Enable', 'off', ...
@@ -569,16 +562,15 @@ classdef INPUT_GUI < handle
 
             row = row + 1;
             % Discharge Power Density [cite: 3] - Optional
-            dischargePowerCheckbox = uicheckbox(grid, 'Text', 'Discharge Power Density (W/m³):', ...
-                'ValueChangedFcn', @(src, evt) gui.toggleDischargePowerEnable(evt.Value));
-            dischargePowerCheckbox.Layout.Row = row;
-            dischargePowerCheckbox.Layout.Column = 1;
-            gui.UIControls.workingConditions.dischargePowerCheckbox = dischargePowerCheckbox;
+            dischargePowerLabel = uilabel(grid, 'Text', 'Discharge Power Density (W/m³):');
+            dischargePowerLabel.Layout.Row = row;
+            dischargePowerLabel.Layout.Column = 1;
 
             gui.UIControls.workingConditions.dischargePowerDensity = uieditfield(grid, 'numeric', ...
                 'Limits', [0, Inf], ...
                 'Enable', 'off', ...
                 'HorizontalAlignment', 'left', ...
+                'Enable', 'off', ...
                 'ValueChangedFcn', @(src, evt) gui.updateField(src, 'workingConditions.dischargePowerDensity', evt.Value));
             gui.UIControls.workingConditions.dischargePowerDensity.Layout.Row = row;
             gui.UIControls.workingConditions.dischargePowerDensity.Layout.Column = 2;
@@ -1632,11 +1624,7 @@ classdef INPUT_GUI < handle
             % Configure initial state of Working Conditions optional fields (inactive by default)
             try
                 gui.toggleGasPressureEnable(false);
-                gui.toggleGasTemperatureEnable(false);
-                gui.toggleSurfaceSiteDensityEnable(false);
                 gui.toggleElectronDensityEnable(false);
-                gui.toggleTotalSccmInFlowEnable(false);
-                gui.toggleTotalSccmOutFlowEnable(false);
                 gui.toggleDischargeCurrentEnable(false);
                 gui.toggleDischargePowerEnable(false);
             catch ME
@@ -1669,30 +1657,6 @@ classdef INPUT_GUI < handle
                 warning('Error configuring output controls: %s', ME.message);
             end
 
-            % Configure initial state of SCCM Outflow type
-            try
-                % Set initial dropdown value based on the current setup value
-                currentValue = gui.Setup.workingConditions.totalSccmOutFlow;
-                if isnumeric(currentValue)
-                    gui.UIControls.workingConditions.totalSccmOutFlowType.Value = 'Number';
-                    gui.handleSccmOutFlowTypeChange([], 'Number');
-                    % Set the numeric field value
-                    gui.UIControls.workingConditions.totalSccmOutFlow.Value = currentValue;
-                elseif ischar(currentValue) && ~isempty(str2num(currentValue))
-                    gui.UIControls.workingConditions.totalSccmOutFlowType.Value = 'Number';
-                    gui.handleSccmOutFlowTypeChange([], 'Number');
-                    % Convert string to numeric
-                    gui.UIControls.workingConditions.totalSccmOutFlow.Value = str2double(currentValue);
-                elseif strcmp(currentValue, 'totalSccmInFlow')
-                    gui.UIControls.workingConditions.totalSccmOutFlowType.Value = 'totalSccmInFlow';
-                    gui.handleSccmOutFlowTypeChange([], 'totalSccmInFlow');
-                else
-                    gui.UIControls.workingConditions.totalSccmOutFlowType.Value = 'ensureIsobaric';
-                    gui.handleSccmOutFlowTypeChange([], 'ensureIsobaric');
-                end
-            catch ME
-                warning('Error configuring SCCM Outflow type: %s', ME.message);
-            end
             
             % Configure data sets checkboxes after all other controls are populated
             try
@@ -1744,13 +1708,7 @@ classdef INPUT_GUI < handle
                contains(dataPath, 'workingConditions.infoImage') || ...
                contains(dataPath, 'workingConditions.totalSccmOutFlowPanel') || ...
                contains(dataPath, 'gasPressureCheckbox') || ...
-               contains(dataPath, 'gasTemperatureCheckbox') || ...
-               contains(dataPath, 'surfaceSiteDensityCheckbox') || ...
                contains(dataPath, 'electronDensityCheckbox') || ...
-               contains(dataPath, 'totalSccmInFlowCheckbox') || ...
-               contains(dataPath, 'totalSccmOutFlowCheckbox') || ...
-               contains(dataPath, 'dischargeCurrentCheckbox') || ...
-               contains(dataPath, 'dischargePowerCheckbox') || ...
                contains(dataPath, 'LXCatExtraCheckbox') || ...
                contains(dataPath, 'effectivePopCheckbox') || ...
                contains(dataPath, 'CARcheckbox') || ...
@@ -2612,32 +2570,6 @@ classdef INPUT_GUI < handle
             gui.setNestedField(fieldPath, filePath); % Update setup directly
         end
 
-        function handleSccmOutFlowTypeChange(gui, ~, value)
-            % Handle changes to the SCCM Outflow type dropdown
-            numField = gui.UIControls.workingConditions.totalSccmOutFlow;
-            
-            if strcmp(value, 'Number')
-                % Show numeric field on top of dropdown
-                numField.Visible = 'on';
-                if isfield(gui.UIControls.workingConditions, 'totalSccmOutFlowCheckbox') && gui.UIControls.workingConditions.totalSccmOutFlowCheckbox.Value
-                    numField.Enable = 'on';
-                else
-                    numField.Enable = 'off';
-                end
-                if isempty(numField.Value) || numField.Value == 0
-                    numField.Value = 1;
-                end
-                gui.layoutTotalSccmOutFlowOverlay();
-            else
-                % Hide numeric field behind dropdown and store the selected mode in Setup
-                numField.Visible = 'off';
-                numField.Enable = 'off';
-                if strcmp(value, 'totalSccmInFlow') || strcmp(value, 'ensureIsobaric')
-                    % Update the setup struct with the selected value
-                    gui.setNestedField('workingConditions.totalSccmOutFlow', value);
-                end
-            end
-        end
 
         function handleIonizationOperatorChange(gui, value)
             % Update Setup and enable/disable growth model depending on operator
@@ -2661,23 +2593,19 @@ classdef INPUT_GUI < handle
             % Update Setup
             gui.setNestedField('electronKinetics.includeEECollisions', value);
             
-            % When e-e collisions are enabled, unlock Gas pressure, Gas temperature, and Electron density
+            % When e-e collisions are enabled, unlock Gas pressure and Electron density
             if value
                 % Enable the fields (but keep checkboxes as they are - user can still control them)
                 gui.UIControls.workingConditions.gasPressure.Enable = 'on';
-                gui.UIControls.workingConditions.gasTemperature.Enable = 'on';
                 gui.UIControls.workingConditions.electronDensity.Enable = 'on';
                 % Also check the checkboxes to indicate they're active
                 gui.UIControls.workingConditions.gasPressureCheckbox.Value = true;
-                gui.UIControls.workingConditions.gasTemperatureCheckbox.Value = true;
                 gui.UIControls.workingConditions.electronDensityCheckbox.Value = true;
             else
                 % When disabled, block the fields and uncheck the checkboxes
                 gui.UIControls.workingConditions.gasPressureCheckbox.Value = false;
-                gui.UIControls.workingConditions.gasTemperatureCheckbox.Value = false;
                 gui.UIControls.workingConditions.electronDensityCheckbox.Value = false;
                 gui.toggleGasPressureEnable(false);
-                gui.toggleGasTemperatureEnable(false);
                 gui.toggleElectronDensityEnable(false);
             end
         end
@@ -2812,30 +2740,12 @@ classdef INPUT_GUI < handle
             end
         end
 
-        function toggleSurfaceSiteDensityEnable(gui, isEnabled)
-            % Enable/disable surface site density based on checkbox state
-            if isEnabled
-                gui.UIControls.workingConditions.surfaceSiteDensity.Enable = 'on';
-            else
-                gui.UIControls.workingConditions.surfaceSiteDensity.Enable = 'off';
-            end
-        end
-
         function toggleGasPressureEnable(gui, isEnabled)
             % Enable/disable gas pressure based on checkbox state
             if isEnabled
                 gui.UIControls.workingConditions.gasPressure.Enable = 'on';
             else
                 gui.UIControls.workingConditions.gasPressure.Enable = 'off';
-            end
-        end
-
-        function toggleGasTemperatureEnable(gui, isEnabled)
-            % Enable/disable gas temperature based on checkbox state
-            if isEnabled
-                gui.UIControls.workingConditions.gasTemperature.Enable = 'on';
-            else
-                gui.UIControls.workingConditions.gasTemperature.Enable = 'off';
             end
         end
 
@@ -2848,25 +2758,6 @@ classdef INPUT_GUI < handle
             end
         end
 
-        function toggleTotalSccmInFlowEnable(gui, isEnabled)
-            % Enable/disable total SCCM inflow based on checkbox state
-            if isEnabled
-                gui.UIControls.workingConditions.totalSccmInFlow.Enable = 'on';
-            else
-                gui.UIControls.workingConditions.totalSccmInFlow.Enable = 'off';
-            end
-        end
-
-        function toggleTotalSccmOutFlowEnable(gui, isEnabled)
-            % Enable/disable total SCCM outflow controls based on checkbox state
-            if isEnabled
-                gui.UIControls.workingConditions.totalSccmOutFlowType.Enable = 'on';
-                gui.handleSccmOutFlowTypeChange([], gui.UIControls.workingConditions.totalSccmOutFlowType.Value);
-            else
-                gui.UIControls.workingConditions.totalSccmOutFlowType.Enable = 'off';
-                gui.UIControls.workingConditions.totalSccmOutFlow.Enable = 'off';
-            end
-        end
 
         function handleUpdateFactorChange(gui, value)
             % Validate Update Factor: cannot be 0
@@ -3469,20 +3360,6 @@ classdef INPUT_GUI < handle
         function generateJSONFile(gui, filename)
             % Generates a JSON input file from the gui.Setup struct
             
-            % Update totalSccmOutFlow from UI before generating file
-            try
-                dropdownValue = gui.UIControls.workingConditions.totalSccmOutFlowType.Value;
-                if strcmp(dropdownValue, 'Number')
-                    numValue = gui.UIControls.workingConditions.totalSccmOutFlow.Value;
-                    if isnumeric(numValue)
-                        gui.Setup.workingConditions.totalSccmOutFlow = numValue;
-                    end
-                else
-                    gui.Setup.workingConditions.totalSccmOutFlow = dropdownValue;
-                end
-            catch ME
-                warning('Error updating totalSccmOutFlow from UI: %s', ME.message);
-            end
             
             % Convert Setup struct to JSON structure
             jsonStruct = gui.convertSetupToJSON(gui.Setup);
@@ -3571,34 +3448,8 @@ classdef INPUT_GUI < handle
                             jsonStruct.workingConditions = rmfield(jsonStruct.workingConditions, 'dischargeCurrent');
                         end
                     end
-                end
+                end             
                 
-                % dischargePowerDensity - only if checkbox is checked
-                if isfield(gui.UIControls.workingConditions, 'dischargePowerCheckbox')
-                    if ~gui.UIControls.workingConditions.dischargePowerCheckbox.Value
-                        if isfield(jsonStruct.workingConditions, 'dischargePowerDensity')
-                            jsonStruct.workingConditions = rmfield(jsonStruct.workingConditions, 'dischargePowerDensity');
-                        end
-                    end
-                end
-                
-                % totalSccmInFlow - only if checkbox is checked
-                if isfield(gui.UIControls.workingConditions, 'totalSccmInFlowCheckbox')
-                    if ~gui.UIControls.workingConditions.totalSccmInFlowCheckbox.Value
-                        if isfield(jsonStruct.workingConditions, 'totalSccmInFlow')
-                            jsonStruct.workingConditions = rmfield(jsonStruct.workingConditions, 'totalSccmInFlow');
-                        end
-                    end
-                end
-                
-                % totalSccmOutFlow - only if checkbox is checked
-                if isfield(gui.UIControls.workingConditions, 'totalSccmOutFlowCheckbox')
-                    if ~gui.UIControls.workingConditions.totalSccmOutFlowCheckbox.Value
-                        if isfield(jsonStruct.workingConditions, 'totalSccmOutFlow')
-                            jsonStruct.workingConditions = rmfield(jsonStruct.workingConditions, 'totalSccmOutFlow');
-                        end
-                    end
-                end
                 
                 % gasPressure - only if checkbox is checked
                 if isfield(gui.UIControls.workingConditions, 'gasPressureCheckbox')
@@ -3608,25 +3459,7 @@ classdef INPUT_GUI < handle
                         end
                     end
                 end
-                
-                % gasTemperature - only if checkbox is checked
-                if isfield(gui.UIControls.workingConditions, 'gasTemperatureCheckbox')
-                    if ~gui.UIControls.workingConditions.gasTemperatureCheckbox.Value
-                        if isfield(jsonStruct.workingConditions, 'gasTemperature')
-                            jsonStruct.workingConditions = rmfield(jsonStruct.workingConditions, 'gasTemperature');
-                        end
-                    end
-                end
-                
-                % surfaceSiteDensity - only if checkbox is checked
-                if isfield(gui.UIControls.workingConditions, 'surfaceSiteDensityCheckbox')
-                    if ~gui.UIControls.workingConditions.surfaceSiteDensityCheckbox.Value
-                        if isfield(jsonStruct.workingConditions, 'surfaceSiteDensity')
-                            jsonStruct.workingConditions = rmfield(jsonStruct.workingConditions, 'surfaceSiteDensity');
-                        end
-                    end
-                end
-                
+                                                
                 % electronDensity - only if checkbox is checked
                 if isfield(gui.UIControls.workingConditions, 'electronDensityCheckbox')
                     if ~gui.UIControls.workingConditions.electronDensityCheckbox.Value
@@ -3710,41 +3543,7 @@ classdef INPUT_GUI < handle
             end
             
             % Working Conditions optional fields - ACTIVATE if found
-            if isFieldFound('workingConditions.totalSccmInFlow')
-                try
-                    gui.toggleTotalSccmInFlowEnable(true);
-                    if isfield(gui.UIControls.workingConditions, 'totalSccmInFlowCheckbox')
-                        gui.UIControls.workingConditions.totalSccmInFlowCheckbox.Value = true;
-                    end
-                catch
-                end
-            elseif ~isFieldFound('workingConditions.totalSccmInFlow')
-                try
-                    gui.toggleTotalSccmInFlowEnable(false);
-                    if isfield(gui.UIControls.workingConditions, 'totalSccmInFlowCheckbox')
-                        gui.UIControls.workingConditions.totalSccmInFlowCheckbox.Value = false;
-                    end
-                catch
-                end
-            end
             
-            if isFieldFound('workingConditions.totalSccmOutFlow')
-                try
-                    gui.toggleTotalSccmOutFlowEnable(true);
-                    if isfield(gui.UIControls.workingConditions, 'totalSccmOutFlowCheckbox')
-                        gui.UIControls.workingConditions.totalSccmOutFlowCheckbox.Value = true;
-                    end
-                catch
-                end
-            elseif ~isFieldFound('workingConditions.totalSccmOutFlow')
-                try
-                    gui.toggleTotalSccmOutFlowEnable(false);
-                    if isfield(gui.UIControls.workingConditions, 'totalSccmOutFlowCheckbox')
-                        gui.UIControls.workingConditions.totalSccmOutFlowCheckbox.Value = false;
-                    end
-                catch
-                end
-            end
             
             if isFieldFound('workingConditions.gasPressure')
                 try
@@ -3764,42 +3563,7 @@ classdef INPUT_GUI < handle
                 end
             end
             
-            if isFieldFound('workingConditions.gasTemperature')
-                try
-                    gui.toggleGasTemperatureEnable(true);
-                    if isfield(gui.UIControls.workingConditions, 'gasTemperatureCheckbox')
-                        gui.UIControls.workingConditions.gasTemperatureCheckbox.Value = true;
-                    end
-                catch
-                end
-            elseif ~isFieldFound('workingConditions.gasTemperature')
-                try
-                    gui.toggleGasTemperatureEnable(false);
-                    if isfield(gui.UIControls.workingConditions, 'gasTemperatureCheckbox')
-                        gui.UIControls.workingConditions.gasTemperatureCheckbox.Value = false;
-                    end
-                catch
-                end
-            end
-            
-            if isFieldFound('workingConditions.surfaceSiteDensity')
-                try
-                    gui.toggleSurfaceSiteDensityEnable(true);
-                    if isfield(gui.UIControls.workingConditions, 'surfaceSiteDensityCheckbox')
-                        gui.UIControls.workingConditions.surfaceSiteDensityCheckbox.Value = true;
-                    end
-                catch
-                end
-            elseif ~isFieldFound('workingConditions.surfaceSiteDensity')
-                try
-                    gui.toggleSurfaceSiteDensityEnable(false);
-                    if isfield(gui.UIControls.workingConditions, 'surfaceSiteDensityCheckbox')
-                        gui.UIControls.workingConditions.surfaceSiteDensityCheckbox.Value = false;
-                    end
-                catch
-                end
-            end
-            
+                        
             if isFieldFound('workingConditions.electronDensity')
                 try
                     gui.toggleElectronDensityEnable(true);
@@ -3838,52 +3602,13 @@ classdef INPUT_GUI < handle
                 catch
                 end
             end
-            
-            if ~isFieldFound('workingConditions.surfaceSiteDensity')
-                try
-                    gui.toggleSurfaceSiteDensityEnable(false);
-                    if isfield(gui.UIControls.workingConditions, 'surfaceSiteDensityCheckbox')
-                        gui.UIControls.workingConditions.surfaceSiteDensityCheckbox.Value = false;
-                    end
-                catch
-                end
-            end
-            
-            if ~isFieldFound('workingConditions.totalSccmInFlow')
-                try
-                    gui.toggleTotalSccmInFlowEnable(false);
-                    if isfield(gui.UIControls.workingConditions, 'totalSccmInFlowCheckbox')
-                        gui.UIControls.workingConditions.totalSccmInFlowCheckbox.Value = false;
-                    end
-                catch
-                end
-            end
-            
-            if ~isFieldFound('workingConditions.totalSccmOutFlow')
-                try
-                    gui.toggleTotalSccmOutFlowEnable(false);
-                    if isfield(gui.UIControls.workingConditions, 'totalSccmOutFlowCheckbox')
-                        gui.UIControls.workingConditions.totalSccmOutFlowCheckbox.Value = false;
-                    end
-                catch
-                end
-            end
+                                    
             
             if ~isFieldFound('workingConditions.gasPressure')
                 try
                     gui.toggleGasPressureEnable(false);
                     if isfield(gui.UIControls.workingConditions, 'gasPressureCheckbox')
                         gui.UIControls.workingConditions.gasPressureCheckbox.Value = false;
-                    end
-                catch
-                end
-            end
-            
-            if ~isFieldFound('workingConditions.gasTemperature')
-                try
-                    gui.toggleGasTemperatureEnable(false);
-                    if isfield(gui.UIControls.workingConditions, 'gasTemperatureCheckbox')
-                        gui.UIControls.workingConditions.gasTemperatureCheckbox.Value = false;
                     end
                 catch
                 end
@@ -4136,21 +3861,6 @@ classdef INPUT_GUI < handle
                 error('Cannot open file "%s" for writing.', filename);
             end
             fprintf(fid, '%% LoKI Input File generated by LoKI_GUI on %s %%\n\n', datestr(now));
-
-            % Update totalSccmOutFlow from UI before generating file
-            try
-                dropdownValue = gui.UIControls.workingConditions.totalSccmOutFlowType.Value;
-                if strcmp(dropdownValue, 'Number')
-                    numValue = gui.UIControls.workingConditions.totalSccmOutFlow.Value;
-                    if isnumeric(numValue)
-                        gui.Setup.workingConditions.totalSccmOutFlow = numValue;
-                    end
-                else
-                    gui.Setup.workingConditions.totalSccmOutFlow = dropdownValue;
-                end
-            catch ME
-                warning('Error updating totalSccmOutFlow from UI: %s', ME.message);
-            end
 
             % CARgases will be populated from the listbox items automatically when writing
 
@@ -4437,14 +4147,6 @@ classdef INPUT_GUI < handle
                     if strcmp(fieldName, 'dischargeCurrent')
                         try
                             if gui.UIControls.workingConditions.dischargeCurrentCheckbox.Value
-                                fprintf(fid, '%s%s: %s\n', indent, fieldName, num2str(value));
-                            end
-                        catch
-                            % Skip if checkbox doesn't exist
-                        end
-                    elseif strcmp(fieldName, 'dischargePowerDensity')
-                        try
-                            if gui.UIControls.workingConditions.dischargePowerCheckbox.Value
                                 fprintf(fid, '%s%s: %s\n', indent, fieldName, num2str(value));
                             end
                         catch
