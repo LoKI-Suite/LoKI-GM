@@ -381,7 +381,7 @@ classdef INPUT_GUI < handle
             gui.UIControls.workingConditions.excitationFrequency = uieditfield(grid, 'numeric', ...
                 'Limits', [0, Inf], ...
                 'HorizontalAlignment', 'left', ...
-                'ValueChangedFcn', @(src, evt) gui.updateField(src, 'workingConditions.excitationFrequency', evt.Value));
+                'ValueChangedFcn', @(src, evt) gui.handleExcitationFrequencyChange(src, evt.Value));
             gui.UIControls.workingConditions.excitationFrequency.Layout.Row = row;
             gui.UIControls.workingConditions.excitationFrequency.Layout.Column = 2;
 
@@ -1627,6 +1627,7 @@ classdef INPUT_GUI < handle
                 gui.toggleElectronDensityEnable(false);
                 gui.toggleDischargeCurrentEnable(false);
                 gui.toggleDischargePowerEnable(false);
+                gui.activateGasPressureForExcitationFrequency(gui.Setup.workingConditions.excitationFrequency);
             catch ME
                 warning('Error configuring optional working conditions: %s', ME.message);
             end
@@ -1889,6 +1890,39 @@ classdef INPUT_GUI < handle
             % Optional: Re-enable/disable controls based on the change
             if strcmp(fieldPath, 'electronKinetics.numerics.energyGrid.smartGrid.isOn')
                 gui.toggleSmartGridEnable(value);
+            end
+        end
+
+        function handleExcitationFrequencyChange(gui, control, value)
+            % Update excitation frequency and require gas pressure for RF cases.
+            gui.updateField(control, 'workingConditions.excitationFrequency', value);
+            gui.activateGasPressureForExcitationFrequency(value);
+        end
+
+        function activateGasPressureForExcitationFrequency(gui, excitationFrequency)
+            if ~isempty(excitationFrequency) && isnumeric(excitationFrequency) && any(excitationFrequency(:) ~= 0) && ...
+               isfield(gui.UIControls, 'workingConditions') && ...
+               isfield(gui.UIControls.workingConditions, 'gasPressureCheckbox')
+                gui.UIControls.workingConditions.gasPressureCheckbox.Value = true;
+                gui.toggleGasPressureEnable(true);
+                gui.setTemporalGrowthModelForExcitationFrequency();
+                gui.UIControls.electronKinetics.growthModelType.Enable = 'off';
+            elseif isfield(gui.UIControls, 'workingConditions') && ...
+                   isfield(gui.UIControls.workingConditions, 'gasPressureCheckbox')
+                gui.UIControls.electronKinetics.growthModelType.Enable = 'on';
+            end
+        end
+
+        function setTemporalGrowthModelForExcitationFrequency(gui)
+            if isfield(gui.UIControls, 'electronKinetics') && ...
+               isfield(gui.UIControls.electronKinetics, 'growthModelType')
+                gui.UIControls.electronKinetics.growthModelType.Value = 'temporal';
+            end
+
+            if isfield(gui.Setup, 'electronKinetics') && ...
+               isfield(gui.Setup.electronKinetics, 'growthModelType') && ...
+               ~strcmp(gui.Setup.electronKinetics.growthModelType, 'temporal')
+                gui.setNestedField('electronKinetics.growthModelType', 'temporal');
             end
         end
         
