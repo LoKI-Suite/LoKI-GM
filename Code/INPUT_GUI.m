@@ -2264,22 +2264,6 @@ classdef INPUT_GUI < handle
                         end
                     end
                     
-                    % Check if sum equals 1 (with tolerance for floating point)
-                    if abs(totalSum - 1.0) > 1e-6
-                        % Automatically correct the last added value to make sum = 1
-                        speciesName = match{1}{1};
-                        correctedValue = 1.0 - (totalSum - str2double(match{1}{2}));
-                        if correctedValue < 0
-                            uialert(gui.Fig, sprintf(['Cannot correct: sum of existing fractions (%.6f) already exceeds 1.0.\n' ...
-                                'Please adjust existing values first.'], totalSum - str2double(match{1}{2})), ...
-                                'Fraction Sum Error', 'Icon', 'error');
-                            return;
-                        end
-                        newItem = sprintf('%s = %.6f', speciesName, correctedValue);
-                        uialert(gui.Fig, sprintf(['Gas fractions must sum to 1.0.\n' ...
-                            'Corrected last value to: %s'], newItem), ...
-                            'Fraction Sum Corrected', 'Icon', 'info');
-                    end
                 end
                 
                 % Ensure currentItems is a column cell array
@@ -2360,12 +2344,12 @@ classdef INPUT_GUI < handle
                     end
                 end
                 
-                % Check if sum equals 1 (with tolerance for floating point)
-                if abs(totalSum - 1.0) > 1e-6
-                    warningMsg = sprintf(['After removal, gas fractions sum to %.6f instead of 1.0.\n' ...
-                        'Please ensure all fractions sum to 1.0.'], totalSum);
-                    uialert(gui.Fig, warningMsg, 'Fraction Sum Warning', 'Icon', 'warning');
-                end
+                % % Check if sum equals 1 (with tolerance for floating point)
+                % if abs(totalSum - 1.0) > 1e-6
+                %     warningMsg = sprintf(['After removal, gas fractions sum to %.6f instead of 1.0.\n' ...
+                %         'Please ensure all fractions sum to 1.0.'], totalSum);
+                %     uialert(gui.Fig, warningMsg, 'Fraction Sum Warning', 'Icon', 'warning');
+                % end
             end
             
             % Update the Setup struct as well
@@ -2483,33 +2467,33 @@ classdef INPUT_GUI < handle
                     return;
                 end
                 
-                % Check if sum equals 1 after editing
-                % Create a temporary list with the edited item
-                tempItems = currentItems;
-                tempItems{itemIndex} = newItem;
+                % % Check if sum equals 1 after editing
+                % % Create a temporary list with the edited item
+                % tempItems = currentItems;
+                % tempItems{itemIndex} = newItem;
                 
-                % Calculate total sum
-                totalSum = 0;
-                for i = 1:length(tempItems)
-                    matchTokens = regexp(tempItems{i}, pattern, 'tokens');
-                    if ~isempty(matchTokens)
-                        totalSum = totalSum + str2double(matchTokens{1}{2});
-                    end
-                end
+                % % Calculate total sum
+                % totalSum = 0;
+                % for i = 1:length(tempItems)
+                %     matchTokens = regexp(tempItems{i}, pattern, 'tokens');
+                %     if ~isempty(matchTokens)
+                %         totalSum = totalSum + str2double(matchTokens{1}{2});
+                %     end
+                % end
                 
-                % Check if sum equals 1 (with tolerance for floating point)
-                if abs(totalSum - 1.0) > 1e-6
-                    % Automatically correct the edited value to make sum = 1
-                    speciesName = match{1}{1};
-                    correctedValue = 1.0 - (totalSum - str2double(match{1}{2}));
-                    if correctedValue < 0
-                        % If cannot correct (sum excluding this is > 1), alert user
-                        uialert(gui.Fig, sprintf('Total gas fraction exceeds 1.0 (%.4f). Please adjust other fractions first.', totalSum), 'Fraction Sum Error');
-                        return;
-                    end
-                    newItem = sprintf('%s = %.6g', speciesName, correctedValue);
-                    fprintf('Corrected %s fraction to %.6g to ensure sum = 1.0\n', speciesName, correctedValue);
-                end
+                % % Check if sum equals 1 (with tolerance for floating point)
+                % if abs(totalSum - 1.0) > 1e-6
+                %     % Automatically correct the edited value to make sum = 1
+                %     speciesName = match{1}{1};
+                %     correctedValue = 1.0 - (totalSum - str2double(match{1}{2}));
+                %     if correctedValue < 0
+                %         % If cannot correct (sum excluding this is > 1), alert user
+                %         uialert(gui.Fig, sprintf('Total gas fraction exceeds 1.0 (%.4f). Please adjust other fractions first.', totalSum), 'Fraction Sum Error');
+                %         return;
+                %     end
+                %     newItem = sprintf('%s = %.6g', speciesName, correctedValue);
+                %     fprintf('Corrected %s fraction to %.6g to ensure sum = 1.0\n', speciesName, correctedValue);
+                % end
             end
             
             % Update the list and selection
