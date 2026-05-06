@@ -107,34 +107,65 @@ classdef Output < handle
         intType = H5T.copy("H5T_NATIVE_INT");
         % creates the file with default library properties (overwrite, ...)
         fID = H5F.create(hdfFile, "H5F_ACC_TRUNC", dcpl, dcpl);
+
         % Saves working conditions as attributes
         workingConditions = setup.info.workingConditions;
         spaceID = H5S.create("H5S_SCALAR");
         acpl = H5P.create("H5P_ATTRIBUTE_CREATE");
-        % Excitation frequency
+        % - Excitation frequency
         attrID = H5A.create(fID,"Excitation frequency (Hz)",doubleType,spaceID,acpl);
         H5A.write(attrID,"H5ML_DEFAULT",workingConditions.excitationFrequency);
-        H5A.close(attrID);
-        % Gas pressure
+        % - Gas pressure
         attrID = H5A.create(fID,"Gas pressure (Pa)",doubleType,spaceID,acpl);
         H5A.write(attrID,"H5ML_DEFAULT",workingConditions.gasPressure);
-        H5A.close(attrID);
-        % Temperature
+        % - Temperatures
         attrID = H5A.create(fID,"Gas temperature (K)",doubleType,spaceID,acpl);
         H5A.write(attrID,"H5ML_DEFAULT",workingConditions.gasTemperature);
-        H5A.close(attrID);
-        % Electron density
+        attrID = H5A.create(fID,"Wall temperature (K)",doubleType,spaceID,acpl);
+        H5A.write(attrID,"H5ML_DEFAULT",workingConditions.wallTemperature);
+        attrID = H5A.create(fID,"External temperature (K)",doubleType,spaceID,acpl);
+        H5A.write(attrID,"H5ML_DEFAULT",workingConditions.extTemperature);
+        % - Surface site density
+        attrID = H5A.create(fID,"Surface site density (m-2)",doubleType,spaceID,acpl);
+        H5A.write(attrID,"H5ML_DEFAULT",workingConditions.surfaceSiteDensity);
+        % - Electron density
         attrID = H5A.create(fID,"Electron density (m-3)",doubleType,spaceID,acpl);
         H5A.write(attrID,"H5ML_DEFAULT",workingConditions.electronDensity);
-        H5A.close(attrID);
-        % Chamber dimensions (cylindric)
+        % - Chamber dimensions (cylindric)
         attrID = H5A.create(fID,"Chamber length (m)",doubleType,spaceID,acpl);
         H5A.write(attrID,"H5ML_DEFAULT",workingConditions.chamberLength);
-        H5A.close(attrID);
         attrID = H5A.create(fID,"Chamber radius (m)",doubleType,spaceID,acpl);
         H5A.write(attrID,"H5ML_DEFAULT",workingConditions.chamberRadius);
+        % - Discharge current
+        if isfield(workingConditions,'dischargeCurrent') 
+          attrID = H5A.create(fID,"Discharge current (A)",doubleType,spaceID,acpl);
+          H5A.write(attrID,"H5ML_DEFAULT",workingConditions.dischargeCurrent);
+        end  
+        % - Discharge power density
+        if isfield(workingConditions,'dischargePowerDensity') 
+          attrID = H5A.create(fID,"Discharge power density (W m-3)",doubleType,spaceID,acpl);
+          H5A.write(attrID,"H5ML_DEFAULT",workingConditions.dischargePowerDensity);
+        end
+        % - Input gas flow
+        if isfield(workingConditions,'totalSccmInFlow')
+          attrID = H5A.create(fID,"Total input flow (sccm)",doubleType,spaceID,acpl);
+          H5A.write(attrID,"H5ML_DEFAULT",workingConditions.totalSccmInFlow);
+%           if (~isempty(setup.workCond.totalSccmInFlow) || setup.workCond.totalSccmInFlow ~= 0) && ...
+%                   setup.enableChemistry
+%             % Gas composition
+%             % Write inFlowFraction for each gas
+%             inFlowFraction = setup.info.chemistry.gasProperties.inFlowFraction;
+%             for gasFlow = inFlowFraction
+%               name_flow = strsplit(gasFlow{1}, ' = ');
+%               attrID = H5A.create(fID,name_flow{1}+" fraction in input flow",doubleType,spaceID,acpl);
+%               H5A.write(attrID,"H5ML_DEFAULT",str2double(name_flow{2}));
+%             end
+%           end
+        end
         H5A.close(attrID);
         H5S.close(spaceID);
+
+        % create group for electron kinetics
         if setup.enableElectronKinetics
           geid = H5G.create(fID,"electronKinetics",dcpl,dcpl,dcpl);
         end
@@ -151,6 +182,71 @@ classdef Output < handle
         output.isSimulationHF = true;
       end
 
+      % If we study the electron kinetics, we write the reducedField or
+      % electronTemperature values on geid.
+      if contains(output.dataFormat, 'hdf5')
+        if strcmpi(setup.info.electronKinetics.eedfType, 'boltzmann')
+          % First saves the reducedField values if we don't do the chemistry.
+          reducedField = setup.info.workingConditions.reducedField;
+          % set dims dimensions
+          if isempty(setup.pulseInfo)
+            dims = [1 numberOfJobs];
+          else    % reducedField(t) -> columns for t and E/N
+            dims = [2 numberOfJobs];
+          end
+          spaceID = H5S.create_simple(2,fliplr(dims),[]);
+          dsID = H5D.create(geid,'reducedField',doubleType,spaceID,dcpl);
+          if isempty(setup.pulseInfo)
+            H5DS.set_label(dsID,0,'E/N')
+          else
+            H5DS.set_label(dsID,0,'time')
+            H5DS.set_label(dsID,1,'E/N')
+          end
+                if isempty(setup.pulseInfo)
+            H5D.write(dsID,'H5ML_DEFAULT','H5S_ALL','H5S_ALL', ...
+              'H5P_DEFAULT',reducedField);
+          end
+          H5S.close(spaceID);
+          % units attribute
+          units = "Td";
+          stypeID = H5T.copy("H5T_C_S1");
+          H5T.set_size(stypeID, "H5T_VARIABLE");
+          spaceID = H5S.create_simple(1,1,[]);
+          acpl = H5P.create("H5P_ATTRIBUTE_CREATE");
+          attrID = H5A.create(dsID,'units',stypeID,spaceID,acpl);
+          H5A.write(attrID,"H5ML_DEFAULT",units);
+          % set as scale
+          H5DS.set_scale(dsID,"E/N");
+          H5T.close(stypeID);
+        elseif strcmpi(setup.info.electronKinetics.eedfType, 'prescribedEedf')
+          output.isBoltzmann = false;
+          % First saves the electronTemperature values
+          % get dims
+          electronTemperature = setup.info.workingConditions.electronTemperature;
+          if isscalar(electronTemperature)
+            dims = [1 1];
+          else
+            dims = size(electronTemperature);
+          end
+          spaceID = H5S.create_simple(2,fliplr(dims),[]);
+          dsID = H5D.create(geid,'electronTemperature',doubleType,spaceID,dcpl);
+          H5D.write(dsID,'H5ML_DEFAULT','H5S_ALL','H5S_ALL', ...
+            'H5P_DEFAULT',electronTemperature);
+          H5S.close(spaceID);
+          % units attribute
+          units = "eV";
+          stypeID = H5T.copy("H5T_C_S1");
+          H5T.set_size (stypeID, "H5T_VARIABLE");
+          spaceID = H5S.create_simple(1,1,[]);
+          acpl = H5P.create("H5P_ATTRIBUTE_CREATE");
+          attrID = H5A.create(dsID,'units',stypeID,spaceID,acpl);
+          H5A.write(attrID,"H5ML_DEFAULT",units);
+          % set as scale
+          H5DS.set_scale(dsID,"Te");
+        end
+      end
+
+      % Writes the datasets
       for dataSet = dataSets
         switch dataSet{1}
           case 'log'
@@ -164,67 +260,6 @@ classdef Output < handle
           case 'eedf'
             output.eedfIsToBeSaved = true;
             if contains(output.dataFormat, 'hdf5')
-              if strcmpi(setup.info.electronKinetics.eedfType, 'boltzmann')
-                % First saves the reducedField values if we don't do the chemistry.
-                reducedField = setup.info.workingConditions.reducedField;
-                % get dims
-                if isempty(setup.pulseInfo)
-                  dims = [1 numberOfJobs];
-                else    % reducedField(t) -> columns for t and E/N
-                  dims = [2 numberOfJobs];
-                end
-                spaceID = H5S.create_simple(2,fliplr(dims),[]);
-                dsID = H5D.create(geid,'reducedField',doubleType,spaceID,dcpl);
-                if isempty(setup.pulseInfo)
-                  H5DS.set_label(dsID,0,'E/N')
-                else
-                  H5DS.set_label(dsID,0,'time')
-                  H5DS.set_label(dsID,1,'E/N')
-                end
-                if isempty(setup.pulseInfo)
-                  H5D.write(dsID,'H5ML_DEFAULT','H5S_ALL','H5S_ALL', ...
-                    'H5P_DEFAULT',reducedField);
-                end
-                H5S.close(spaceID);
-                % units attribute
-                units = "Td";
-                stypeID = H5T.copy("H5T_C_S1");
-                H5T.set_size (stypeID, "H5T_VARIABLE");
-                spaceID = H5S.create_simple(1,1,[]);
-                acpl = H5P.create("H5P_ATTRIBUTE_CREATE");
-                attrID = H5A.create(dsID,'units',stypeID,spaceID,acpl);
-                H5A.write(attrID,"H5ML_DEFAULT",units);
-                % set as scale
-                H5DS.set_scale(dsID,"E/N");
-                H5T.close(stypeID);
-              elseif strcmpi(setup.info.electronKinetics.eedfType, 'prescribedEedf')
-                output.isBoltzmann = false;  
-                % First saves the electronTemperature values
-                % get dims
-                electronTemperature = setup.info.workingConditions.electronTemperature;
-                if isscalar(electronTemperature)
-                  dims = [1 1];
-                else
-                  dims = size(electronTemperature);
-                end
-                spaceID = H5S.create_simple(2,fliplr(dims),[]);
-                dsID = H5D.create(geid,'electronTemperature',doubleType,spaceID,dcpl);
-                H5D.write(dsID,'H5ML_DEFAULT','H5S_ALL','H5S_ALL', ...
-                  'H5P_DEFAULT',electronTemperature);
-                H5S.close(spaceID);
-                % units attribute
-                units = "eV";
-                stypeID = H5T.copy("H5T_C_S1");
-                H5T.set_size (stypeID, "H5T_VARIABLE");
-                spaceID = H5S.create_simple(1,1,[]);
-                acpl = H5P.create("H5P_ATTRIBUTE_CREATE");
-                attrID = H5A.create(dsID,'units',stypeID,spaceID,acpl);
-                H5A.write(attrID,"H5ML_DEFAULT",units);
-                % set as scale
-                H5DS.set_scale(dsID,"Te");
-              end
-
-              % now create the eedf dataset
               if strcmpi(setup.info.electronKinetics.eedfType, 'boltzmann')
                 sz(1:3) = H5T.get_size(doubleType);
                 offset(1) = 0;
@@ -479,9 +514,9 @@ classdef Output < handle
       % add listener of the working conditions object
       addlistener(setup.workCond, 'genericStatusMessage', @output.genericStatusMessage);
       
-     if setup.enableElectronKinetics
-        % add listener to status messages of the electron kinetics object
-        addlistener(setup.electronKinetics, 'genericStatusMessage', @output.genericStatusMessage);
+        if setup.enableElectronKinetics
+          % add listener to status messages of the electron kinetics object
+          addlistener(setup.electronKinetics, 'genericStatusMessage', @output.genericStatusMessage);
         % add listener to output results when a new solution for the EEDF is found
         addlistener(setup.electronKinetics, 'obtainedNewEedf', @output.electronKineticsSolution);
       end
@@ -1296,6 +1331,6 @@ classdef Output < handle
       
     end
     
-  end
+ end 
 
 end
