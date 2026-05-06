@@ -1071,7 +1071,7 @@ classdef Setup < handle
             possibleDataSets = {'none' 'inputs' 'log'};
             if isfield(setupInfo, 'electronKinetics') && setupInfo.electronKinetics.isOn
               possibleDataSets = [possibleDataSets 'eedf' 'swarmParameters' 'rateCoefficients' 'powerBalance' ...
-                'lookUpTable'];
+                'lookUpTables'];
             end
             possibleDataSetsStr = possibleDataSets{1};
             for idx = 2:length(possibleDataSets)-1
