@@ -11,6 +11,10 @@ classdef INPUT_GUI < handle
     methods
         function gui = INPUT_GUI(inputFile)
             % Constructor
+            close all force;
+            delete(findall(groot, 'Type', 'figure'));
+            clearvars -except gui inputFile;
+
             % Show loading animation with progress bar while initializing
             % Center window on screen
             screenSize = get(0, 'ScreenSize');
@@ -221,7 +225,7 @@ classdef INPUT_GUI < handle
             gui.Setup.output.isOn = false;
             gui.Setup.output.dataFormat = 'hdf5+txt'; % 'txt', 'hdf5', 'hdf5+txt'
             gui.Setup.output.folder = 'simulation_1';
-            gui.Setup.output.dataSets = {'log', 'eedf', 'swarmParameters', 'rateCoefficients', 'powerBalance', 'lookUpTable'}; % Cell array
+            gui.Setup.output.dataSets = {'log', 'eedf', 'swarmParameters', 'rateCoefficients', 'powerBalance', 'lookUpTables'}; % Cell array
         end
 
         function createGUI(gui)
@@ -1306,25 +1310,40 @@ classdef INPUT_GUI < handle
             
             gui.UIControls.output.dataFormat = uidropdown(grid, ...
                 'Items', {'txt', 'hdf5', 'hdf5+txt'}, ...
-                'Enable', 'on', ... % Always enabled regardless of output.isOn state
+                'Enable', 'on', ...
                 'ValueChangedFcn', @(src, evt) gui.updateField(src, 'output.dataFormat', evt.Value));
             gui.UIControls.output.dataFormat.Layout.Row = 6;
             gui.UIControls.output.dataFormat.Layout.Column = [2, 3];
 
             % Row 7: Output Folder
-            folderLabel = uilabel(grid, 'Text', 'Output Folder:');
-            folderLabel.Layout.Row = 7;
-            folderLabel.Layout.Column = 1;
+            folderLabelGrid = uigridlayout(grid, [1, 2]);
+            folderLabelGrid.ColumnWidth = {'fit', 'fit'};
+            folderLabelGrid.RowHeight = {'fit'};
+            folderLabelGrid.Padding = [0 0 0 0];
+            folderLabelGrid.ColumnSpacing = 4;
+            folderLabelGrid.Layout.Row = 7;
+            folderLabelGrid.Layout.Column = 1;
+
+            gui.UIControls.output.useCustomFolder = uicheckbox(folderLabelGrid, ...
+                'Text', '', ...
+                'Value', true, ...
+                'ValueChangedFcn', @(src, evt) gui.toggleOutputFolderMode(evt.Value));
+            gui.UIControls.output.useCustomFolder.Layout.Row = 1;
+            gui.UIControls.output.useCustomFolder.Layout.Column = 1;
+
+            folderLabel = uilabel(folderLabelGrid, 'Text', 'Output Folder:');
+            folderLabel.Layout.Row = 1;
+            folderLabel.Layout.Column = 2;
             gui.UIControls.output.folder = uieditfield(grid, 'text', ...
-                'Enable', 'on', ... % Always enabled regardless of output.isOn state
+                'Enable', 'on', ...
                 'ValueChangedFcn', @(src, evt) gui.updateField(src, 'output.folder', evt.Value));
             gui.UIControls.output.folder.Layout.Row = 7;
             gui.UIControls.output.folder.Layout.Column = 2;
             
-            browseButton = uibutton(grid, 'Text', 'Browse...', ...
+            gui.UIControls.output.browseButton = uibutton(grid, 'Text', 'Browse...', ...
                 'ButtonPushedFcn', @gui.browseFolder);
-            browseButton.Layout.Row = 7;
-            browseButton.Layout.Column = 3;
+            gui.UIControls.output.browseButton.Layout.Row = 7;
+            gui.UIControls.output.browseButton.Layout.Column = 3;
 
             % Row 8: Data Sets - Use a more compact layout
             dataSetLabel = uilabel(grid, 'Text', 'Data Sets to Save:');
@@ -1347,7 +1366,7 @@ classdef INPUT_GUI < handle
             
             % Create checkboxes
             dataSetNames = {'inputs', 'log', 'eedf', 'swarmParameters', ...
-                        'rateCoefficients', 'powerBalance', 'lookUpTable'};
+                        'rateCoefficients', 'powerBalance', 'lookUpTables'};
             
             for i = 1:length(dataSetNames)
                 row_idx = ceil(i/4);
@@ -1453,6 +1472,11 @@ classdef INPUT_GUI < handle
                         if strcmp(sectionName, 'workingConditions') && strcmp(controlName, 'totalSccmOutFlow')
                             continue;
                         end
+                        % Skip output controls that don't map directly to input data
+                        if strcmp(sectionName, 'output') && ...
+                                (strcmp(controlName, 'browseButton') || strcmp(controlName, 'useCustomFolder'))
+                            continue;
+                        end
                         dataPath = sprintf('%s.%s', sectionName, controlName);
                         gui.setControlValue(control, dataPath);
                     end
@@ -1543,7 +1567,7 @@ classdef INPUT_GUI < handle
                     try
                         if isfield(gui.Setup, 'output') && isfield(gui.Setup.output, 'dataSets')
                             selectedDataSets = gui.Setup.output.dataSets;
-                            dataSetNames = {'inputs', 'log', 'eedf', 'swarmParameters', 'rateCoefficients', 'powerBalance', 'lookUpTable'};
+                            dataSetNames = {'inputs', 'log', 'eedf', 'swarmParameters', 'rateCoefficients', 'powerBalance', 'lookUpTables'};
                             
                             for i = 1:length(dataSetNames)
                                 dataSetName = dataSetNames{i};
@@ -1644,16 +1668,8 @@ classdef INPUT_GUI < handle
             end
 
             % Configure initial state of Output controls (respect Enable Output flag)
-            % Note: dataFormat and folder remain always enabled
             try
                 gui.toggleOutputEnable(gui.Setup.output.isOn);
-                % Ensure dataFormat and folder are always enabled
-                if isfield(gui.UIControls.output, 'dataFormat')
-                    gui.UIControls.output.dataFormat.Enable = 'on';
-                end
-                if isfield(gui.UIControls.output, 'folder')
-                    gui.UIControls.output.folder.Enable = 'on';
-                end
             catch ME
                 warning('Error configuring output controls: %s', ME.message);
             end
@@ -1664,7 +1680,7 @@ classdef INPUT_GUI < handle
                 if isfield(gui.UIControls, 'output') && isfield(gui.UIControls.output, 'dataSets')
                     if isfield(gui.Setup, 'output') && isfield(gui.Setup.output, 'dataSets')
                         selectedDataSets = gui.Setup.output.dataSets;
-                        dataSetNames = {'inputs', 'log', 'eedf', 'swarmParameters', 'rateCoefficients', 'powerBalance', 'lookUpTable'};
+                        dataSetNames = {'inputs', 'log', 'eedf', 'swarmParameters', 'rateCoefficients', 'powerBalance', 'lookUpTables'};
                         
                         for i = 1:length(dataSetNames)
                             dataSetName = dataSetNames{i};
@@ -2344,12 +2360,6 @@ classdef INPUT_GUI < handle
                     end
                 end
                 
-                % % Check if sum equals 1 (with tolerance for floating point)
-                % if abs(totalSum - 1.0) > 1e-6
-                %     warningMsg = sprintf(['After removal, gas fractions sum to %.6f instead of 1.0.\n' ...
-                %         'Please ensure all fractions sum to 1.0.'], totalSum);
-                %     uialert(gui.Fig, warningMsg, 'Fraction Sum Warning', 'Icon', 'warning');
-                % end
             end
             
             % Update the Setup struct as well
@@ -2467,33 +2477,6 @@ classdef INPUT_GUI < handle
                     return;
                 end
                 
-                % % Check if sum equals 1 after editing
-                % % Create a temporary list with the edited item
-                % tempItems = currentItems;
-                % tempItems{itemIndex} = newItem;
-                
-                % % Calculate total sum
-                % totalSum = 0;
-                % for i = 1:length(tempItems)
-                %     matchTokens = regexp(tempItems{i}, pattern, 'tokens');
-                %     if ~isempty(matchTokens)
-                %         totalSum = totalSum + str2double(matchTokens{1}{2});
-                %     end
-                % end
-                
-                % % Check if sum equals 1 (with tolerance for floating point)
-                % if abs(totalSum - 1.0) > 1e-6
-                %     % Automatically correct the edited value to make sum = 1
-                %     speciesName = match{1}{1};
-                %     correctedValue = 1.0 - (totalSum - str2double(match{1}{2}));
-                %     if correctedValue < 0
-                %         % If cannot correct (sum excluding this is > 1), alert user
-                %         uialert(gui.Fig, sprintf('Total gas fraction exceeds 1.0 (%.4f). Please adjust other fractions first.', totalSum), 'Fraction Sum Error');
-                %         return;
-                %     end
-                %     newItem = sprintf('%s = %.6g', speciesName, correctedValue);
-                %     fprintf('Corrected %s fraction to %.6g to ensure sum = 1.0\n', speciesName, correctedValue);
-                % end
             end
             
             % Update the list and selection
@@ -2583,7 +2566,12 @@ classdef INPUT_GUI < handle
                 filePath = fullPath;
             end
             
-            control = gui.getNestedField(gui.UIControls, fieldPath);
+            uiPath = fieldPath;
+            if startsWith(uiPath, 'electronKinetics.gasProperties.')
+                uiPath = strrep(uiPath, 'electronKinetics.gasProperties.', 'gasProperties.');
+            end
+
+            control = gui.getNestedField(gui.UIControls, uiPath);
             control.Value = filePath;
             gui.setNestedField(fieldPath, filePath); % Update setup directly
         end
@@ -2719,13 +2707,57 @@ classdef INPUT_GUI < handle
 
         function toggleOutputEnable(gui, isEnabled)
             % Enable/disable output-related controls based on checkbox state
-            % Note: dataFormat and folder remain always enabled (user requirement)
-            % Only dataSets checkboxes are controlled by this toggle
             
             % Update Setup flag
             gui.setNestedField('output.isOn', isEnabled);
-            
-            % Note: dataFormat and folder are always enabled, not controlled here
+
+            if isEnabled
+                enableState = 'on';
+            else
+                enableState = 'off';
+            end
+
+            if isfield(gui.UIControls, 'output')
+                if isfield(gui.UIControls.output, 'dataFormat') && isvalid(gui.UIControls.output.dataFormat)
+                    gui.UIControls.output.dataFormat.Enable = enableState;
+                end
+                if isfield(gui.UIControls.output, 'useCustomFolder') && isvalid(gui.UIControls.output.useCustomFolder)
+                    gui.UIControls.output.useCustomFolder.Enable = enableState;
+                end
+                gui.toggleOutputFolderMode(isEnabled && ...
+                    (~isfield(gui.UIControls.output, 'useCustomFolder') || ...
+                    gui.UIControls.output.useCustomFolder.Value));
+            end
+
+            if ~isEnabled && isfield(gui.UIControls, 'output') && ...
+                    isfield(gui.UIControls.output, 'dataSets')
+                dataSetNames = fieldnames(gui.UIControls.output.dataSets);
+                for i = 1:length(dataSetNames)
+                    checkbox = gui.UIControls.output.dataSets.(dataSetNames{i});
+                    if isvalid(checkbox)
+                        checkbox.Value = false;
+                    end
+                end
+                gui.Setup.output.dataSets = {};
+            end
+        end
+
+        function toggleOutputFolderMode(gui, useCustomFolder)
+            % Enable/disable manual output folder controls.
+            if useCustomFolder
+                enableState = 'on';
+            else
+                enableState = 'off';
+            end
+
+            if isfield(gui.UIControls, 'output')
+                if isfield(gui.UIControls.output, 'folder') && isvalid(gui.UIControls.output.folder)
+                    gui.UIControls.output.folder.Enable = enableState;
+                end
+                if isfield(gui.UIControls.output, 'browseButton') && isvalid(gui.UIControls.output.browseButton)
+                    gui.UIControls.output.browseButton.Enable = enableState;
+                end
+            end
         end
 
         function toggleCARGasEnable(gui, isEnabled)
@@ -3380,7 +3412,7 @@ classdef INPUT_GUI < handle
             
             
             % Convert Setup struct to JSON structure
-            jsonStruct = gui.convertSetupToJSON(gui.Setup);
+            jsonStruct = gui.convertSetupToJSON(gui.getSetupForExport());
             
             % Write JSON file with pretty formatting
             try
@@ -3394,6 +3426,18 @@ classdef INPUT_GUI < handle
                 fprintf('JSON file generated: %s\n', filename);
             catch ME
                 error('Error writing JSON file: %s', ME.message);
+            end
+        end
+
+        function setup = getSetupForExport(gui)
+            % Return setup data with export-only UI choices applied.
+            setup = gui.Setup;
+            if isfield(setup, 'output') && isfield(setup.output, 'folder') && ...
+                    isfield(gui.UIControls, 'output') && ...
+                    isfield(gui.UIControls.output, 'useCustomFolder') && ...
+                    isvalid(gui.UIControls.output.useCustomFolder) && ...
+                    ~gui.UIControls.output.useCustomFolder.Value
+                setup.output.folder = datestr(now, 'yyyy-mm-dd_HH-MM-SS');
             end
         end
         
@@ -3681,13 +3725,6 @@ classdef INPUT_GUI < handle
                     if isfield(gui.UIControls.output, 'isOn')
                         gui.UIControls.output.isOn.Value = false;
                     end
-                    % Ensure dataFormat and folder remain enabled even when output.isOn is false
-                    if isfield(gui.UIControls.output, 'dataFormat')
-                        gui.UIControls.output.dataFormat.Enable = 'on';
-                    end
-                    if isfield(gui.UIControls.output, 'folder')
-                        gui.UIControls.output.folder.Enable = 'on';
-                    end
                 catch
                 end
             end
@@ -3881,18 +3918,19 @@ classdef INPUT_GUI < handle
             fprintf(fid, '%% LoKI Input File generated by LoKI_GUI on %s %%\n\n', datestr(now));
 
             % CARgases will be populated from the listbox items automatically when writing
+            setup = gui.getSetupForExport();
 
             % Use recursion or explicit handling for nested structs
-            sections = fieldnames(gui.Setup);
+            sections = fieldnames(setup);
             for i = 1:length(sections)
                 sectionName = sections{i};
                 if strcmp(sectionName, 'electronKinetics')
                     % Special handling for electronKinetics to reorder fields
                     fprintf(fid, '%s:\n', sectionName); % Section header
-                    gui.writeElectronKineticsContent(gui.Setup.(sectionName), '  ', fid);
+                    gui.writeElectronKineticsContent(setup.(sectionName), '  ', fid);
                 else
                     fprintf(fid, '%s:\n', sectionName); % Section header
-                    gui.writeStructContent(gui.Setup.(sectionName), '  ', fid); % Indent content
+                    gui.writeStructContent(setup.(sectionName), '  ', fid); % Indent content
                 end
                 fprintf(fid, '\n'); % Blank line between sections
             end
