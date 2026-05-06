@@ -775,6 +775,9 @@ classdef Setup < handle
             if ~isfield(workCondStruct, 'electronDensity')
               error([str1 '''electronDensity'' (mandatory field for ''electronKinetics.includeEECollisions=true'')\n' ...
                 'not found in the ''workingConditions'' section of the setup file.' str2],1);
+            elseif ~isfield(workCondStruct, 'gasPressure')
+              error([str1 '''gasPressure'' (mandatory field for ''electronKinetics.includeEECollisions=true'')\n' ...
+                'not found in the ''workingConditions'' section of the setup file.' str2],1);              
             end
           end
           % --- 'LXCatFiles' field
