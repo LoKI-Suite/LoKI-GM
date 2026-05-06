@@ -20,7 +20,8 @@
 % along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 function population = boltzmannPopulation(state, argumentArray, workCond)
-  % boltzmann (have to be writen)
+  % boltzmannPopulation is a property function that evaluates a Boltzmann distribution with a certain
+  % temperature (specified as the first argument provided to the function in the setup file)
   
   % obtain temperature of the distribution (either prescribed, i.e. numeric, or found in the working conditions)
   temperature = argumentArray{1};
