@@ -189,13 +189,13 @@ classdef INPUT_GUI < handle
             gui.Setup.electronKinetics.CARgases = {}; % Optional
             
             % Gas Properties [cite: 5] - Inside electronKinetics
-            gui.Setup.electronKinetics.gasProperties.mass = 'Databases/masses.txt';
+            gui.Setup.electronKinetics.gasProperties.mass = {'Databases/masses.txt'};
             gui.Setup.electronKinetics.gasProperties.fraction = {'N2 = 1'}; % Cell array of strings
-            gui.Setup.electronKinetics.gasProperties.harmonicFrequency = 'Databases/harmonicFrequencies.txt';
-            gui.Setup.electronKinetics.gasProperties.anharmonicFrequency = 'Databases/anharmonicFrequencies.txt';
-            gui.Setup.electronKinetics.gasProperties.rotationalConstant = 'Databases/rotationalConstants.txt';
-            gui.Setup.electronKinetics.gasProperties.electricQuadrupoleMoment = 'Databases/quadrupoleMoment.txt';
-            gui.Setup.electronKinetics.gasProperties.OPBParameter = 'Databases/OPBParameter.txt';
+            gui.Setup.electronKinetics.gasProperties.harmonicFrequency = {'Databases/harmonicFrequencies.txt'};
+            gui.Setup.electronKinetics.gasProperties.anharmonicFrequency = {'Databases/anharmonicFrequencies.txt'};
+            gui.Setup.electronKinetics.gasProperties.rotationalConstant = {'Databases/rotationalConstants.txt'};
+            gui.Setup.electronKinetics.gasProperties.electricQuadrupoleMoment = {'Databases/quadrupoleMoment.txt'};
+            gui.Setup.electronKinetics.gasProperties.OPBParameter = {'Databases/OPBParameter.txt'};
             
             % State Properties [cite: 5]
             gui.Setup.electronKinetics.stateProperties.energy = {'N2(X,v=*) = harmonicOscillatorEnergy', 'N2(X,v=0,J=*) = rigidRotorEnergy'};
@@ -903,82 +903,52 @@ classdef INPUT_GUI < handle
             gasPropsPanel.Layout.Row = 1;
             gasPropsGrid = uigridlayout(gasPropsPanel, [6, 3]);
             gasPropsGrid.ColumnWidth = {'fit', '1x', 'fit'};
-            gasPropsGrid.RowHeight = repmat({'fit'}, 1, 6);
+            gasPropsGrid.RowHeight = repmat({70}, 1, 6);
             gasPropsGrid.Padding = [10 10 10 10];
             gasPropsGrid.RowSpacing = 5;
             gasPropsGrid.ColumnSpacing = 10;
 
-            % Mass File
-            row = 1;
-            massFileLabel = uilabel(gasPropsGrid, 'Text', 'Mass File:');
-            massFileLabel.Layout.Row = row;
-            massFileLabel.Layout.Column = 1;
-            gui.UIControls.gasProperties.mass = uieditfield(gasPropsGrid, 'text', 'ValueChangedFcn', @(src, evt) gui.updateField(src, 'electronKinetics.gasProperties.mass', evt.Value));
-            gui.UIControls.gasProperties.mass.Layout.Row = row;
-            gui.UIControls.gasProperties.mass.Layout.Column = 2;
-            massFileBrowseButton = uibutton(gasPropsGrid, 'Text', 'Browse...', 'ButtonPushedFcn', @(src,evt) gui.browseFile('electronKinetics.gasProperties.mass'));
-            massFileBrowseButton.Layout.Row = row;
-            massFileBrowseButton.Layout.Column = 3;
+            gasFileSpecs = {
+                'mass', 'Mass Files:';
+                'harmonicFrequency', 'Harmonic Frequency Files:';
+                'anharmonicFrequency', 'Anharmonic Frequency Files:';
+                'rotationalConstant', 'Rotational Constant Files:';
+                'electricQuadrupoleMoment', 'Electric Quadrupole Moment Files:';
+                'OPBParameter', 'OPB Parameter Files:'
+            };
 
-            row = row + 1;
-            % Harmonic Frequency File
-            harmonicFreqLabel = uilabel(gasPropsGrid, 'Text', 'Harmonic Frequency File:');
-            harmonicFreqLabel.Layout.Row = row;
-            harmonicFreqLabel.Layout.Column = 1;
-            gui.UIControls.gasProperties.harmonicFrequency = uieditfield(gasPropsGrid, 'text', 'ValueChangedFcn', @(src, evt) gui.updateField(src, 'electronKinetics.gasProperties.harmonicFrequency', evt.Value));
-            gui.UIControls.gasProperties.harmonicFrequency.Layout.Row = row;
-            gui.UIControls.gasProperties.harmonicFrequency.Layout.Column = 2;
-            harmonicFreqBrowseButton = uibutton(gasPropsGrid, 'Text', 'Browse...', 'ButtonPushedFcn', @(src,evt) gui.browseFile('electronKinetics.gasProperties.harmonicFrequency'));
-            harmonicFreqBrowseButton.Layout.Row = row;
-            harmonicFreqBrowseButton.Layout.Column = 3;
+            for row = 1:size(gasFileSpecs, 1)
+                fieldName = gasFileSpecs{row, 1};
+                labelText = gasFileSpecs{row, 2};
+                fieldPath = ['electronKinetics.gasProperties.', fieldName];
 
-            row = row + 1;
-            % Anharmonic Frequency File
-            anharmonicFreqLabel = uilabel(gasPropsGrid, 'Text', 'Anharmonic Frequency File:');
-            anharmonicFreqLabel.Layout.Row = row;
-            anharmonicFreqLabel.Layout.Column = 1;
-            gui.UIControls.gasProperties.anharmonicFrequency = uieditfield(gasPropsGrid, 'text', 'ValueChangedFcn', @(src, evt) gui.updateField(src, 'electronKinetics.gasProperties.anharmonicFrequency', evt.Value));
-            gui.UIControls.gasProperties.anharmonicFrequency.Layout.Row = row;
-            gui.UIControls.gasProperties.anharmonicFrequency.Layout.Column = 2;
-            anharmonicFreqBrowseButton = uibutton(gasPropsGrid, 'Text', 'Browse...', 'ButtonPushedFcn', @(src,evt) gui.browseFile('electronKinetics.gasProperties.anharmonicFrequency'));
-            anharmonicFreqBrowseButton.Layout.Row = row;
-            anharmonicFreqBrowseButton.Layout.Column = 3;
+                fileLabel = uilabel(gasPropsGrid, 'Text', labelText);
+                fileLabel.Layout.Row = row;
+                fileLabel.Layout.Column = 1;
 
-            row = row + 1;
-            % Rotational Constant File
-            rotationalConstantLabel = uilabel(gasPropsGrid, 'Text', 'Rotational Constant File:');
-            rotationalConstantLabel.Layout.Row = row;
-            rotationalConstantLabel.Layout.Column = 1;
-            gui.UIControls.gasProperties.rotationalConstant = uieditfield(gasPropsGrid, 'text', 'ValueChangedFcn', @(src, evt) gui.updateField(src, 'electronKinetics.gasProperties.rotationalConstant', evt.Value));
-            gui.UIControls.gasProperties.rotationalConstant.Layout.Row = row;
-            gui.UIControls.gasProperties.rotationalConstant.Layout.Column = 2;
-            rotationalConstantBrowseButton = uibutton(gasPropsGrid, 'Text', 'Browse...', 'ButtonPushedFcn', @(src,evt) gui.browseFile('electronKinetics.gasProperties.rotationalConstant'));
-            rotationalConstantBrowseButton.Layout.Row = row;
-            rotationalConstantBrowseButton.Layout.Column = 3;
+                gui.UIControls.gasProperties.(fieldName) = uilistbox(gasPropsGrid, ...
+                    'Multiselect', 'on', ...
+                    'Items', {}, ...
+                    'DoubleClickedFcn', @(src, evt) gui.editListItem(src, fieldPath));
+                gui.UIControls.gasProperties.(fieldName).Layout.Row = row;
+                gui.UIControls.gasProperties.(fieldName).Layout.Column = 2;
 
-            row = row + 1;
-            % Electric Quadrupole Moment File
-            electricQuadrupoleMomentLabel = uilabel(gasPropsGrid, 'Text', 'Electric Quadrupole Moment File:');
-            electricQuadrupoleMomentLabel.Layout.Row = row;
-            electricQuadrupoleMomentLabel.Layout.Column = 1;
-            gui.UIControls.gasProperties.electricQuadrupoleMoment = uieditfield(gasPropsGrid, 'text', 'ValueChangedFcn', @(src, evt) gui.updateField(src, 'electronKinetics.gasProperties.electricQuadrupoleMoment', evt.Value));
-            gui.UIControls.gasProperties.electricQuadrupoleMoment.Layout.Row = row;
-            gui.UIControls.gasProperties.electricQuadrupoleMoment.Layout.Column = 2;
-            electricQuadrupoleMomentBrowseButton = uibutton(gasPropsGrid, 'Text', 'Browse...', 'ButtonPushedFcn', @(src,evt) gui.browseFile('electronKinetics.gasProperties.electricQuadrupoleMoment'));
-            electricQuadrupoleMomentBrowseButton.Layout.Row = row;
-            electricQuadrupoleMomentBrowseButton.Layout.Column = 3;
+                fileBtnGrid = uigridlayout(gasPropsGrid, [2, 1]);
+                fileBtnGrid.Layout.Row = row;
+                fileBtnGrid.Layout.Column = 3;
+                fileBtnGrid.RowHeight = {'fit', 'fit'};
+                fileBtnGrid.Padding = [0 0 0 0];
 
-            row = row + 1;
-            % OPB Parameter File
-            opbParameterLabel = uilabel(gasPropsGrid, 'Text', 'OPB Parameter File:');
-            opbParameterLabel.Layout.Row = row;
-            opbParameterLabel.Layout.Column = 1;
-            gui.UIControls.gasProperties.OPBParameter = uieditfield(gasPropsGrid, 'text', 'ValueChangedFcn', @(src, evt) gui.updateField(src, 'electronKinetics.gasProperties.OPBParameter', evt.Value));
-            gui.UIControls.gasProperties.OPBParameter.Layout.Row = row;
-            gui.UIControls.gasProperties.OPBParameter.Layout.Column = 2;
-            opbParameterBrowseButton = uibutton(gasPropsGrid, 'Text', 'Browse...', 'ButtonPushedFcn', @(src,evt) gui.browseFile('electronKinetics.gasProperties.OPBParameter'));
-            opbParameterBrowseButton.Layout.Row = row;
-            opbParameterBrowseButton.Layout.Column = 3;
+                addButton = uibutton(fileBtnGrid, 'Text', 'Browse', ...
+                    'ButtonPushedFcn', @(src, evt) gui.addListItem(fieldPath, true));
+                addButton.Layout.Row = 1;
+                addButton.Layout.Column = 1;
+
+                removeButton = uibutton(fileBtnGrid, 'Text', 'Remove', ...
+                    'ButtonPushedFcn', @(src, evt) gui.removeListItem(fieldPath));
+                removeButton.Layout.Row = 2;
+                removeButton.Layout.Column = 1;
+            end
 
             % --- Gas Fractions ---
             fractionsPanel = uipanel(grid, 'Title', 'Gas Fractions');
@@ -1510,6 +1480,21 @@ classdef INPUT_GUI < handle
                 warning('Error setting effectiveCrossSectionPopulations list: %s', ME.message);
             end
             try
+                gasFileFields = {'mass', 'harmonicFrequency', 'anharmonicFrequency', ...
+                    'rotationalConstant', 'electricQuadrupoleMoment', 'OPBParameter'};
+                for idx = 1:length(gasFileFields)
+                    fieldName = gasFileFields{idx};
+                    if isfield(gui.UIControls.gasProperties, fieldName) && ...
+                            isfield(gui.Setup.electronKinetics.gasProperties, fieldName)
+                        items = gui.asCellArray(gui.Setup.electronKinetics.gasProperties.(fieldName));
+                        gui.UIControls.gasProperties.(fieldName).Items = items;
+                        gui.UIControls.gasProperties.(fieldName).Value = {};
+                    end
+                end
+            catch ME
+                warning('Error setting gas property file lists: %s', ME.message);
+            end
+            try
                 gui.UIControls.gasProperties.fraction.Items = gui.Setup.electronKinetics.gasProperties.fraction;
                 if ~isempty(gui.UIControls.gasProperties.fraction.Items)
                     gui.UIControls.gasProperties.fraction.Value = {}; % Clear selection initially
@@ -1761,6 +1746,12 @@ classdef INPUT_GUI < handle
                        strcmp(dataPath, 'electronKinetics.LXCatExtraFiles') || ...
                        strcmp(dataPath, 'electronKinetics.effectiveCrossSectionPopulations') || ...
                        strcmp(dataPath, 'electronKinetics.gasProperties.fraction') || ...
+                       strcmp(dataPath, 'electronKinetics.gasProperties.mass') || ...
+                       strcmp(dataPath, 'electronKinetics.gasProperties.harmonicFrequency') || ...
+                       strcmp(dataPath, 'electronKinetics.gasProperties.anharmonicFrequency') || ...
+                       strcmp(dataPath, 'electronKinetics.gasProperties.rotationalConstant') || ...
+                       strcmp(dataPath, 'electronKinetics.gasProperties.electricQuadrupoleMoment') || ...
+                       strcmp(dataPath, 'electronKinetics.gasProperties.OPBParameter') || ...
                        strcmp(dataPath, 'electronKinetics.stateProperties.population') || ...
                        strcmp(dataPath, 'electronKinetics.stateProperties.energy') || ...
                        strcmp(dataPath, 'electronKinetics.stateProperties.statisticalWeight') || ...
@@ -2262,7 +2253,7 @@ classdef INPUT_GUI < handle
                 % For gas fractions, validate the format and check if sum equals 1
                 if endsWith(fieldPath, 'gasProperties.fraction') || contains(fieldPath, 'gasProperties.fraction')
                     % Validate format: should be "species = number"
-                    pattern = '^\s*(\w+)\s*=\s*([0-9]+\.?[0-9]*)\s*$';
+                    pattern = '^\s*(\w+)\s*=\s*([-+]?[0-9]+\.?[0-9]*)\s*$';
                     match = regexp(newItem, pattern, 'tokens');
                     if isempty(match)
                         uialert(gui.Fig, ['Invalid format for gas fraction. Expected format: "species = number"\n' ...
@@ -2270,6 +2261,11 @@ classdef INPUT_GUI < handle
                         return;
                     end
                     
+                    fractionValue = str2double(match{1}{2});
+                    if isnan(fractionValue) || fractionValue < 0 || fractionValue > 1
+                        uialert(gui.Fig, 'Gas fraction must be between 0 and 1.', 'Invalid Gas Fraction');
+                        return;
+                    end
                     % Extract all numbers from current items and new item
                     allItems = [currentItems(:); {newItem}];
                     totalSum = 0;
@@ -2469,11 +2465,17 @@ classdef INPUT_GUI < handle
             
             % Validate gas fractions format if applicable
             if endsWith(fieldPath, 'gasProperties.fraction') || contains(fieldPath, 'gasProperties.fraction')
-                pattern = '^\s*(\w+)\s*=\s*([0-9]+\.?[0-9]*)\s*$';
+                pattern = '^\s*(\w+)\s*=\s*([-+]?[0-9]+\.?[0-9]*)\s*$';
                 match = regexp(newItem, pattern, 'tokens');
                 if isempty(match)
                     uialert(gui.Fig, ['Invalid format for gas fraction. Expected format: "species = number"\n' ...
                         'Example: "N2 = 1" or "H2 = 0.5"'], 'Invalid Format');
+                    return;
+                end
+
+                fractionValue = str2double(match{1}{2});
+                if isnan(fractionValue) || fractionValue < 0 || fractionValue > 1
+                    uialert(gui.Fig, 'Gas fraction must be between 0 and 1.', 'Invalid Gas Fraction');
                     return;
                 end
                 
@@ -2579,6 +2581,13 @@ classdef INPUT_GUI < handle
 
         function handleIonizationOperatorChange(gui, value)
             % Update Setup and enable/disable growth model depending on operator
+            try
+                if isfield(gui.UIControls.electronKinetics, 'eedfType') && ...
+                        strcmp(gui.UIControls.electronKinetics.eedfType.Value, 'prescribedEedf')
+                    value = 'conservative';
+                end
+            catch
+            end
             % Ensure the UI dropdown reflects the chosen value when called programmatically
             try
                 if isfield(gui.UIControls.electronKinetics, 'ionizationOperatorType') && isprop(gui.UIControls.electronKinetics.ionizationOperatorType, 'Value')
@@ -2729,16 +2738,21 @@ classdef INPUT_GUI < handle
                     gui.UIControls.output.useCustomFolder.Value));
             end
 
-            if ~isEnabled && isfield(gui.UIControls, 'output') && ...
+            if isfield(gui.UIControls, 'output') && ...
                     isfield(gui.UIControls.output, 'dataSets')
                 dataSetNames = fieldnames(gui.UIControls.output.dataSets);
                 for i = 1:length(dataSetNames)
                     checkbox = gui.UIControls.output.dataSets.(dataSetNames{i});
                     if isvalid(checkbox)
-                        checkbox.Value = false;
+                        checkbox.Enable = enableState;
+                        if ~isEnabled
+                            checkbox.Value = false;
+                        end
                     end
                 end
-                gui.Setup.output.dataSets = {};
+                if ~isEnabled
+                    gui.Setup.output.dataSets = {};
+                end
             end
         end
 
@@ -2971,6 +2985,7 @@ classdef INPUT_GUI < handle
 
                 gui.UIControls.electronKinetics.includeEECollisions.Value = false;
                 gui.UIControls.electronKinetics.includeEECollisions.Enable = 'off';
+                gui.handleIonizationOperatorChange('conservative');
 
                 % Update the label visibility as well
                 parent = gui.UIControls.electronKinetics.shapeParameter.Parent;
@@ -3021,6 +3036,7 @@ classdef INPUT_GUI < handle
                 gui.UIControls.electronKinetics.shapeParameter.Visible = 'on';
                 gui.UIControls.electronKinetics.shapeParameterPrecise.Visible = 'on';
                 gui.UIControls.electronKinetics.shapeParameterLabel.Visible = 'on';
+                gui.handleIonizationOperatorChange('conservative');
 
                 % Update the label visibility as well
                 parent = gui.UIControls.electronKinetics.shapeParameter.Parent;
@@ -3438,6 +3454,17 @@ classdef INPUT_GUI < handle
                     isvalid(gui.UIControls.output.useCustomFolder) && ...
                     ~gui.UIControls.output.useCustomFolder.Value
                 setup.output.folder = datestr(now, 'yyyy-mm-dd_HH-MM-SS');
+            end
+            if isfield(gui.UIControls, 'gasProperties')
+                gasFileFields = {'mass', 'harmonicFrequency', 'anharmonicFrequency', ...
+                    'rotationalConstant', 'electricQuadrupoleMoment', 'OPBParameter'};
+                for idx = 1:length(gasFileFields)
+                    fieldName = gasFileFields{idx};
+                    if isfield(gui.UIControls.gasProperties, fieldName) && ...
+                            isvalid(gui.UIControls.gasProperties.(fieldName))
+                        setup.electronKinetics.gasProperties.(fieldName) = gui.UIControls.gasProperties.(fieldName).Items;
+                    end
+                end
             end
         end
         
@@ -4044,7 +4071,14 @@ classdef INPUT_GUI < handle
                 if hasFraction
                     fprintf(fid, '%sgasProperties:\n', indent);
                     % Write gas properties manually to handle fraction from UI
-                    fprintf(fid, '%s  mass: %s\n', indent, ek.gasProperties.mass);
+                    gasFileFields = {'mass', 'harmonicFrequency', 'anharmonicFrequency', ...
+                        'rotationalConstant', 'electricQuadrupoleMoment', 'OPBParameter'};
+                    for fileIdx = 1:length(gasFileFields)
+                        gasFileField = gasFileFields{fileIdx};
+                        if isfield(ek.gasProperties, gasFileField)
+                            gui.writeNamedList(fid, indent, gasFileField, ek.gasProperties.(gasFileField));
+                        end
+                    end
                     fprintf(fid, '%s  fraction:\n', indent);
                     if isfield(gui.UIControls, 'gasProperties') && isfield(gui.UIControls.gasProperties, 'fraction')
                         fractionItems = gui.UIControls.gasProperties.fraction.Items;
@@ -4056,11 +4090,6 @@ classdef INPUT_GUI < handle
                             fprintf(fid, '%s    - %s\n', indent, ek.gasProperties.fraction{j});
                         end
                     end
-                    fprintf(fid, '%s  harmonicFrequency: %s\n', indent, ek.gasProperties.harmonicFrequency);
-                    fprintf(fid, '%s  anharmonicFrequency: %s\n', indent, ek.gasProperties.anharmonicFrequency);
-                    fprintf(fid, '%s  rotationalConstant: %s\n', indent, ek.gasProperties.rotationalConstant);
-                    fprintf(fid, '%s  electricQuadrupoleMoment: %s\n', indent, ek.gasProperties.electricQuadrupoleMoment);
-                    fprintf(fid, '%s  OPBParameter: %s\n', indent, ek.gasProperties.OPBParameter);
                 end
             end
             
@@ -4086,6 +4115,35 @@ classdef INPUT_GUI < handle
             if isfield(ek, 'numerics')
                 fprintf(fid, '%snumerics:\n', indent);
                 gui.writeStructContent(ek.numerics, [indent, '  '], fid);
+            end
+        end
+
+        function items = asCellArray(~, value)
+            if isempty(value)
+                items = {};
+            elseif iscell(value)
+                items = value;
+            elseif isstring(value)
+                items = cellstr(value(:));
+            elseif ischar(value)
+                items = {value};
+            else
+                try
+                    items = {char(value)};
+                catch
+                    items = {num2str(value)};
+                end
+            end
+        end
+
+        function writeNamedList(gui, fid, indent, fieldName, value)
+            items = gui.asCellArray(value);
+            if isempty(items)
+                return;
+            end
+            fprintf(fid, '%s  %s:\n', indent, fieldName);
+            for itemIdx = 1:length(items)
+                fprintf(fid, '%s    - %s\n', indent, gui.formatValue(items{itemIdx}));
             end
         end
 
