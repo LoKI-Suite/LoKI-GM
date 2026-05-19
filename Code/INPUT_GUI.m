@@ -6,6 +6,7 @@ classdef INPUT_GUI < handle
         Setup;      % Struct holding the simulation setup data
         Fig;        % Main figure handle
         UIControls; % Struct to hold handles to UI controls for easy access/update
+        IsApplyingDefaultSetup = false; % Guard against recursive GUI updates while resetting defaults
     end
 
     methods
@@ -318,27 +319,32 @@ classdef INPUT_GUI < handle
             buttonPanel = uipanel(mainGrid, 'BorderType', 'none');
             buttonPanel.Layout.Row = 2;
             buttonPanel.Layout.Column = [1, 2]; % Span both columns
-            buttonGrid = uigridlayout(buttonPanel, [1, 4]);
+            buttonGrid = uigridlayout(buttonPanel, [1, 5]);
             % Add some padding/spacing if needed
-            buttonGrid.ColumnWidth = {'fit', 'fit', '1x', 'fit'}; % Left buttons, spacer, right button
+            buttonGrid.ColumnWidth = {'fit', 'fit', 'fit', '1x', 'fit'}; % Left buttons, spacer, right button
             buttonGrid.Padding = [10 10 10 10];
             buttonGrid.ColumnSpacing = 10;
+
+            % Clear Button
+            clearBtn = uibutton(buttonGrid, 'Text', 'Clear Setup', ...
+                'ButtonPushedFcn', @gui.clearAllFields);
+            clearBtn.Layout.Column = 1;
 
             % Load Button
             loadBtn = uibutton(buttonGrid, 'Text', 'Load Settings', ...
                 'ButtonPushedFcn', @gui.loadSettings);
-            loadBtn.Layout.Column = 1;
+            loadBtn.Layout.Column = 2;
 
             % Save Button
             saveBtn = uibutton(buttonGrid, 'Text', 'Save Input File', ...
                 'ButtonPushedFcn', @gui.saveInputFile);
-            saveBtn.Layout.Column = 2;
+            saveBtn.Layout.Column = 3;
 
             % Run Button
             runBtn = uibutton(buttonGrid, 'Text', 'Generate & Run', ...
                 'FontWeight', 'bold', ...
                 'ButtonPushedFcn', @gui.runSimulation);
-            runBtn.Layout.Column = 4;
+            runBtn.Layout.Column = 5;
             runBtn.BackgroundColor = [0.18 0.70 0.25];
             runBtn.FontColor = [1 1 1];
             gui.UIControls.runButton = runBtn;
@@ -466,8 +472,7 @@ classdef INPUT_GUI < handle
             electronDensityCheckbox.Layout.Column = 1;
             gui.UIControls.workingConditions.electronDensityCheckbox = electronDensityCheckbox;
             
-            gui.UIControls.workingConditions.electronDensity = uieditfield(grid, 'numeric', ...
-                'Limits', [0, Inf], ...
+            gui.UIControls.workingConditions.electronDensity = uieditfield(grid, 'text', ...
                 'Enable', 'off', ...
                 'HorizontalAlignment', 'left', ...
                 'ValueChangedFcn', @(src, evt) gui.updateField(src, 'workingConditions.electronDensity', evt.Value));
@@ -646,7 +651,7 @@ classdef INPUT_GUI < handle
             gui.UIControls.electronKinetics.isOn = uicheckbox(generalGrid, ...
                 'Text', 'Enable Electron Kinetics', ...
                 'Value', true, ...
-                'ValueChangedFcn', @(src, evt) gui.toggleElectronKineticsEnable(evt.Value));
+                'ValueChangedFcn', @(src, evt) gui.toggleElectronKineticsEnable(evt.Value, true));
             gui.UIControls.electronKinetics.isOn.Layout.Row = row;
             gui.UIControls.electronKinetics.isOn.Layout.Column = [1, 2]; % Span columns
 
@@ -903,7 +908,7 @@ classdef INPUT_GUI < handle
             gasPropsPanel.Layout.Row = 1;
             gasPropsGrid = uigridlayout(gasPropsPanel, [6, 3]);
             gasPropsGrid.ColumnWidth = {'fit', '1x', 'fit'};
-            gasPropsGrid.RowHeight = repmat({70}, 1, 6);
+            gasPropsGrid.RowHeight = repmat({50}, 1, 6);
             gasPropsGrid.Padding = [10 10 10 10];
             gasPropsGrid.RowSpacing = 5;
             gasPropsGrid.ColumnSpacing = 10;
@@ -933,11 +938,13 @@ classdef INPUT_GUI < handle
                 gui.UIControls.gasProperties.(fieldName).Layout.Row = row;
                 gui.UIControls.gasProperties.(fieldName).Layout.Column = 2;
 
-                fileBtnGrid = uigridlayout(gasPropsGrid, [2, 1]);
+                fileBtnGrid = uigridlayout(gasPropsGrid, [1, 2]);
                 fileBtnGrid.Layout.Row = row;
                 fileBtnGrid.Layout.Column = 3;
-                fileBtnGrid.RowHeight = {'fit', 'fit'};
+                fileBtnGrid.ColumnWidth = {'fit', 'fit'};
+                fileBtnGrid.RowHeight = {'fit'};
                 fileBtnGrid.Padding = [0 0 0 0];
+                fileBtnGrid.ColumnSpacing = 5;
 
                 addButton = uibutton(fileBtnGrid, 'Text', 'Browse', ...
                     'ButtonPushedFcn', @(src, evt) gui.addListItem(fieldPath, true));
@@ -946,8 +953,8 @@ classdef INPUT_GUI < handle
 
                 removeButton = uibutton(fileBtnGrid, 'Text', 'Remove', ...
                     'ButtonPushedFcn', @(src, evt) gui.removeListItem(fieldPath));
-                removeButton.Layout.Row = 2;
-                removeButton.Layout.Column = 1;
+                removeButton.Layout.Row = 1;
+                removeButton.Layout.Column = 2;
             end
 
             % --- Gas Fractions ---
@@ -1688,6 +1695,9 @@ classdef INPUT_GUI < handle
                 warning('Error configuring EEDF type visibility: %s', ME.message);
             end
             
+            % Sync paired controls that are skipped by generic population.
+            gui.syncMixingParameterControls();
+
             % Update run button state after initial population
             gui.updateRunButtonState();
         end
@@ -1916,6 +1926,8 @@ classdef INPUT_GUI < handle
                 gui.UIControls.electronKinetics.growthModelType.Enable = 'off';
             elseif isfield(gui.UIControls, 'workingConditions') && ...
                    isfield(gui.UIControls.workingConditions, 'gasPressureCheckbox')
+                gui.UIControls.workingConditions.gasPressureCheckbox.Value = false;
+                gui.toggleGasPressureEnable(false);
                 gui.UIControls.electronKinetics.growthModelType.Enable = 'on';
             end
         end
@@ -2092,6 +2104,16 @@ classdef INPUT_GUI < handle
         end
 
 
+
+        function syncMixingParameterControls(gui)
+            try
+                value = gui.Setup.electronKinetics.numerics.nonLinearRoutines.mixingParameter;
+                gui.UIControls.electronKinetics.numerics.nonLinearRoutines.mixingParameter.Value = value;
+                gui.UIControls.electronKinetics.numerics.nonLinearRoutines.mixingParameterPrecise.Value = value;
+            catch ME
+                warning('Error syncing mixing parameter controls: %s', ME.message);
+            end
+        end
 
         function sliderMixingParameterChanged(gui, ~, value)
             % Callback for slider value change
@@ -2835,8 +2857,25 @@ classdef INPUT_GUI < handle
             end
         end
 
-        function toggleElectronKineticsEnable(gui, isEnabled)
+        function toggleElectronKineticsEnable(gui, isEnabled, resetToDefaults)
             % Enable/disable electron kinetics controls based on master checkbox
+            if nargin < 3
+                resetToDefaults = false;
+            end
+
+            if isEnabled && resetToDefaults && ~gui.IsApplyingDefaultSetup
+                gui.IsApplyingDefaultSetup = true;
+                try
+                    gui.initializeDefaultSetup();
+                    gui.populateGUIFromSetup();
+                    gui.IsApplyingDefaultSetup = false;
+                    return;
+                catch ME
+                    gui.IsApplyingDefaultSetup = false;
+                    rethrow(ME);
+                end
+            end
+
             % Update Setup flag
             gui.Setup.electronKinetics.isOn = isEnabled;
 
@@ -2931,16 +2970,18 @@ classdef INPUT_GUI < handle
 
             % If Enable Electron Kinetics is turned off and then on again, reset all of the "General Kinetics Settings" 
             % fields to their default values
-            if isEnabled
-                gui.Setup.electronKinetics.shapeParameter = 1; % Only used for prescribedEedf, but reset it anyway
-                gui.handleEedfTypeChange('boltzmann'); % This will also update the setup field for eedfType
+            % if isEnabled
+                % gui.Setup.electronKinetics.shapeParameter = 1; % Only used for prescribedEedf, but reset it anyway
+                % gui.handleEedfTypeChange('boltzmann'); % This will also update the setup field for eedfType
 
-                gui.Setup.electronKinetics.ionizationOperatorType = 'usingSDCS'; % Default to using SDCS
-                gui.handleIonizationOperatorChange(gui.Setup.electronKinetics.ionizationOperatorType); % This will also enable/disable growth model
+                % gui.Setup.electronKinetics.ionizationOperatorType = 'usingSDCS'; % Default to using SDCS
+                % gui.handleIonizationOperatorChange(gui.Setup.electronKinetics.ionizationOperatorType); % This will also enable/disable growth model
+                % gui.UIControls.electronKinetics.growthModelType.Value = 'temporal';
+                % gui.Setup.electronKinetics.growthModelType = 'temporal';
 
-                gui.UIControls.electronKinetics.includeEECollisions.Value = false; % Default to no e-e collisions
-                gui.handleEECollisionsChange(false); % This will also enable/disable related fields
-            end
+                % gui.UIControls.electronKinetics.includeEECollisions.Value = false; % Default to no e-e collisions
+                % gui.handleEECollisionsChange(false); % This will also enable/disable related fields
+            % end
         end
 
         function toggleLXCatExtraEnable(gui, isEnabled)
@@ -3060,6 +3101,178 @@ classdef INPUT_GUI < handle
                     end
                 end
             end
+        end
+
+        function clearAllFields(gui, ~, ~)
+            % Clear user-entered setup fields while keeping dropdowns at defaults.
+            currentSetup = gui.Setup;
+            gui.initializeDefaultSetup();
+            defaultSetup = gui.Setup;
+            gui.Setup = currentSetup;
+
+            gui.clearControlTree(gui.UIControls, '', defaultSetup);
+            gui.applyClearedControlStates();
+            gui.returnToElectronKineticsTab();
+            gui.updateRunButtonState();
+        end
+
+        function returnToElectronKineticsTab(gui)
+            try
+                if isfield(gui.UIControls, 'tabs') && ...
+                        isfield(gui.UIControls.tabs, 'tabGroup') && ...
+                        isfield(gui.UIControls.tabs, 'kineticsTab') && ...
+                        isvalid(gui.UIControls.tabs.tabGroup) && ...
+                        isvalid(gui.UIControls.tabs.kineticsTab)
+                    gui.UIControls.tabs.tabGroup.SelectedTab = gui.UIControls.tabs.kineticsTab;
+                end
+            catch ME
+                warning('Could not return to Electron Kinetics tab: %s', ME.message);
+            end
+        end
+
+        function applyClearedControlStates(gui)
+            try gui.toggleGuiControls(false); catch, end
+            try gui.toggleGasPressureEnable(false); catch, end
+            try gui.toggleElectronDensityEnable(false); catch, end
+            try gui.toggleDischargeCurrentEnable(false); catch, end
+            try gui.toggleDischargePowerEnable(false); catch, end
+            try gui.toggleOutputEnable(false); catch, end
+            try gui.toggleSmartGridEnable(false); catch, end
+            try gui.toggleOdeParametersEnable(false); catch, end
+            try gui.toggleLXCatExtraEnable(false); catch, end
+            try gui.toggleEffectivePopEnable(false); catch, end
+            try gui.toggleCARGasEnable(false); catch, end
+            try gui.handleEedfTypeChange('boltzmann'); catch, end
+            try gui.toggleElectronKineticsEnable(false); catch, end
+        end
+
+        function clearControlTree(gui, controls, prefix, defaultSetup)
+            if ~isstruct(controls)
+                return;
+            end
+
+            controlNames = fieldnames(controls);
+            for i = 1:numel(controlNames)
+                controlName = controlNames{i};
+                control = controls.(controlName);
+
+                if isempty(prefix)
+                    uiPath = controlName;
+                else
+                    uiPath = [prefix, '.', controlName];
+                end
+
+                if isstruct(control)
+                    gui.clearControlTree(control, uiPath, defaultSetup);
+                else
+                    gui.clearSingleControl(control, uiPath, defaultSetup);
+                end
+            end
+        end
+
+        function clearSingleControl(gui, control, uiPath, defaultSetup)
+            try
+                if isempty(control) || ~isvalid(control)
+                    return;
+                end
+            catch
+                return;
+            end
+
+            setupPath = gui.uiPathToSetupPath(uiPath);
+
+            try
+                if isa(control, 'matlab.ui.control.NumericEditField')
+                    if strcmp(setupPath, 'electronKinetics.shapeParameter') || ...
+                            strcmp(uiPath, 'electronKinetics.shapeParameterPrecise')
+                        control.Value = 1;
+                        gui.clearSetupField('electronKinetics.shapeParameter', 1);
+                    else
+                        try
+                            control.Value = [];
+                            gui.clearSetupField(setupPath, []);
+                        catch
+                            fallbackValue = gui.getNumericClearFallback(control);
+                            control.Value = fallbackValue;
+                            gui.clearSetupField(setupPath, fallbackValue);
+                        end
+                    end
+                elseif isa(control, 'matlab.ui.control.EditField')
+                    control.Value = '';
+                    gui.clearSetupField(setupPath, '');
+                elseif isa(control, 'matlab.ui.control.ListBox')
+                    control.Items = {};
+                    control.Value = {};
+                    gui.clearSetupField(setupPath, {});
+                elseif isa(control, 'matlab.ui.control.CheckBox')
+                    control.Value = false;
+                    gui.clearSetupField(setupPath, false);
+                elseif isa(control, 'matlab.ui.control.DropDown')
+                    [hasDefault, defaultValue] = gui.tryGetNestedField(defaultSetup, setupPath);
+                    if hasDefault && any(strcmp(control.Items, defaultValue))
+                        control.Value = defaultValue;
+                        gui.clearSetupField(setupPath, defaultValue);
+                    elseif ~isempty(control.Items)
+                        control.Value = control.Items{1};
+                        gui.clearSetupField(setupPath, control.Value);
+                    end
+                end
+            catch ME
+                warning('Could not clear control %s: %s', uiPath, ME.message);
+            end
+        end
+
+        function setupPath = uiPathToSetupPath(~, uiPath)
+            setupPath = uiPath;
+            if startsWith(setupPath, 'gasProperties.')
+                setupPath = strrep(setupPath, 'gasProperties.', 'electronKinetics.gasProperties.');
+            end
+        end
+
+        function fallbackValue = getNumericClearFallback(~, control)
+            fallbackValue = 0;
+            try
+                limits = control.Limits;
+                if numel(limits) == 2 && (fallbackValue < limits(1) || fallbackValue > limits(2))
+                    if isfinite(limits(1))
+                        fallbackValue = limits(1);
+                    elseif isfinite(limits(2))
+                        fallbackValue = limits(2);
+                    end
+                end
+            catch
+            end
+        end
+
+        function clearSetupField(gui, setupPath, value)
+            if isempty(setupPath)
+                return;
+            end
+
+            [fieldExists, ~] = gui.tryGetNestedField(gui.Setup, setupPath);
+            if fieldExists
+                gui.setNestedField(setupPath, value);
+            end
+        end
+
+        function [fieldExists, value] = tryGetNestedField(~, startStruct, fieldPath)
+            fieldExists = false;
+            value = [];
+            if isempty(fieldPath) || ~isstruct(startStruct)
+                return;
+            end
+
+            parts = strsplit(fieldPath, '.');
+            currentValue = startStruct;
+            for i = 1:numel(parts)
+                if ~isstruct(currentValue) || ~isfield(currentValue, parts{i})
+                    return;
+                end
+                currentValue = currentValue.(parts{i});
+            end
+
+            fieldExists = true;
+            value = currentValue;
         end
 
         function loadSettings(gui, ~, ~)
