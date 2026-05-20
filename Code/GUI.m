@@ -204,7 +204,13 @@ classdef GUI < handle
           case 'PrescribedEedf'
             xLabelText = 'Electron Temperature (eV)';
             gui.evolvingParameter = 'electronTemperature';
-            gui.evolvingParameterPopUpMenuStr = 'Te = %9.3e (eV)';
+            if isscalar(setup.info.workingConditions.gasTemperature)
+              gui.evolvingParameterPopUpMenuStr = 'Te = %9.3e (eV)';
+            else  
+              gui.evolvingParameter2 = 'gasTemperature';
+              gui.evolvingParameterPopUpMenuStr2 = 'Te = %9.3e (eV); Tg = %9.3e (K)';
+              gui.evolvingParameterSwarm = 'Tg = %9.3e (K)';
+            end
         end
         gui.createEedfTab();
         gui.createRedDiffTab(xLabelText);
