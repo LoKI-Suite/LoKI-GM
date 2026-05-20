@@ -241,7 +241,7 @@ classdef GUI < handle
       
       % create figure for GUI
       screenSize = get(groot,'ScreenSize');
-      gui.handle = figure('name', 'LoKI Simulation Tool', 'OuterPosition', [0 35 screenSize(3) screenSize(4)-35], ...
+      gui.handle = figure('name', 'LoKI Simulation Tool', 'OuterPosition', [1 45 screenSize(3) screenSize(4)-45], ...
         'MenuBar', 'none', 'NumberTitle', 'off');
       
       % create results (graph) panel
