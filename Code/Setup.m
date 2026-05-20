@@ -170,10 +170,12 @@ classdef Setup < handle
         if ~isscalar(setup.info.workingConditions.gasTemperature)
             auxWorkingConditions.gasTemperature = setup.info.workingConditions.gasTemperature;
         end    
-        if ~isscalar(setup.info.workingConditions.gasPressure)
+        if isfield(setup.info.workingConditions, 'gasPressure') && ...
+                ~isscalar(setup.info.workingConditions.gasPressure)
             auxWorkingConditions.gasPressure = setup.info.workingConditions.gasPressure;
         end    
-        if ~isscalar(setup.info.workingConditions.electronDensity)
+        if isfield(setup.info.workingConditions, 'electronDensity') && ...
+                ~isscalar(setup.info.workingConditions.electronDensity)
             auxWorkingConditions.electronDensity = setup.info.workingConditions.electronDensity;
         end    
         if ~isscalar(setup.info.workingConditions.excitationFrequency)
@@ -842,6 +844,9 @@ classdef Setup < handle
             if ~isfield(workCondStruct, 'electronDensity')
               error([str1 '''electronDensity'' (mandatory field for ''electronKinetics.includeEECollisions=true'')\n' ...
                 'not found in the ''workingConditions'' section of the setup file.' str2],1);
+            elseif ~isfield(workCondStruct, 'gasPressure')
+              error([str1 '''gasPressure'' (mandatory field for ''electronKinetics.includeEECollisions=true'')\n' ...
+                'not found in the ''workingConditions'' section of the setup file.' str2],1);                
             end
           end
           % --- 'LXCatFiles' field
@@ -1038,8 +1043,8 @@ classdef Setup < handle
               'integer.' str2],1);
           end
         % check that multiple jobs refer only to reduced field and gas temperature when isOn field is true
-          if ~isscalar(setup.info.workingConditions.gasPressure) || ...
-                ~isscalar(setup.info.workingConditions.electronDensity) || ...
+          if isfield(setupInfo, 'gasPressure') && ~isscalar(setup.info.workingConditions.gasPressure) || ...
+                isfield(setupInfo, 'electronDensity') && ~isscalar(setup.info.workingConditions.electronDensity) || ...
                 ~isscalar(setup.info.workingConditions.excitationFrequency)
             error([str1 ['When ''gui>isOn = true'', multiple jobs are supported only for ''reducedField'', ' ...
                 '''electronTemperature'' and ''gasTemperature''.'] str2],1);
