@@ -1010,8 +1010,10 @@ classdef INPUT_GUI < handle
             energyBtnGrid.Layout.Column = 3;
             energyBtnGrid.RowHeight = {'fit', 'fit'};
             energyBtnGrid.Padding = [0 0 0 0];
-            energyAddButton = uibutton(energyBtnGrid, 'Text', 'Add', 'ButtonPushedFcn', @(src,evt) gui.addListItem('electronKinetics.stateProperties.energy', false));
-            energyRemoveButton = uibutton(energyBtnGrid, 'Text', 'Remove', 'ButtonPushedFcn', @(src,evt) gui.removeListItem('electronKinetics.stateProperties.energy'));
+            energyAddButton = uibutton(energyBtnGrid, 'Text', 'Add', 'ButtonPushedFcn', ...
+                    @(src,evt) gui.addListItem('electronKinetics.stateProperties.energy', false));
+            energyRemoveButton = uibutton(energyBtnGrid, 'Text', 'Remove', 'ButtonPushedFcn', ...
+                    @(src,evt) gui.removeListItem('electronKinetics.stateProperties.energy'));
 
             % Statistical Weight listbox
             row = row + 1;
@@ -2179,6 +2181,165 @@ classdef INPUT_GUI < handle
 
 
 
+        function [newItem, wasCancelled] = promptStatePropertyItem(gui, fieldPath, itemToEdit, dlgtitle)
+            newItem = '';
+            wasCancelled = true;
+
+            initialState = '';
+            initialValue = '';
+            initialFile = '';
+            if ~isempty(itemToEdit)
+                equalSignIndex = strfind(itemToEdit, '=');
+                if ~isempty(equalSignIndex)
+                    splitIndex = equalSignIndex(end);
+                    initialState = strtrim(itemToEdit(1:splitIndex-1));
+                    initialValue = strtrim(itemToEdit(splitIndex+1:end));
+                else
+                    initialFile = itemToEdit;
+                end
+            end
+
+            if startsWith(dlgtitle, 'Edit')
+                promptText = ['Edit item for ', fieldPath, ':'];
+            else
+                promptText = ['Enter new item for ', fieldPath, ':'];
+            end
+
+            oldState = gui.Fig.WindowState;
+            screenSize = get(0, 'ScreenSize');
+            dlgWidth = 620;
+            dlgHeight = 215;
+            dlgX = (screenSize(3) - dlgWidth) / 2;
+            dlgY = (screenSize(4) - dlgHeight) / 2;
+
+            dlg = uifigure('Name', dlgtitle, ...
+                'WindowStyle', 'modal', ...
+                'Position', [dlgX, dlgY, dlgWidth, dlgHeight], ...
+                'Resize', 'off', ...
+                'KeyPressFcn', @(src, evt) handleDialogKeyPress(evt), ...
+                'CloseRequestFcn', @(src, evt) cancelDialog());
+
+            grid = uigridlayout(dlg, [6, 3]);
+            grid.RowHeight = {'fit', 'fit', 'fit', 'fit', 'fit', 'fit'};
+            grid.ColumnWidth = {'1x', 'fit', '1x'};
+            grid.Padding = [18 16 18 16];
+            grid.RowSpacing = 10;
+            grid.ColumnSpacing = 10;
+
+            promptLabel = uilabel(grid, 'Text', promptText, 'FontSize', 12);
+            promptLabel.Layout.Row = 1;
+            promptLabel.Layout.Column = [1, 3];
+
+            stateLabel = uilabel(grid, 'Text', 'State', 'FontSize', 12, 'FontWeight', 'bold');
+            stateLabel.Layout.Row = 2;
+            stateLabel.Layout.Column = 1;
+
+
+            valueLabel = uilabel(grid, 'Text', gui.getStatePropertyValueLabel(fieldPath), 'FontSize', 12, 'FontWeight', 'bold');
+            valueLabel.Layout.Row = 2;
+            valueLabel.Layout.Column = 3;
+
+            stateField = uieditfield(grid, 'text', 'Value', initialState, 'FontSize', 12);
+            stateField.Layout.Row = 3;
+            stateField.Layout.Column = 1;
+
+            equalsValueLabel = uilabel(grid, 'Text', '=', 'FontSize', 12, 'FontWeight', 'bold', 'HorizontalAlignment', 'center');
+            equalsValueLabel.Layout.Row = 3;
+            equalsValueLabel.Layout.Column = 2;
+
+            valueField = uieditfield(grid, 'text', 'Value', initialValue, 'FontSize', 12);
+            valueField.Layout.Row = 3;
+            valueField.Layout.Column = 3;
+
+            fileLabel = uilabel(grid, 'Text', 'or call a text file:', 'FontSize', 12);
+            fileLabel.Layout.Row = 4;
+            fileLabel.Layout.Column = [1, 3];
+
+            fileField = uieditfield(grid, 'text', 'Value', initialFile, 'FontSize', 12);
+            fileField.Layout.Row = 5;
+            fileField.Layout.Column = [1, 3];
+
+            buttonGrid = uigridlayout(grid, [1, 3]);
+            buttonGrid.Layout.Row = 6;
+            buttonGrid.Layout.Column = [1, 3];
+            buttonGrid.ColumnWidth = {'1x', 'fit', 'fit'};
+            buttonGrid.Padding = [0 0 0 0];
+            buttonGrid.ColumnSpacing = 8;
+
+            okButton = uibutton(buttonGrid, 'Text', 'OK', 'ButtonPushedFcn', @(src, evt) acceptDialog());
+            okButton.Layout.Row = 1;
+            okButton.Layout.Column = 2;
+
+            cancelButton = uibutton(buttonGrid, 'Text', 'Cancel', 'ButtonPushedFcn', @(src, evt) cancelDialog());
+            cancelButton.Layout.Row = 1;
+            cancelButton.Layout.Column = 3;
+
+            drawnow;
+            figure(dlg);
+            uiwait(dlg);
+
+            try
+                gui.Fig.WindowState = oldState;
+                figure(gui.Fig);
+                drawnow;
+            catch
+            end
+
+            function acceptDialog()
+                fileValue = strtrim(fileField.Value);
+                if ~isempty(fileValue)
+                    newItem = fileValue;
+                    wasCancelled = false;
+                    delete(dlg);
+                    return;
+                end
+
+                stateValue = strtrim(stateField.Value);
+                propertyValue = strtrim(valueField.Value);
+                if isempty(stateValue) || isempty(propertyValue)
+                    uialert(dlg, ['State and ', gui.getStatePropertyValueLabel(fieldPath), ' cannot be empty.'], 'Invalid Input');
+                    return;
+                end
+                newItem = [stateValue, ' = ', propertyValue];
+                wasCancelled = false;
+                delete(dlg);
+            end
+
+            function cancelDialog()
+                wasCancelled = true;
+                if isvalid(dlg)
+                    delete(dlg);
+                end
+            end
+
+            function handleDialogKeyPress(evt)
+                if strcmp(evt.Key, 'return') || strcmp(evt.Key, 'enter')
+                    acceptDialog();
+                end
+            end
+        end
+
+        function isStructured = isStructuredStatePropertyField(~, fieldPath)
+            structuredFields = {
+                'electronKinetics.stateProperties.energy', ...
+                'electronKinetics.stateProperties.statisticalWeight', ...
+                'electronKinetics.stateProperties.population' ...
+            };
+            isStructured = any(strcmp(fieldPath, structuredFields));
+        end
+
+        function label = getStatePropertyValueLabel(~, fieldPath)
+            if strcmp(fieldPath, 'electronKinetics.stateProperties.energy')
+                label = 'Energy';
+            elseif strcmp(fieldPath, 'electronKinetics.stateProperties.statisticalWeight')
+                label = 'Statistical Weight';
+            elseif strcmp(fieldPath, 'electronKinetics.stateProperties.population')
+                label = 'Population';
+            else
+                label = 'Value';
+            end
+        end
+
         function addListItem(gui, fieldPath, browseFile)
             % Map old gasProperties paths to new electronKinetics.gasProperties paths
             if startsWith(fieldPath, 'gasProperties.')
@@ -2255,20 +2416,28 @@ classdef INPUT_GUI < handle
                     newItem = file;
                 end
             else
-                prompt = {['Enter new item for ', fieldPath, ':']};
-                dlgtitle = 'Add List Item';
-                dims = [1 50];
-                answer = inputdlg(prompt, dlgtitle, dims);
-                if isempty(answer)
-                    % Restore window state after dialog cancellation
-                    drawnow;
-                    pause(0.1);
-                    gui.Fig.WindowState = 'maximized';
-                    figure(gui.Fig);
-                    drawnow;
-                    return; % User cancelled
+                % State Properties entries use a custom dialog to collect State = Value parts separately.
+                if gui.isStructuredStatePropertyField(fieldPath)
+                    [newItem, wasCancelled] = gui.promptStatePropertyItem(fieldPath, '', 'Add List Item');
+                    if wasCancelled
+                        return;
+                    end
+                else
+                    prompt = {['Enter new item for ', fieldPath, ':']};
+                    dlgtitle = 'Add List Item';
+                    dims = [1 60];
+                    answer = inputdlg(prompt, dlgtitle, dims);
+                    if isempty(answer)
+                        % Restore window state after dialog cancellation
+                        drawnow;
+                        pause(0.1);
+                        gui.Fig.WindowState = 'maximized';
+                        figure(gui.Fig);
+                        drawnow;
+                        return; % User cancelled
+                    end
+                    newItem = answer{1};
                 end
-                newItem = answer{1};
             end
 
             if ~isempty(newItem) && ~ismember(newItem, currentItems)
@@ -2410,8 +2579,14 @@ classdef INPUT_GUI < handle
                 fieldPath = strrep(fieldPath, 'gasProperties.', 'electronKinetics.gasProperties.');
             end
 
-            % Show loading spinner briefly - use classic figure to match inputdlg style
-            spinnerFig = [];
+            if gui.isStructuredStatePropertyField(fieldPath)
+                [newItem, wasCancelled] = gui.promptStatePropertyItem(fieldPath, itemToEdit, 'Edit List Item');
+                if wasCancelled
+                    return;
+                end
+            else
+                % Show loading spinner briefly - use classic figure to match inputdlg style
+                spinnerFig = [];
             try
                 screenSize = get(0, 'ScreenSize');
                 dlgWidth = 250;
@@ -2465,7 +2640,8 @@ classdef INPUT_GUI < handle
                 return; % User cancelled
             end
             
-            newItem = answer{1};
+                newItem = answer{1};
+            end
             if isempty(newItem)
                 uialert(gui.Fig, 'Item cannot be empty.', 'Invalid Input');
                 return;
