@@ -20,8 +20,8 @@
 % along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 function energy = morseOscillatorEnergy(state, ~, ~)
-  % morseOscillator (have to be writen)
-  
+  % morseOscillatorEnergy is a property function that evaluates the energy of (vibrational) state j of a diatomic molecule, 
+  %  adopting the Morse oscillator model
   
   if ~strcmp(state.type, 'vib')
     error('Trying to asign morse oscillator energy to non vibrational state %s. Check input file', state.name);

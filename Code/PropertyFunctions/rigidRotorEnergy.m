@@ -20,7 +20,8 @@
 % along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 function energy = rigidRotorEnergy(state, ~, ~)
-  % rigidRotorEnergy (have to be writen)
+  % rigidRotorEnergy is a property function that evaluates the energy of rotational state J of a diatomic molecule, 
+  %  adopting the rigid-rotor model
   
   if ~strcmp(state.type, 'rot')
     error(['Trying to asign rigid rotor energy to non rotational state %s. Check input file', state.name]);

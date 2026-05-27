@@ -20,7 +20,10 @@
 % along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 function population = boltzmannRotationalPopulation_H2(state, argumentArray, workCond)
-  % boltzmann (have to be writen)
+  % boltzmannRotationalPopulation_H2 is a property function that evaluates the population of rotational state j of H2, 
+  %  adopting Boltzmann distributions with a certain temperature 
+  %  (specified as the first argument provided to the function in the setup file) 
+  %  for the ortho/para configurations, with weights 0.25 and 0.75, respectively
   
   persistent normEven
   persistent normOdd
@@ -40,7 +43,7 @@ function population = boltzmannRotationalPopulation_H2(state, argumentArray, wor
     end
   end
   
-  % initialize separate normalization for orto/para H2 rotational states
+  % initialize separate normalization for ortho/para H2 rotational states
   rotdim = length(state.siblingArray);
   if isempty(normEven) && isempty(normOdd)
     normEven = 0;
@@ -50,7 +53,7 @@ function population = boltzmannRotationalPopulation_H2(state, argumentArray, wor
     iterNorm = iterNorm + 1;  
   end
 
-  % evaluate Boltzmann distribution for H2 rotational states, separating the populations of orto/para configurations 
+  % evaluate Boltzmann distribution for H2 rotational states, separating the populations of ortho/para configurations 
   for stateAux = state %[state state.siblingArray]
     if isempty(stateAux.energy)
       error(['Unable to find %s energy for the evaluation of ''boltzmannPopulation'' function.\n'...

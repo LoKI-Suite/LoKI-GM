@@ -339,7 +339,7 @@ function [structArray, rawLine] = file2structArray(file)
 %
 % See also structArray2struct
       
-  fileID = fopen(file, 'r');
+  fileID = fopen(join(file, ''), 'r');
   if fileID == -1
     error('\t Unable to open file: %s\n', file);
   end

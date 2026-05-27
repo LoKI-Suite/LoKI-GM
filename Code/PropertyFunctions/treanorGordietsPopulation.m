@@ -20,7 +20,8 @@
 % along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 function population = treanorGordietsPopulation(state, argumentArray, workCond)
-  % treanorGordietsPopulation (have to be writen)
+  % treanorGordietsPopulation is a property function that evaluates a Treanor-Gordiets distribution
+  %  with certain temperatures (specified as the first two arguments provided to the function in the setup file)
   
   if ~strcmp(state.type, 'vib')
     error(['Trying to asign treanor gordiets population to non vibrational state '...

@@ -20,7 +20,8 @@
 % along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 function energy = harmonicOscillatorEnergy(state, ~, ~)
-  % harmonicOscillator (have to be writen)
+  % harmonicOscillatorEnergy is a property function that evaluates the energy of (vibrational) state j of a diatomic molecule, 
+  %  adopting the harmonic oscillator model
   
   if ~strcmp(state.type, 'vib')
     error('Trying to asign harmonic oscillator energy to non vibrational state %s. Check input file', state.name);
