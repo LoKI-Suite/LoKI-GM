@@ -59,7 +59,7 @@ classdef WorkingConditions < handle
     updatedElectronTemperature
     updatedChamberLength
     updatedReducedField
-    updatedExcitationFrequency
+    updatedReducedExcitationFrequency
     genericStatusMessage
   end
   
@@ -117,7 +117,7 @@ classdef WorkingConditions < handle
             workCond.reducedExcFreqSI = workCond.excitationFrequency*2*pi/workCond.gasDensity;
             notify(workCond, 'updatedGasPressure');
             notify(workCond, 'updatedGasDensity');
-            notify(workCond, 'updatedExcitationFrequency');
+            notify(workCond, 'updatedReducedExcitationFrequency');
             str = sprintf('\\t- Updated gas pressure (%g Pa).\\n', newValues(idx));
 
           case 'gasTemperature'
@@ -125,7 +125,7 @@ classdef WorkingConditions < handle
             workCond.reducedExcFreqSI = workCond.excitationFrequency*2*pi/workCond.gasDensity;
             notify(workCond, 'updatedGasTemperature'); 
             notify(workCond, 'updatedGasDensity');
-            notify(workCond, 'updatedExcitationFrequency');
+            notify(workCond, 'updatedReducedExcitationFrequency');
             str = sprintf('\\t- Updated gas temperature (%g K).\\n', newValues(idx));
 
           case 'electronDensity'

@@ -121,7 +121,7 @@ classdef Boltzmann < handle
       addlistener(boltzmann.workCond, 'updatedGasTemperature', @boltzmann.evaluateMatrix);
       %       addlistener(workCond, 'updatedGasDensity', @boltzmann.);
       addlistener(boltzmann.workCond, 'updatedReducedField', @boltzmann.evaluateFieldOperator);
-      addlistener(boltzmann.workCond, 'updatedExcitationFrequency', @boltzmann.evaluateFieldOperator);
+      addlistener(boltzmann.workCond, 'updatedReducedExcitationFrequency', @boltzmann.evaluateFieldOperator);
       
       % store gases for which the CAR is activated (in case there is any)
       if isfield(setup.info.electronKinetics, 'CARgases')
