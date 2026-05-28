@@ -1199,9 +1199,9 @@ classdef Output < handle
           H5T.close(memtype);     % eKineticsRateCoeffs
         end
         %
-        H5T.close(memtype);
-        H5S.close(dspaceID);
-        H5S.close(memSpaceID);
+        % H5T.close(memtype);
+        % H5S.close(dspaceID);
+        % H5S.close(memSpaceID);
         H5F.close(fID);
       end
 
