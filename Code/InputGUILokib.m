@@ -339,6 +339,7 @@ classdef InputGUILokib < handle
             saveBtn = uibutton(buttonGrid, 'Text', 'Save Input File', ...
                 'ButtonPushedFcn', @gui.saveInputFile);
             saveBtn.Layout.Column = 4;
+            gui.UIControls.saveInputButton = saveBtn;
 
             % Run Button
             runBtn = uibutton(buttonGrid, 'Text', 'Generate & Run', ...
@@ -356,7 +357,7 @@ classdef InputGUILokib < handle
             % Fixed label column prevents the input column from collapsing to ~0 in narrow windows
             % (which was causing fields like totalSccmOutFlow to "disappear").
             grid.ColumnWidth = {220, '1x'}; % Label/checkbox, Edit field
-            grid.RowHeight = [repmat({22}, 1, 15), {'1x'}]; % 15 fixed height rows (22px) + flexible info row
+            grid.RowHeight = [{42}, {42}, repmat({22}, 1, 13), {'1x'}]; % Required-condition rows + 13 fixed rows + flexible info row
             grid.Padding = [10 10 10 10];
             grid.RowSpacing = 5;
             grid.ColumnSpacing = 10;
@@ -366,22 +367,80 @@ classdef InputGUILokib < handle
             reducedFieldLabel = uilabel(grid, 'Text', 'Reduced Field (Td):');
             reducedFieldLabel.Layout.Row = row;
             reducedFieldLabel.Layout.Column = 1;
-            gui.UIControls.workingConditions.reducedField = uieditfield(grid, 'text', ...
+            reducedFieldGrid = uigridlayout(grid, [2, 1]);
+            reducedFieldGrid.RowHeight = {22, 14};
+            reducedFieldGrid.ColumnWidth = {'1x'};
+            reducedFieldGrid.Padding = [0 0 0 0];
+            reducedFieldGrid.RowSpacing = 2;
+            reducedFieldGrid.Layout.Row = row;
+            reducedFieldGrid.Layout.Column = 2;
+
+            gui.UIControls.workingConditions.reducedFieldBorderPanel = uipanel(reducedFieldGrid, ...
+                'BorderType', 'none', ...
+                'BackgroundColor', [0.94 0.94 0.94]);
+            gui.UIControls.workingConditions.reducedFieldBorderPanel.Layout.Row = 1;
+            gui.UIControls.workingConditions.reducedFieldBorderPanel.Layout.Column = 1;
+
+            reducedFieldBorderGrid = uigridlayout(gui.UIControls.workingConditions.reducedFieldBorderPanel, [1, 1]);
+            reducedFieldBorderGrid.RowHeight = {'1x'};
+            reducedFieldBorderGrid.ColumnWidth = {'1x'};
+            reducedFieldBorderGrid.Padding = [1 1 1 1];
+            reducedFieldBorderGrid.RowSpacing = 0;
+            reducedFieldBorderGrid.ColumnSpacing = 0;
+
+            gui.UIControls.workingConditions.reducedField = uieditfield(reducedFieldBorderGrid, 'text', ...
                 'Tooltip', 'e.g., 10 or logspace(1,2,10)', ...
                 'ValueChangedFcn', @(src, evt) gui.updateField(src, 'workingConditions.reducedField', evt.Value));
-            gui.UIControls.workingConditions.reducedField.Layout.Row = row;
-            gui.UIControls.workingConditions.reducedField.Layout.Column = 2;
+            gui.UIControls.workingConditions.reducedField.Layout.Row = 1;
+            gui.UIControls.workingConditions.reducedField.Layout.Column = 1;
+
+            gui.UIControls.workingConditions.reducedFieldMessage = uilabel(reducedFieldGrid, ...
+                'Text', 'Reduced Field is mandatory for EEDF of type Boltzmann', ...
+                'FontColor', [0.75 0.1 0.1], ...
+                'FontSize', 10, ...
+                'Visible', 'off');
+            gui.UIControls.workingConditions.reducedFieldMessage.Layout.Row = 2;
+            gui.UIControls.workingConditions.reducedFieldMessage.Layout.Column = 1;
 
             row = row + 1;
             % Electron Temperature [cite: 1]
             electronTempLabel = uilabel(grid, 'Text', 'Electron Temperature (eV):');
             electronTempLabel.Layout.Row = row;
             electronTempLabel.Layout.Column = 1;
-            gui.UIControls.workingConditions.electronTemperature = uieditfield(grid, 'text', ...
+            electronTemperatureGrid = uigridlayout(grid, [2, 1]);
+            electronTemperatureGrid.RowHeight = {22, 14};
+            electronTemperatureGrid.ColumnWidth = {'1x'};
+            electronTemperatureGrid.Padding = [0 0 0 0];
+            electronTemperatureGrid.RowSpacing = 2;
+            electronTemperatureGrid.Layout.Row = row;
+            electronTemperatureGrid.Layout.Column = 2;
+
+            gui.UIControls.workingConditions.electronTemperatureBorderPanel = uipanel(electronTemperatureGrid, ...
+                'BorderType', 'none', ...
+                'BackgroundColor', [0.94 0.94 0.94]);
+            gui.UIControls.workingConditions.electronTemperatureBorderPanel.Layout.Row = 1;
+            gui.UIControls.workingConditions.electronTemperatureBorderPanel.Layout.Column = 1;
+
+            electronTemperatureBorderGrid = uigridlayout(gui.UIControls.workingConditions.electronTemperatureBorderPanel, [1, 1]);
+            electronTemperatureBorderGrid.RowHeight = {'1x'};
+            electronTemperatureBorderGrid.ColumnWidth = {'1x'};
+            electronTemperatureBorderGrid.Padding = [1 1 1 1];
+            electronTemperatureBorderGrid.RowSpacing = 0;
+            electronTemperatureBorderGrid.ColumnSpacing = 0;
+
+            gui.UIControls.workingConditions.electronTemperature = uieditfield(electronTemperatureBorderGrid, 'text', ...
                 'Tooltip', 'e.g., 1.5 or linspace(0.1, 5, 20)', ...
                 'ValueChangedFcn', @(src, evt) gui.updateField(src, 'workingConditions.electronTemperature', evt.Value));
-            gui.UIControls.workingConditions.electronTemperature.Layout.Row = row;
-            gui.UIControls.workingConditions.electronTemperature.Layout.Column = 2;
+            gui.UIControls.workingConditions.electronTemperature.Layout.Row = 1;
+            gui.UIControls.workingConditions.electronTemperature.Layout.Column = 1;
+
+            gui.UIControls.workingConditions.electronTemperatureMessage = uilabel(electronTemperatureGrid, ...
+                'Text', 'Electron Temperature is mandatory for EEDF of type PrescribedEEDF', ...
+                'FontColor', [0.75 0.1 0.1], ...
+                'FontSize', 10, ...
+                'Visible', 'off');
+            gui.UIControls.workingConditions.electronTemperatureMessage.Layout.Row = 2;
+            gui.UIControls.workingConditions.electronTemperatureMessage.Layout.Column = 1;
 
             row = row + 1;
             % Excitation Frequency [cite: 1]
@@ -1732,9 +1791,14 @@ classdef InputGUILokib < handle
             if contains(dataPath, 'tabs.tabGroup') || ...
                contains(dataPath, 'tabs.kineticsTab') || ...
                startsWith(dataPath, 'runButton') || ...
+               startsWith(dataPath, 'saveInputButton') || ...
                contains(dataPath, 'totalSccmOutFlowType') || ...
                contains(dataPath, 'workingConditions.infoTitleLabel') || ...
                contains(dataPath, 'workingConditions.infoDescLabel') || ...
+               contains(dataPath, 'workingConditions.reducedFieldMessage') || ...
+               contains(dataPath, 'workingConditions.reducedFieldBorderPanel') || ...
+               contains(dataPath, 'workingConditions.electronTemperatureMessage') || ...
+               contains(dataPath, 'workingConditions.electronTemperatureBorderPanel') || ...
                contains(dataPath, 'workingConditions.infoContainer') || ...
                contains(dataPath, 'workingConditions.infoImage') || ...
                contains(dataPath, 'workingConditions.totalSccmOutFlowPanel') || ...
@@ -1926,6 +1990,11 @@ classdef InputGUILokib < handle
             % Optional: Re-enable/disable controls based on the change
             if strcmp(fieldPath, 'electronKinetics.numerics.energyGrid.smartGrid.isOn')
                 gui.toggleSmartGridEnable(value);
+            end
+
+            if strcmp(fieldPath, 'workingConditions.reducedField') || ...
+               strcmp(fieldPath, 'workingConditions.electronTemperature')
+                gui.updateRunButtonState();
             end
         end
 
@@ -2852,6 +2921,39 @@ classdef InputGUILokib < handle
             % Button is disabled if Electron Kinetics is disabled, or if it is
             % enabled but no LXCat files are present
             try
+                reducedFieldIsMissing = false;
+                try
+                    reducedFieldValue = gui.Setup.workingConditions.reducedField;
+                    if strcmpi(gui.Setup.electronKinetics.eedfType, 'boltzmann') && ...
+                       (isempty(reducedFieldValue) || ...
+                        ((ischar(reducedFieldValue) || isstring(reducedFieldValue)) && isempty(strtrim(char(reducedFieldValue)))))
+                        reducedFieldIsMissing = true;
+                    end
+                catch
+                end
+
+                electronTemperatureIsMissing = false;
+                try
+                    electronTemperatureValue = gui.Setup.workingConditions.electronTemperature;
+                    if strcmpi(gui.Setup.electronKinetics.eedfType, 'prescribedEedf') && ...
+                       (isempty(electronTemperatureValue) || ...
+                        ((ischar(electronTemperatureValue) || isstring(electronTemperatureValue)) && isempty(strtrim(char(electronTemperatureValue)))))
+                        electronTemperatureIsMissing = true;
+                    end
+                catch
+                end
+
+                gui.updateReducedFieldMandatoryMessage(reducedFieldIsMissing);
+                gui.updateElectronTemperatureMandatoryMessage(electronTemperatureIsMissing);
+
+                if isfield(gui.UIControls, 'saveInputButton')
+                    if reducedFieldIsMissing || electronTemperatureIsMissing
+                        gui.UIControls.saveInputButton.Enable = 'off';
+                    else
+                        gui.UIControls.saveInputButton.Enable = 'on';
+                    end
+                end
+
                 if isfield(gui.UIControls, 'runButton')
                     % If Electron Kinetics is missing or explicitly disabled -> disable run
                     if ~isfield(gui.Setup, 'electronKinetics') || ~gui.Setup.electronKinetics.isOn
@@ -2863,7 +2965,7 @@ classdef InputGUILokib < handle
                             items = gui.UIControls.electronKinetics.LXCatFiles.Items;
                         catch
                         end
-                        if isempty(items)
+                        if isempty(items) || reducedFieldIsMissing || electronTemperatureIsMissing
                             gui.UIControls.runButton.Enable = 'off';
                         else
                             gui.UIControls.runButton.Enable = 'on';
@@ -2876,8 +2978,57 @@ classdef InputGUILokib < handle
                     if isfield(gui.UIControls, 'runButton')
                         gui.UIControls.runButton.Enable = 'on';
                     end
+                    if isfield(gui.UIControls, 'saveInputButton')
+                        gui.UIControls.saveInputButton.Enable = 'on';
+                    end
                 catch
                 end
+            end
+        end
+
+        function updateReducedFieldMandatoryMessage(gui, showMessage)
+            try
+                if isfield(gui.UIControls, 'workingConditions') && ...
+                   isfield(gui.UIControls.workingConditions, 'reducedFieldMessage')
+                    if showMessage
+                        gui.UIControls.workingConditions.reducedFieldMessage.Visible = 'on';
+                    else
+                        gui.UIControls.workingConditions.reducedFieldMessage.Visible = 'off';
+                    end
+                end
+
+                if isfield(gui.UIControls, 'workingConditions') && ...
+                   isfield(gui.UIControls.workingConditions, 'reducedFieldBorderPanel')
+                    if showMessage
+                        gui.UIControls.workingConditions.reducedFieldBorderPanel.BackgroundColor = [0.75 0.1 0.1];
+                    else
+                        gui.UIControls.workingConditions.reducedFieldBorderPanel.BackgroundColor = [0.94 0.94 0.94];
+                    end
+                end
+            catch
+            end
+        end
+
+        function updateElectronTemperatureMandatoryMessage(gui, showMessage)
+            try
+                if isfield(gui.UIControls, 'workingConditions') && ...
+                   isfield(gui.UIControls.workingConditions, 'electronTemperatureMessage')
+                    if showMessage
+                        gui.UIControls.workingConditions.electronTemperatureMessage.Visible = 'on';
+                    else
+                        gui.UIControls.workingConditions.electronTemperatureMessage.Visible = 'off';
+                    end
+                end
+
+                if isfield(gui.UIControls, 'workingConditions') && ...
+                   isfield(gui.UIControls.workingConditions, 'electronTemperatureBorderPanel')
+                    if showMessage
+                        gui.UIControls.workingConditions.electronTemperatureBorderPanel.BackgroundColor = [0.75 0.1 0.1];
+                    else
+                        gui.UIControls.workingConditions.electronTemperatureBorderPanel.BackgroundColor = [0.94 0.94 0.94];
+                    end
+                end
+            catch
             end
         end
 
@@ -3269,6 +3420,7 @@ classdef InputGUILokib < handle
             end
             % Also update the setup
             gui.setNestedField('electronKinetics.eedfType', eedfType);
+            gui.updateRunButtonState();
         end
 
         function handleEedfTypeChangeForInit(gui, eedfType)
@@ -3861,6 +4013,19 @@ classdef InputGUILokib < handle
         function setup = getSetupForExport(gui)
             % Return setup data with export-only UI choices applied.
             setup = gui.Setup;
+            if isfield(setup, 'workingConditions')
+                fieldsToRemoveIfBlank = {'reducedField', 'electronTemperature'};
+                for idx = 1:length(fieldsToRemoveIfBlank)
+                    fieldName = fieldsToRemoveIfBlank{idx};
+                    if isfield(setup.workingConditions, fieldName)
+                        value = setup.workingConditions.(fieldName);
+                        if isempty(value) || ...
+                           ((ischar(value) || isstring(value)) && isempty(strtrim(char(value))))
+                            setup.workingConditions = rmfield(setup.workingConditions, fieldName);
+                        end
+                    end
+                end
+            end
             if isfield(setup, 'output') && isfield(setup.output, 'folder') && ...
                     isfield(gui.UIControls, 'output') && ...
                     isfield(gui.UIControls.output, 'useCustomFolder') && ...
