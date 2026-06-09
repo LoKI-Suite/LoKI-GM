@@ -237,8 +237,15 @@ classdef InputGUILokib < handle
                 iconPath = ''; % Use default if not found
             end
 
+            figWidth = 1000;
+            figHeight = 750;
+            monitorPositions = get(groot, 'MonitorPositions');
+            screenSize = monitorPositions(1, :);
+            figX = screenSize(1) + (screenSize(3) - figWidth) / 2;
+            figY = screenSize(2) + (screenSize(4) - figHeight) / 2;
+
             gui.Fig = uifigure('Name', 'LoKI-B', ...
-                'Position', [100, 100, 850, 650], ...
+                'Position', [figX, figY, figWidth, figHeight], ...
                 'NumberTitle', 'off', ...
                 'Resize', 'on', ... % Allow resizing
                 'Icon', iconPath, ...
@@ -679,7 +686,7 @@ classdef InputGUILokib < handle
             textContainer.Layout.Row = 1;
             textContainer.Layout.Column = 2;
             textContainer.RowHeight = {'fit', '1x'};
-            textContainer.Padding = [0 0 0 100];
+            textContainer.Padding = [0 0 0 0];
             textContainer.RowSpacing = 5;
 
             titleText = 'Input Graphic User Interface for LoKI-B';
