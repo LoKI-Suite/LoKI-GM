@@ -326,9 +326,9 @@ classdef InputGUILokib < handle
             buttonPanel = uipanel(mainGrid, 'BorderType', 'none');
             buttonPanel.Layout.Row = 2;
             buttonPanel.Layout.Column = [1, 2]; % Span both columns
-            buttonGrid = uigridlayout(buttonPanel, [1, 5]);
+            buttonGrid = uigridlayout(buttonPanel, [1, 7]);
             % Add some padding/spacing if needed
-            buttonGrid.ColumnWidth = {'fit', 'fit', '1x', 'fit', 'fit'}; % Left buttons, spacer, right button
+            buttonGrid.ColumnWidth = {'fit', 'fit', '1x', 'fit', '1x', 'fit', 'fit'}; % Left buttons, centered help, right buttons
             buttonGrid.Padding = [10 10 10 10];
             buttonGrid.ColumnSpacing = 10;
 
@@ -342,17 +342,29 @@ classdef InputGUILokib < handle
                 'ButtonPushedFcn', @gui.loadSettings);
             loadBtn.Layout.Column = 2;
 
+            % Help Button
+            helpIcon = fullfile(matlabroot, 'toolbox', 'matlab', 'datamanager', ...
+                '+datamanager', '+basicfit', '+icons', 'help.png');
+            if ~isfile(helpIcon)
+                helpIcon = '';
+            end
+            helpBtn = uibutton(buttonGrid, 'Text', 'Help', ...
+                'Icon', helpIcon, ...
+                'IconAlignment', 'left', ...
+                'ButtonPushedFcn', @gui.openSetupFileHelp);
+            helpBtn.Layout.Column = 4;
+
             % Save Button
             saveBtn = uibutton(buttonGrid, 'Text', 'Save Input File', ...
                 'ButtonPushedFcn', @gui.saveInputFile);
-            saveBtn.Layout.Column = 4;
+            saveBtn.Layout.Column = 6;
             gui.UIControls.saveInputButton = saveBtn;
 
             % Run Button
             runBtn = uibutton(buttonGrid, 'Text', 'Generate & Run', ...
                 'FontWeight', 'bold', ...
                 'ButtonPushedFcn', @gui.runSimulation);
-            runBtn.Layout.Column = 5;
+            runBtn.Layout.Column = 7;
             runBtn.BackgroundColor = [0.18 0.70 0.25];
             runBtn.FontColor = [1 1 1];
             gui.UIControls.runButton = runBtn;
@@ -4900,6 +4912,10 @@ classdef InputGUILokib < handle
                 % Remove from selection
                 gui.Setup.output.dataSets = currentDataSets(~strcmp(currentDataSets, dataSetName));
             end
+        end
+
+        function openSetupFileHelp(~, ~, ~)
+            web("../Documentation/html/The_setup_file.html");
         end
 
         function runSimulation(gui, ~, ~)
