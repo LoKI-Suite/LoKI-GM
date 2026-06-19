@@ -33,7 +33,11 @@ classdef GUI < handle
     solutions = struct.empty;
     refreshFrequency;
     evolvingParameter;
+    isSingleEvolvingParameter = false;    
+    evolvingParameter2;
     evolvingParameterPopUpMenuStr;
+    evolvingParameterPopUpMenuStr2;
+    evolvingParameterSwarm;    
     isSimulationHF = false;
     
     setupPanel;
@@ -64,37 +68,46 @@ classdef GUI < handle
     inputRateCoeffInfo3;
     inputRateCoeffInfo4;
     inputRateCoeffInfo5;
+    swarmLegend
     redDiffTab;
     redDiffLogScaleCheckBoxX;
     redDiffLogScaleCheckBoxY;
     redDiffPlot;
+    redDiffLegend;    
     redMobTab;
     redMobLogScaleCheckBoxX;
     redMobLogScaleCheckBoxY;
     redMobPlot;
+    redMobLegend;    
     redDiffEnergyTab;
     redDiffEnergyLogScaleCheckBoxX;
     redDiffEnergyLogScaleCheckBoxY;
     redDiffEnergyPlot;
+    redDiffEnergyLegend;
     redMobEnergyTab;
     redMobEnergyLogScaleCheckBoxX;
     redMobEnergyLogScaleCheckBoxY;
     redMobEnergyPlot;
+    redMobEnergyLegend;
     energyTab;
     energyLogScaleCheckBoxX;
     energyLogScaleCheckBoxY;
     energyPlot;
+    TeLegend;    
     redTownsendTab;
     redTownsendLogScaleCheckBoxX;
     redTownsendLogScaleCheckBoxY;
     redTownsendPlot;
+    redTownsendLegend;    
     redAttachmentTab;
     redAttachmentLogScaleCheckBoxX;
     redAttachmentLogScaleCheckBoxY;
     redAttachmentPlot;
+    redAttachmentLegend;
     powerTab;
     powerLogScaleCheckBoxX;
     powerPlot;
+    powerLegend;    
     powerFieldColor = [0 0 0];
     powerElasticColor = [1 0 0];
     powerCARColor = [0 1 0];
@@ -167,16 +180,37 @@ classdef GUI < handle
             if setup.electronKinetics.isTimeDependent
               xLabelText = 'Time (s)';
               gui.evolvingParameter = 'currentTime';
-              gui.evolvingParameterPopUpMenuStr = 't = %9.3e (s)';
+              if isscalar(setup.info.workingConditions.gasTemperature)
+                gui.evolvingParameterPopUpMenuStr = 't = %9.3e (s)';
+              else
+                gui.evolvingParameter2 = 'gasTemperature';
+                gui.evolvingParameterPopUpMenuStr2 = 't = %9.3e (s); Tg = %9.3e (K)';
+                gui.evolvingParameterSwarm = 'Tg = %9.3e (K)';
+              end                  
             else
               xLabelText = 'Reduced Field (Td)';
               gui.evolvingParameter = 'reducedField';
-              gui.evolvingParameterPopUpMenuStr = 'E/N = %9.3e (Td)';
+              if isscalar(setup.info.workingConditions.reducedField)
+                 gui.isSingleEvolvingParameter = 'true'; 
+              end              
+              if isscalar(setup.info.workingConditions.gasTemperature)
+                gui.evolvingParameterPopUpMenuStr = 'E/N = %9.3e (Td)';
+              else  
+                gui.evolvingParameter2 = 'gasTemperature';
+                gui.evolvingParameterPopUpMenuStr2 = 'E/N = %9.3e (Td); Tg = %9.3e (K)';
+                gui.evolvingParameterSwarm = 'Tg = %9.3e (K)';
+              end
             end
           case 'PrescribedEedf'
             xLabelText = 'Electron Temperature (eV)';
             gui.evolvingParameter = 'electronTemperature';
-            gui.evolvingParameterPopUpMenuStr = 'Te = %9.3e (eV)';
+            if isscalar(setup.info.workingConditions.gasTemperature)
+              gui.evolvingParameterPopUpMenuStr = 'Te = %9.3e (eV)';
+            else  
+              gui.evolvingParameter2 = 'gasTemperature';
+              gui.evolvingParameterPopUpMenuStr2 = 'Te = %9.3e (eV); Tg = %9.3e (K)';
+              gui.evolvingParameterSwarm = 'Tg = %9.3e (K)';
+            end
         end
         gui.createEedfTab();
         gui.createRedDiffTab(xLabelText);
@@ -207,7 +241,7 @@ classdef GUI < handle
       
       % create figure for GUI
       screenSize = get(groot,'ScreenSize');
-      gui.handle = figure('name', 'LoKI Simulation Tool', 'OuterPosition', [0 35 screenSize(3) screenSize(4)-35], ...
+      gui.handle = figure('name', 'LoKI Simulation Tool', 'OuterPosition', [1 45 screenSize(3) screenSize(4)-45], ...
         'MenuBar', 'none', 'NumberTitle', 'off');
       
       % create results (graph) panel
@@ -486,13 +520,27 @@ classdef GUI < handle
       gui.solutions(newSolutionID).workCond = electronKinetics.workCond.struct;
       
       % add new entry to eedfPopUpMenu
-      newString = sprintf(gui.evolvingParameterPopUpMenuStr, electronKinetics.workCond.(gui.evolvingParameter));
+      if isempty(gui.evolvingParameter2)
+        newString = sprintf(gui.evolvingParameterPopUpMenuStr, electronKinetics.workCond.(gui.evolvingParameter));
+      else
+        newString = sprintf(gui.evolvingParameterPopUpMenuStr2, electronKinetics.workCond.(gui.evolvingParameter),...
+          electronKinetics.workCond.(gui.evolvingParameter2));
+      end  
       if length(gui.eedfPopUpMenu.String) == 1
         newString = [newString; gui.eedfPopUpMenu.String];
       else
         newString = [gui.eedfPopUpMenu.String(1:end-1); newString; gui.eedfPopUpMenu.String(end)];
       end
       set(gui.eedfPopUpMenu, 'String', newString);
+
+      % add new entry to swarmLegend
+      if ~isempty(gui.evolvingParameter2)
+        newStringSwarm = sprintf(gui.evolvingParameterSwarm, electronKinetics.workCond.(gui.evolvingParameter2)); 
+        if ~isempty(gui.swarmLegend)
+          newStringSwarm = [gui.swarmLegend(:,:); newStringSwarm];
+        end  
+      gui.swarmLegend = newStringSwarm;
+      end
       
       % add new entry to resultsPopUpMenu
       set(gui.resultsTextPopUpMenu, 'String', newString(1:end-1));
@@ -556,34 +604,122 @@ classdef GUI < handle
       redTown = zeros(1,numberOfSolutions);
       redAtt = zeros(1,numberOfSolutions);
       
-      for idx = 1:numberOfSolutions
-        inputParamValues(idx) = gui.solutions(idx).workCond.(evolvingParameter);
-        redDiff(idx) = gui.solutions(idx).swarmParam.redDiffCoeff;
-        redMob(idx) = gui.solutions(idx).swarmParam.redMobility;
-        if gui.isSimulationHF
-          redMobHF(idx) = gui.solutions(idx).swarmParam.redMobilityHF;
-        end
-        redDiffEnergy(idx) = gui.solutions(idx).swarmParam.redDiffCoeffEnergy;
-        redMobEnergy(idx) = gui.solutions(idx).swarmParam.redMobilityEnergy;
-        Te(idx) = gui.solutions(idx).swarmParam.Te;
-        charE(idx) = gui.solutions(idx).swarmParam.characEnergy;
-        redTown(idx) = gui.solutions(idx).swarmParam.redTownsendCoeff;
-        redAtt(idx) = gui.solutions(idx).swarmParam.redAttCoeff;
-      end
-      
-      plot(gui.redDiffPlot, inputParamValues, redDiff, 'ko', 'Tag', 'redDiffplot');
+      idx = numberOfSolutions;
+      inputParamValues(idx) = gui.solutions(idx).workCond.(evolvingParameter);
+      redDiff(idx) = gui.solutions(idx).swarmParam.redDiffCoeff;
+      redMob(idx) = gui.solutions(idx).swarmParam.redMobility;
       if gui.isSimulationHF
-        plot(gui.redMobPlot, inputParamValues, redMob, 'ko', inputParamValues, real(redMobHF), 'ro', ...
-          inputParamValues, -imag(redMobHF), 'bo', 'Tag', 'redMobplot');
-      else
-        plot(gui.redMobPlot, inputParamValues, redMob, 'ko', 'Tag', 'redMobplot');
-        plot(gui.redTownsendPlot, inputParamValues, redTown, 'ko', 'Tag', 'redTownsendplot');
-        plot(gui.redAttachmentPlot, inputParamValues, redAtt, 'ko', 'Tag', 'redAttachmentplot');
+        redMobHF(idx) = gui.solutions(idx).swarmParam.redMobilityHF;
       end
-      plot(gui.redDiffEnergyPlot, inputParamValues, redDiffEnergy, 'ko', 'Tag', 'redDiffEnergyplot');
-      plot(gui.redMobEnergyPlot, inputParamValues, redMobEnergy, 'ko', 'Tag', 'redMobEnergyplot');
-      plot(gui.energyPlot, inputParamValues, Te, 'ro', inputParamValues, charE, 'bo', 'Tag', 'meanEplot');
+      redDiffEnergy(idx) = gui.solutions(idx).swarmParam.redDiffCoeffEnergy;
+      redMobEnergy(idx) = gui.solutions(idx).swarmParam.redMobilityEnergy;
+      Te(idx) = gui.solutions(idx).swarmParam.Te;
+      charE(idx) = gui.solutions(idx).swarmParam.characEnergy;
+      redTown(idx) = gui.solutions(idx).swarmParam.redTownsendCoeff;
+      redAtt(idx) = gui.solutions(idx).swarmParam.redAttCoeff;
       
+      % Select legends to write in cases of evolvingParameter2 solution
+      % (e.g., avoiding repetitions of Tg-legends for different E/N or t values)
+      if ~isempty(gui.swarmLegend)
+        for idxLegend = 1:idx
+          if strcmp(gui.swarmLegend(idxLegend,:),gui.swarmLegend(idx,:))
+            idxCurrent = 1;
+            for idx2 = 1:idx-1
+                idxCurrent = idxCurrent + ~strcmp(gui.swarmLegend(idx2,:),gui.swarmLegend(idx2+1,:));
+            end
+            if idxLegend == idx
+                if gui.isSimulationHF
+                    gui.redMobLegend{3*idx-2} = gui.swarmLegend(idx,:);
+                    gui.redMobLegend{3*idx-1} = gui.swarmLegend(idx,:);
+                    gui.redMobLegend{3*idx} = gui.swarmLegend(idx,:);                 
+                else     
+                    gui.redMobLegend{idx} = gui.swarmLegend(idx,:);
+                    gui.redTownsendLegend{idx} = gui.swarmLegend(idx,:);
+                    gui.redAttachmentLegend{idx} = gui.swarmLegend(idx,:);
+                end
+                gui.redDiffLegend{idx} = gui.swarmLegend(idx,:);
+                gui.redDiffEnergyLegend{idx} = gui.swarmLegend(idx,:);
+                gui.redMobEnergyLegend{idx} = gui.swarmLegend(idx,:);
+                gui.TeLegend{2*idx-1} = gui.swarmLegend(idx,:);
+                gui.TeLegend{2*idx} = gui.swarmLegend(idx,:);
+            else
+                if gui.isSimulationHF
+                    gui.redMobLegend{3*idx-2} = "";
+                    gui.redMobLegend{3*idx-1} = "";
+                    gui.redMobLegend{3*idx} = "";
+                else     
+                    gui.redMobLegend{idx} = "";
+                    gui.redTownsendLegend{idx} = "";
+                    gui .redAttachmentLegend{idx} = "";
+                end
+                gui.redDiffLegend{idx} = "";
+                gui.redDiffEnergyLegend{idx} = "";
+                gui.redMobEnergyLegend{idx} = "";
+                gui.TeLegend{2*idx-1} = "";
+                gui.TeLegend{2*idx} = "";
+            end
+            break
+          end
+        end   
+
+        % Generate a different marker for each evolvingParameter2 solution 
+        % (e.g., for different Tg)
+        markers = {'o', '+', '*', '.', 'x', '_', '|', 'square', 'diamond', '^', 'v', '>', '<', 'pentagram', 'hexagram'};
+        % Circular selection of markers
+        % Example:  getprop(markers, 3) = '*'
+        getFirst = @(v)v{1}; 
+        getprop = @(options, idxCurrent)getFirst(circshift(options,-idxCurrent+1));
+        markerChosen =  getprop(markers,idxCurrent);
+
+      else
+
+        % Consider the same marker for all solutions 
+        markerChosen =  'o';
+
+      end
+
+      % Plot the swarm parameters with different makers for each evolvingParameter2 solution
+      plot(gui.redDiffPlot, inputParamValues(idx), redDiff(idx), 'Color', 'black', 'LineStyle', 'none', ...
+          'Marker', markerChosen, 'Tag', 'redDiffplot');
+
+      if gui.isSimulationHF
+        plot(gui.redMobPlot, inputParamValues(idx), redMob(idx), 'Color', 'black', 'LineStyle', 'none', ...
+            'Marker', markerChosen, 'Tag', 'redMobplot');
+        plot(gui.redMobPlot, inputParamValues(idx), real(redMobHF(idx)), 'Color', 'red', 'LineStyle', 'none', ...
+            'Marker', markerChosen, 'Tag', 'redMobplot');
+        plot(gui.redMobPlot, inputParamValues(idx), -imag(redMobHF(idx)), 'Color', 'blue', 'LineStyle', 'none', ...
+            'Marker', markerChosen, 'Tag', 'redMobplot');
+      else
+        plot(gui.redMobPlot, inputParamValues(idx), redMob(idx), 'Color', 'black', 'LineStyle', 'none', ...
+          'Marker', markerChosen, 'Tag', 'redMobplot');
+        plot(gui.redTownsendPlot, inputParamValues(idx), redTown(idx), 'Color', 'black', 'LineStyle', 'none', ...
+          'Marker', markerChosen, 'Tag', 'redTownsendplot');
+        plot(gui.redAttachmentPlot, inputParamValues(idx), redAtt(idx), 'Color', 'black', 'LineStyle', 'none', ...
+          'Marker', markerChosen, 'Tag', 'redAttachmentplot');
+      end
+
+      plot(gui.redDiffEnergyPlot, inputParamValues(idx), redDiffEnergy(idx), 'Color', 'black', 'LineStyle', 'none', ...
+          'Marker', markerChosen, 'Tag', 'redDiffEnergyplot');
+      plot(gui.redMobEnergyPlot, inputParamValues(idx), redMobEnergy(idx), 'Color', 'black', 'LineStyle', 'none', ...
+          'Marker', markerChosen, 'Tag', 'redMobEnergyplot');
+      plot(gui.energyPlot, inputParamValues(idx), Te(idx), 'Color', 'red', 'LineStyle', 'none', ...
+          'Marker', markerChosen, 'Tag', 'meanEplot');
+      plot(gui.energyPlot, inputParamValues(idx), charE(idx), 'Color', 'blue', 'LineStyle', 'none', ...
+          'Marker', markerChosen, 'Tag', 'meanEplot');
+
+      % Update legends in cases of evolvingParameter2 solution  
+      if ~isempty(gui.swarmLegend)
+        legend(gui.redDiffPlot, gui.redDiffLegend);
+        legend(gui.redMobPlot, gui.redMobLegend);
+        legend(gui.redMobEnergyPlot, gui.redMobEnergyLegend);
+        legend(gui.redDiffEnergyPlot, gui.redDiffEnergyLegend);
+        legend(gui.energyPlot, gui.TeLegend);
+        if ~gui.isSimulationHF
+            legend(gui.redTownsendPlot, gui.redTownsendLegend);
+            legend(gui.redAttachmentPlot, gui.redAttachmentLegend);
+        end    
+      end
+
     end
     
     function changeRedDiffXScale(gui, ~, ~)
@@ -803,22 +939,170 @@ classdef GUI < handle
         powerAttachment(idx) = gui.solutions(idx).power.attachmentIne;
         powerGrowth(idx) = gui.solutions(idx).power.eDensGrowth;
         powerRef(idx) = gui.solutions(idx).power.reference;
-      end
       
-      plot(gui.powerPlot, inputParamValues, powerField./powerRef, 'Color', gui.powerFieldColor, 'LineWidth', 2);
-      plot(gui.powerPlot, inputParamValues, powerElasticGain./powerRef, ...
-        inputParamValues, powerElasticLoss./powerRef, 'Color', gui.powerElasticColor, 'LineWidth', 2);
-      plot(gui.powerPlot, inputParamValues, powerCARGain./powerRef, ...
-        inputParamValues, powerCARLoss./powerRef, 'Color', gui.powerCARColor, 'LineWidth', 2);
-      plot(gui.powerPlot, inputParamValues, powerRotationalGain./powerRef, ...
-        inputParamValues, powerRotationalLoss./powerRef, 'Color', gui.powerRotColor, 'LineWidth', 2);
-      plot(gui.powerPlot, inputParamValues, powerVibrationalGain./powerRef, ...
-        inputParamValues, powerVibrationalLoss./powerRef, 'Color', gui.powerVibColor, 'LineWidth', 2);
-      plot(gui.powerPlot, inputParamValues, powerElectronicGain./powerRef, ...
-        inputParamValues, powerElectronicLoss./powerRef, 'Color', gui.powerEleColor, 'LineWidth', 2);
-      plot(gui.powerPlot, inputParamValues, powerIonization./powerRef, 'Color', gui.powerIonColor, 'LineWidth', 2);
-      plot(gui.powerPlot, inputParamValues, powerAttachment./powerRef, 'Color', gui.powerAttColor, 'LineWidth', 2);
-      plot(gui.powerPlot, inputParamValues, powerGrowth./powerRef, 'Color', gui.powerGrowthColor, 'LineWidth', 2);
+        % Normalize swarmLegend
+        swarmLegendx = strtrim(string(gui.swarmLegend));        
+      end 
+
+      % Generate a different lineStyle or marker for each evolvingParameter2 solution 
+      % (e.g., for different Tg)
+      lineStyles = {'-', '--', ':', '-+', '-*', '-.', '-x', '-_', '-|', ...
+          '-square', '-diamond', '-^', '-v', '->', '-<','-pentagram', '-hexagram'};
+      markers = {'o', '+', '*', 	'.', 'x', '_', '|', 'square', 'diamond', ...
+          '^', 'v', '>', '<', 'pentagram', 'hexagram'};
+      % Circular selection of lineStyles or markers
+      % Example:  getprop(lineStyles, 3) = ':'
+      getFirst = @(v)v{1}; 
+      getprop = @(options, id)getFirst(circshift(options,-id +1));
+
+      % Legend groups
+      % to enable selecting legends to write in cases of evolvingParameter2 solution
+      % (e.g., avoiding repetitions of Tg-legends for different power channels, and E/N or t values)
+      legendLabels = unique(swarmLegendx, 'stable');
+      nLegends = numel(legendLabels);
+      % Particular case for a single Tg-value 
+      if nLegends == 0
+        nLegends = 1;
+      end  
+      
+      hField = gobjects(nLegends,1);
+      
+      for k = 1:nLegends
+        % indices belonging to this legend group for multiple Tg-values
+        if ~isempty(swarmLegendx)
+          idxGroup = swarmLegendx == legendLabels(k);
+        % indices belonging to this legend group for a single Tg-value
+        else
+          idxGroup = 1:numberOfSolutions;
+        end  
+        if ~any(idxGroup)
+           continue
+        end
+
+        idLineStyle = k;
+
+        % Single E/N calculation - use markers instead of lines in plot
+        if gui.isSingleEvolvingParameter
+            markerChosen = getprop(markers, idLineStyle);
+
+            % hField (only legend-visible)
+            hField(k) = plot(gui.powerPlot, ...
+                inputParamValues(idxGroup), powerField(idxGroup)./ powerRef(idxGroup), ...
+                'Color', gui.powerFieldColor, 'LineStyle', 'none', 'Marker', markerChosen);
+
+            % Other handles (hidden from legend)
+            hElasticGain = plot(gui.powerPlot, ...
+                inputParamValues(idxGroup), powerElasticGain(idxGroup)./ powerRef(idxGroup), ...
+                'Color', gui.powerElasticColor, 'LineStyle', 'none', 'Marker', markerChosen);
+            hElasticLoss = plot(gui.powerPlot, ...
+                inputParamValues(idxGroup), powerElasticLoss(idxGroup)./powerRef(idxGroup), ...
+                'Color', gui.powerElasticColor, 'LineStyle', 'none', 'Marker', markerChosen);       
+            hCARGain = plot(gui.powerPlot, ...
+                inputParamValues(idxGroup), powerCARGain(idxGroup)./ powerRef(idxGroup), ...
+                'Color', gui.powerCARColor, 'LineStyle', 'none', 'Marker', markerChosen);
+            hCARLoss = plot(gui.powerPlot, ...
+                inputParamValues(idxGroup), powerCARLoss(idxGroup)./powerRef(idxGroup), ...
+                'Color', gui.powerCARColor, 'LineStyle', 'none', 'Marker', markerChosen);
+            hRotationalGain = plot(gui.powerPlot, ...
+                inputParamValues(idxGroup), powerRotationalGain(idxGroup)./ powerRef(idxGroup), ...
+                'Color', gui.powerRotColor, 'LineStyle', 'none', 'Marker', markerChosen);
+            hRotationalLoss = plot(gui.powerPlot, ...
+                inputParamValues(idxGroup), powerRotationalLoss(idxGroup)./powerRef(idxGroup), ...
+                'Color', gui.powerRotColor, 'LineStyle', 'none', 'Marker', markerChosen);
+            hVibrationalGain = plot(gui.powerPlot, ...
+                inputParamValues(idxGroup), powerVibrationalGain(idxGroup)./ powerRef(idxGroup), ...
+                'Color', gui.powerVibColor, 'LineStyle', 'none', 'Marker', markerChosen);
+            hVibrationalLoss = plot(gui.powerPlot, ...
+                inputParamValues(idxGroup), powerVibrationalLoss(idxGroup)./powerRef(idxGroup), ...
+                'Color', gui.powerVibColor, 'LineStyle', 'none', 'Marker', markerChosen);
+            hElectronicGain = plot(gui.powerPlot, ...
+                inputParamValues(idxGroup), powerElectronicGain(idxGroup)./ powerRef(idxGroup), ...
+                'Color', gui.powerEleColor, 'LineStyle', 'none', 'Marker', markerChosen);
+            hElectronicLoss = plot(gui.powerPlot, ...
+                inputParamValues(idxGroup), powerElectronicLoss(idxGroup)./powerRef(idxGroup), ...
+                'Color', gui.powerEleColor, 'LineStyle', 'none', 'Marker', markerChosen);
+            hIonization = plot(gui.powerPlot, ...
+                inputParamValues(idxGroup), powerIonization(idxGroup)./powerRef(idxGroup), ...
+                'Color', gui.powerIonColor, 'LineStyle', 'none', 'Marker', markerChosen);
+            hAttachment = plot(gui.powerPlot, ...
+                inputParamValues(idxGroup), powerAttachment(idxGroup)./powerRef(idxGroup), ...
+                'Color', gui.powerAttColor, 'LineStyle', 'none', 'Marker', markerChosen);
+            hGrowth = plot(gui.powerPlot, ...
+                inputParamValues(idxGroup), powerGrowth(idxGroup)./powerRef(idxGroup), ...
+                'Color', gui.powerGrowthColor, 'LineStyle', 'none', 'Marker', markerChosen);
+
+        % Multiple E/N calculations - use lines in plot
+        else    
+            lineStyleChosen = getprop(lineStyles, idLineStyle);
+
+            % hField (only legend-visible)
+            hField(k) = plot(gui.powerPlot, ...
+                inputParamValues(idxGroup), powerField(idxGroup)./ powerRef(idxGroup), ...
+                'Color', gui.powerFieldColor, 'LineStyle', lineStyleChosen, 'LineWidth', 2);
+
+            % Other handles (hidden from legend)
+            hElasticGain = plot(gui.powerPlot, ...
+                inputParamValues(idxGroup), powerElasticGain(idxGroup)./ powerRef(idxGroup), ...
+                'Color', gui.powerElasticColor, 'LineStyle', lineStyleChosen, 'LineWidth', 2);
+            hElasticLoss = plot(gui.powerPlot, ...
+                inputParamValues(idxGroup), powerElasticLoss(idxGroup)./powerRef(idxGroup), ...
+                'Color', gui.powerElasticColor, 'LineStyle', lineStyleChosen, 'LineWidth', 2);       
+            hCARGain = plot(gui.powerPlot, ...
+                inputParamValues(idxGroup), powerCARGain(idxGroup)./ powerRef(idxGroup), ...
+                'Color', gui.powerCARColor, 'LineStyle', lineStyleChosen, 'LineWidth', 2);
+            hCARLoss = plot(gui.powerPlot, ...
+                inputParamValues(idxGroup), powerCARLoss(idxGroup)./powerRef(idxGroup), ...
+                'Color', gui.powerCARColor, 'LineStyle', lineStyleChosen, 'LineWidth', 2);
+            hRotationalGain = plot(gui.powerPlot, ...
+                inputParamValues(idxGroup), powerRotationalGain(idxGroup)./ powerRef(idxGroup), ...
+                'Color', gui.powerRotColor, 'LineStyle', lineStyleChosen, 'LineWidth', 2);
+            hRotationalLoss = plot(gui.powerPlot, ...
+                inputParamValues(idxGroup), powerRotationalLoss(idxGroup)./powerRef(idxGroup), ...
+                'Color', gui.powerRotColor, 'LineStyle', lineStyleChosen, 'LineWidth', 2);
+            hVibrationalGain = plot(gui.powerPlot, ...
+                inputParamValues(idxGroup), powerVibrationalGain(idxGroup)./ powerRef(idxGroup), ...
+                'Color', gui.powerVibColor, 'LineStyle', lineStyleChosen, 'LineWidth', 2);
+            hVibrationalLoss = plot(gui.powerPlot, ...
+                inputParamValues(idxGroup), powerVibrationalLoss(idxGroup)./powerRef(idxGroup), ...
+                'Color', gui.powerVibColor, 'LineStyle', lineStyleChosen, 'LineWidth', 2);
+            hElectronicGain = plot(gui.powerPlot, ...
+                inputParamValues(idxGroup), powerElectronicGain(idxGroup)./ powerRef(idxGroup), ...
+                'Color', gui.powerEleColor, 'LineStyle', lineStyleChosen, 'LineWidth', 2);
+            hElectronicLoss = plot(gui.powerPlot, ...
+                inputParamValues(idxGroup), powerElectronicLoss(idxGroup)./powerRef(idxGroup), ...
+                'Color', gui.powerEleColor, 'LineStyle', lineStyleChosen, 'LineWidth', 2);
+            hIonization = plot(gui.powerPlot, ...
+                inputParamValues(idxGroup), powerIonization(idxGroup)./powerRef(idxGroup), ...
+                'Color', gui.powerIonColor, 'LineStyle', lineStyleChosen, 'LineWidth', 2);
+            hAttachment = plot(gui.powerPlot, ...
+                inputParamValues(idxGroup), powerAttachment(idxGroup)./powerRef(idxGroup), ...
+                'Color', gui.powerAttColor, 'LineStyle', lineStyleChosen, 'LineWidth', 2);
+            hGrowth = plot(gui.powerPlot, ...
+                inputParamValues(idxGroup), powerGrowth(idxGroup)./powerRef(idxGroup), ...
+                'Color', gui.powerGrowthColor, 'LineStyle', lineStyleChosen, 'LineWidth', 2); 
+
+        end    
+        
+        hElasticGain.Annotation.LegendInformation.IconDisplayStyle = 'off';
+        hElasticLoss.Annotation.LegendInformation.IconDisplayStyle = 'off';
+        hCARGain.Annotation.LegendInformation.IconDisplayStyle = 'off';
+        hCARLoss.Annotation.LegendInformation.IconDisplayStyle = 'off';
+        hRotationalGain.Annotation.LegendInformation.IconDisplayStyle = 'off';
+        hRotationalLoss.Annotation.LegendInformation.IconDisplayStyle = 'off';
+        hVibrationalGain.Annotation.LegendInformation.IconDisplayStyle = 'off';
+        hVibrationalLoss.Annotation.LegendInformation.IconDisplayStyle = 'off';
+        hElectronicGain.Annotation.LegendInformation.IconDisplayStyle = 'off';
+        hElectronicLoss.Annotation.LegendInformation.IconDisplayStyle = 'off';
+        hIonization.Annotation.LegendInformation.IconDisplayStyle = 'off';
+        hAttachment.Annotation.LegendInformation.IconDisplayStyle = 'off';
+        hGrowth.Annotation.LegendInformation.IconDisplayStyle = 'off';
+      end
+
+      % --- Create legend (only valid handles)
+      if ~isempty(swarmLegendx)
+        valid = isgraphics(hField);
+        legend(gui.powerPlot, hField(valid), legendLabels(valid))
+      end  
       
     end
     
