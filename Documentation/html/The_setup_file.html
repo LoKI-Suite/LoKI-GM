@@ -1,0 +1,378 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+
+<head>
+<META http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<title>The setup file</title>
+<link rel="schema.DC" href="http://purl.org/dc/elements/1.1/">
+<meta name="DC.date" content="2025-03-14">
+<link rel="stylesheet" type="text/css" href="loki.css">
+</head>
+
+<body>
+<div class="content">
+<h1 id="0">3. The setup file</h1>
+<p>The setup file is the main input file of LoKI-GM and serves as the primary user
+Interface (UI) for interacting with the code.</p>
+
+<h2>Contents</h2>
+<nav>
+<ol start="3">
+<li><a href="#0">The setup file</a>
+<ul>
+    <li>3.1 <a href="Working_conditions.html">Working conditions</a>
+    <li>3.2 <a href="Electron_kinetics.html">Electron kinetics</a></li>
+    <li>3.3 <a href="Chemistry.html">Chemistry</a></li>
+    <li>3.4 <a href="GUI.html">Graphical user interface</a></li>
+    <li>3.5 <a href="Output_files.html">Output files</a>
+<!--    <li>3.1 <a href="#1">Working conditions</a>
+    <li>3.2 <a href="#2">Electron kinetics</a></li>
+    <li>3.3 <a href="#3">Chemistry</a></li>
+    <li>3.4 <a href="#4">Graphical user interface</a></li>
+    <li>3.5 <a href="#5">Output files</a>-->
+        <ul>
+            <li>3.5.1 <a href="#5.1">Datasets in text format</a></li>
+            <li>3.5.2 <a href="#5.2">Datasets in HDF5 format</a></li>
+        </ul></li>
+</ul></li>
+</ol>
+</nav>
+
+<hr style="display:block;height:0.5px;border-width:0;color:gray;background-color:gray">
+<br>
+
+<p>Setup files can be written either in plain text or JSON format.<br>
+In this file, the user can provide / select relevant information, namely
+<ul>
+<li>about physical parameters, <em>e.g.</em>
+    <ul>
+    <li>working conditions</li>
+    <li>kinetic data and schemes</li>
+    <li>atomic and molecular data</li>
+    <li>species populations</li>
+    </ul></li>
+<li>about physical models, <em>e.g.</em>
+    <ul>
+    <li>mode of energy-sharing in ionisation collisions</li>
+    <li>type of growth model for the electron density</li>
+    <li>inclusion of electron-electron collisions</li>
+    <li>inclusion of thermal model</li>
+    </ul></li>
+<li>about numerical details, <em>e.g.</em>
+    <ul>
+    <li>energy grid for LoKI-B</li>
+    <li>nonlinear algorithm(s) to adopt in the simulations</li>
+    <li>convergence criteria for iterative cycles</li>
+    <li>integration times</li>
+    </ul></li>
+</ul>
+</p>
+
+<p>
+<table border=4>
+<tr><td>
+The setup file is an <b>indentation structured file</b>, <i>i.e.</i> it follows
+the "Off-side rule" [<a href=references.html#R14>14</a>] like in some programming
+languages such as Python.
+This means that it is <b>mandatory</b> that all the subfields within a field
+share the same level of indentation, otherwise the behaviour of the code is
+undefined.
+</td></tr>
+</table>
+</p>
+
+
+<p>The setup file is organised according to the following syntax rules.</p>
+<div>
+<ul>
+<li>The setup file can include comments, signaled by the character %.</li>
+<li>Some of the fields in the setup file can accept either one or more values.<br>
+When only one value is to be specified, it can be given in the same line of the
+field, right after the colon, for example:
+<!--<pre class="codeinput"><span class="string">mass: Databases/masses.txt</span></pre>-->
+<pre class="codeinput">mass: Databases/masses.txt</pre>
+Alternatively, when more than one value are to be specified, one can use several
+lines starting with a dash, for example:
+<!--<pre class="codeinput"><span class="string">LXCatFiles:            </span><span class="comment">% cross section files</span>
+<span class="string">    - Nitrogen/N2_LXCat.txt</span>
+<span class="string">    - Nitrogen/N2_rot_LXCat.txt</span>
+</pre>-->
+<pre class="codeinput">LXCatFiles:            <span class="comment">% cross section files</span>
+    - Nitrogen/N2_LXCat.txt
+    - Nitrogen/N2_rot_LXCat.txt
+</pre>
+</li>
+<li>The setup text file can call either <tv>*.txt</tv> or <tv>*.json</tv> auxiliary
+input files.</li>
+</ul>
+</div>
+
+<p>The <b>setup JSON file</b> is organised similarly to the setup text file, following
+the standard JSON syntax rules. The following should be noted:
+<ul>
+<li>The calling of functions within the setup JSON file is passed with quotes "."</li>
+<li>The setup JSON file can call either <tv>*.txt</tv> or <tv>*.json</tv> LXCat files.</li>
+</ul>
+</p>
+
+<p>Note that the value(s) of certain fields in the setup file can be defined
+specifying an "auxiliary input file" or a "property function".<br>
+All the "auxiliary input files" (<i>i.e.</i> LXCat files, property files or chemistry
+files) specified in the setup file should be located inside the input folder
+(<tt>[repository folder]/LoKI_26.07.1/Code/Input</tt>), eventually organised in
+subfolders with self-explanatory names (<i>e.g.</i> <tt>Nitrogen, Databases</tt>;
+see section <a href="Getting_started.html#2">2.2</a>). In this case, the name of
+the subfolder should be specified in the setup file (see examples above for
+<tt>mass</tt> and for <tt>LXCatFiles</tt>). For more information about auxiliary
+input files see section <a href="Auxiliary_input_files.html">4</a>.<br>
+All the "property functions" specified in the setup file should be located in the
+property functions folder (<tt>[repository folder]/LoKI_26.07.1/Code/PropertyFunctions</tt>;
+see section <a href="Getting_started.html#2">2.2</a>). For more information about
+property functions see section <a href="functions.html">5.1</a>.</p>
+<p>The setup file is organised into five different main fields, with self-explanatory designations:</p>
+<div>
+<ul>
+<li><tt><a href="Working_conditions.html">workingConditions</a></tt></li>
+<li><tt><a href="Electron_kinetics.html">electronKinetics</a></tt></li>
+<li><tt><a href="Chemistry.html">chemistry</a></tt></li>
+<li><tt><a href="GUI.html">gui</a></tt></li>
+<li><tt><a href="Output_files.html">output</a></tt></li>
+</ul>
+</div>
+<p>The next subsections present these fields in detail, using a <b>setup text file</b>
+for nitrogen as example.</p>
+
+<!--<h2 id="1">3.1 Working conditions</h2>
+
+<p>In this field of the setup file the user can specify the values of the different
+working parameters for the simulation. The code below shows the section of the
+<tt>'default_lokibc_setup.in'</tt> file that handles this configuration.</p>
+<pre class="codeinput">
+<span class="comment">% --- configuration of the working conditions ---</span>
+workingConditions:
+    reducedField:  100                        <span class="comment">% in Td</span>
+    electronTemperature: 1.2                  <span class="comment">% in eV</span>
+    excitationFrequency: 0                    <span class="comment">% in Hz</span>
+    gasPressure: 133.32                       <span class="comment">% in Pa</span>
+    gasTemperature: 350                       <span class="comment">% in K   (average gas temperature)</span>
+    nearWallTemperature: 320                  <span class="comment">% in K   (near wall temperature)</span>
+    wallTemperature: 320                      <span class="comment">% in K   (wall temperature)</span>
+    extTemperature: 300                       <span class="comment">% in K   (external temperature)</span>
+    surfaceSiteDensity: 1e19                  <span class="comment">% in m-2 (used for surface kinetics)</span>
+    electronDensity: 8.6e15                   <span class="comment">% in m-3</span>
+    chamberLength: 1e-1                       <span class="comment">% in m</span>
+    chamberRadius: 1e-2                       <span class="comment">% in m</span>
+    <span class="comment">% dischargeCurrent: 4e-2                    % in A</span>
+    <span class="comment">% dischargePowerDensity: 2.7e5              % in W m-3</span>
+    totalSccmIntFlow: 0                       <span class="comment">% in sccm</span>
+    totalSccmOutFlow: 0                       <span class="comment">% a number (in sccm) or a model: totalSccmInFlow, ensureIsobaric</span>
+    </pre>
+    <p>
+    <b>IMPORTANT NOTES:</b>
+    </p>
+    <div>
+    <ul>
+    <li>The <tt>reducedField</tt> corresponds to <i>E/N</i>, where
+        <ul>
+        <li><math><mrow><mi>E</mi><mo>=</mo></mrow><mrow><msub><mi>E</mi><mi>p</mi></msub></mrow></math>
+        is the amplitude of the applied electric field, in a DC case;</li>
+        <li><math><mrow><mi>E</mi><mo>=</mo></mrow><mrow><msub><mi>E</mi><mi>p</mi></msub><mi>/</mi>
+        <msqrt><mn>2</mn></msqrt></mrow></math>
+        is the root-mean-square (RMS) amplitude of the applied electric field, in a HF case.
+        </li>
+        </ul>
+    The <tt>reducedField</tt> can correspond to
+        <ul>
+        <li><b>one value or an array or values</b>, as in the case of (see section <a href="Getting_started.html#5">2.5</a>)
+            <ul>
+            <li><em>steady-state simulations and post-discharge simulations</em>, when
+            running LoKI-GM.<br>
+            Here, <tt>reducedField</tt> corresponds to the <i>initial value</i> of <var>E/N</var>,
+            to be updated during the <em>neutrality cycle</em>, when choosing <tv>boltzmann</tv>
+            as <tt>eedfType</tt> (see section <a href="#2">3.2</a> and Reference Manual
+                                [<a href="references.html#R10">10</a>]);</li>
+            <li><em> electron kinetics stationary simulations</em>, when running LoKI-B
+            as standalone tool.</li>
+            </ul></li>
+        <li><b>the name of a pulse function (to obtain <var>E/N</var> (in Td) vs. t)</b>
+        as in the case of (see section <a href="Getting_started.html#5">2.5</a>)
+            <ul>
+            <li><em>quasi-stationary simulations</em>, when running LoKI-C as standalone tool;</li>
+            <li><em>electron kinetics time-dependent simulations</em>, when running LoKI-B as standalone tool</li>
+            </ul></li>
+        </ul>
+    The two codes below present examples of configurations of the <tt>reducedField</tt>
+    for an electric-field pulse, in the cases of <em>quasi-stationary simulations</em>
+    and <em>electron kinetics time-dependent simulations</em>, respectively.<br><br>
+    <pre class="codeinput">
+    <span class="comment">% --- configuration of the working conditions ---</span>
+    workingConditions:
+        reducedField: pulse@reducedFieldFromCurrentFile, 199e-9, 1e-3, logspace, 11, pure_N2_CARS_benchmark/currentPulseFile.txt
+          <span class="comment">% pulse@functionName, firstStep, finalTime, samplingType, samplingPoints, additionalParameters</span>
+    </pre>
+    <pre class="codeinput">
+    <span class="comment">% --- configuration of the working conditions ---</span>
+    workingConditions:
+        reducedField: pulse@reducedFieldPulse, 1e-18, 2e-6, logspace, 100, 1e-6, 50
+        <span class="comment">% reducedField: pulse@reducedFieldRamp, 1e-18, 2e-6, logspace, 100, 1e-6, 25</span>
+        <span class="comment">% pulse@functionName, firstStep, finalTime, samplingType, samplingPoints, additionalParameters</span>
+    </pre>
+    </li>
+    </ul>
+    </div>
+
+    Here the field parameters are, in order,
+        <ul>
+        <li>the name of the pulse function (providing <i>E/N</i> (in Td), <i>vs. t</i>)
+            <ul>
+            <li>for <em>quasi-stationary simulations</em>, <var>E/N(t)</var> is calculated
+            from a time-dependent function of the reduced electric field or any related
+            quantity, such as the discharge current or the discharge power-density</li>
+            <li>for <em>electron-kinetics time-dependent simulations</em>, the current
+            distribution of LoKI-B includes the following pulse functions (see section
+            <a href="Auxiliary_functions.html#3">5.3</a>).
+            <ul>
+            <li><tt>pulse@reducedFieldPulse</tt> , corresponding to
+            <math display="block" class="tml-display" style="width:100%;display:block math;"><mtable displaystyle="true" columnalign="left center right" style="width:100%;"><mtr id="pulse-field"><mtd class="tml-right" style="padding:0;width:50%;padding-left:0em;padding-right:0em;"></mtd><mtd class="tml-left" style="padding-left:1em;padding-right:0em;"><mrow><mfrac><mrow><mi>E</mi><mo form="prefix" stretchy="false">(</mo><mi>t</mi><mo form="postfix" stretchy="false" lspace="0em" rspace="0em">)</mo></mrow><mi>N</mi></mfrac><mo form="prefix" stretchy="false">(</mo><mrow><mtext></mtext><mi>Td</mi></mrow><mo form="postfix" stretchy="false">)</mo><mo>=</mo><mfrac><msub><mi>E</mi><mn>0</mn></msub><mi>N</mi></mfrac><msqrt><mfrac><mi>t</mi><msub><mi>τ</mi><mrow><mtext></mtext><mi>rise</mi></mrow></msub></mfrac></msqrt><mrow><mi>exp</mi><mo>⁡</mo><mspace width="0.1667em"></mspace></mrow><mrow><mo fence="true" form="prefix">(</mo><mo>−</mo><mfrac><mi>t</mi><msub><mi>τ</mi><mrow><mtext></mtext><mi>rise</mi></mrow></msub></mfrac><mo fence="true" form="postfix">)</mo></mrow><mrow class="tml-label"></mrow><mspace width="0.2778em"></mspace><mi>.</mi></mrow></mtd><mtd class="tml-right" style="padding:0;width:50%;padding-left:0em;padding-right:0em;"><mtext><span class="tml-eqn"></span></mtext></mtd></mtr></mtable></math>
+            </li>
+            <li><tt>pulse@reducedFieldRamp</tt>, corresponding to
+            <math display="block" class="tml-display" style="width:100%;display:block math;"><mtable displaystyle="true" columnalign="left center right" style="width:100%;"><mtr><mtd class="tml-right" style="padding:0;width:50%;padding-left:0em;padding-right:0em;"></mtd><mtd class="tml-left" style="padding-left:1em;padding-right:0em;"><mrow><mfrac><mrow><mi>E</mi><mo form="prefix" stretchy="false">(</mo><mi>t</mi><mo form="postfix" stretchy="false" lspace="0em" rspace="0em">)</mo></mrow><mi>N</mi></mfrac><mrow><mo form="prefix" stretchy="false" lspace="0em" rspace="0em">(</mo><mrow><mi mathvariant="normal">T</mi></mrow><mrow><mi mathvariant="normal">d</mi></mrow><mo form="postfix" stretchy="false" lspace="0em" rspace="0em">)</mo></mrow><mo>=</mo><mrow><mo fence="true" form="prefix">{</mo><mtable columnalign="left left"><mtr><mtd class="tml-left" style="padding-left:0pt;padding-right:5.9776pt;"><mrow><mfrac><msub><mi>E</mi><mn>0</mn></msub><mi>N</mi></mfrac><mfrac><mi>t</mi><msub><mi>τ</mi><mrow><mtext></mtext><mi>rise</mi></mrow></msub></mfrac><mspace width="0.1667em"></mspace><mo separator="true">,</mo></mrow></mtd><mtd class="tml-left" style="padding-left:5.9776pt;padding-right:0pt;"><mrow><mn>0</mn><mo>≤</mo><mi>t</mi><mo>≤</mo><msub><mi>τ</mi><mrow><mtext></mtext><mi>rise</mi></mrow></msub></mrow></mtd></mtr><mtr><mtd class="tml-left" style="padding-left:0pt;padding-right:5.9776pt;"><mrow><mfrac><msub><mi>E</mi><mn>0</mn></msub><mi>N</mi></mfrac><mspace width="0.1667em"></mspace><mo separator="true">,</mo></mrow></mtd><mtd class="tml-left" style="padding-left:5.9776pt;padding-right:0pt;"><mrow><mi>t</mi><mo>&gt;</mo><msub><mi>τ</mi><mrow><mtext></mtext><mi>rise</mi></mrow></msub></mrow></mtd></mtr></mtable><mo fence="true" form="postfix"></mo></mrow></mrow></mtd><mtd class="tml-right" style="padding:0;width:50%;padding-left:0em;padding-right:0em;"><mtext><span class="tml-eqn"></span></mtext></mtd></mtr></mtable></math>                                                                                                                                                                                                                                                                </li>                                                                                                                                                                                                                                                                </ul></li>
+        <li>the first time step (in <i>s</i>) for the simulation output</li>
+        <li>the final time (in s) for the simulations and the simulation output</li>
+        <li>the type of sampling for the time steps used in the output (<tt>logspace</tt> or <tt>linspace</tt>)</li>
+        <li>the number of sampling points in the simulation output</li>
+        <li>any additional parameters (optional) assisting the construction of the pulse
+        function, <i>e.g.</i>
+            <ul>
+                <li>the values of the disharge current as a function of time, for
+                <em>quasi-stationary simulations</em>;</li>
+                <li>the values of variables <var>E<sub>0</sub>/N</var> and τ<sub>rise</sub>
+                in the equations above, for <em>electron kinetics time-dependent simulations</em>.</li>
+            </ul></li>
+        </ul>
+
+    Note the following, <b>when adopting an electric-field pulse</b>:
+
+                                                                                                                                                                                                                                                               <!--<math><mrow><msub><mi>E</mi><mn>0</mn></msub><mi>/</mi><mi>N</mi></mrow></math>
+and <math><msub><mi>τ</mi><mrow><mtext></mtext><mi>rise</mi></mrow></msub></math>
+ </li>
+ </ul>
+
+    <ul>
+    <li>the <tt>excitationFrequency</tt> <b>MUST</b> be set to zero;</li>                                                                                                                                                                                                                                                                <li>the simulation runtimes can rapidly increase, especially for very long pulse-times,                                                                                                                                                                                                                                                                and/or high gas pressures, and/or a very large number of sampling points. User                                                                                                                                                                                                                                                                discretion is advised, when defining these parameters (the set of working conditions                                                                                                                                                                                                                                                                presented above for the <tt>reducedField</tt> is a good compromise example);</li>                                                                                                                                                                                                                                                                <li>users should be aware that keeping the graphical user interface activated (see                                                                                                                                                                                                                                                                section <a href="GUI.html">GUI</a>) can also degrade the simulation runtimes;</li>                                                                                                                                                                                                                                                                <li>it is recommended to adopt a constant energy grid                                                                                                                                                                                                                                                                (see <a href="electron_kinetics.html">Electron kinetics</a>), chosen as to ensure                                                                                                                                                                                                                                                                the correct description of the EEDF for both the minimum                                                                                                                                                                                                                                                                <math><mrow><mi>E</mi><mo form="prefix" stretchy="false">(</mo><mi>t</mi><mo form="postfix" stretchy="false">)</mo><mi>/</mi><mi>N</mi></mrow></math>
+                                                                                                                                                                                                                                                               value in the simulations (considering low threshold mechanisms), and the maximum
+                                                                                                                                                                                                                                                                <math><mrow><mi>E</mi><mo form="prefix" stretchy="false">(</mo><mi>t</mi><mo form="postfix" stretchy="false">)</mo><mi>/</mi><mi>N</mi></mrow></math>
+                                                                                                                                                                                                                                                                value in the simulations (considering the bulk-to-tail drop in the EEDF);</li>
+                                                                                                                                                                                                                                                                <li>it is recommended to activate the optional parameters for the ode solver adopted
+                                                                                                                                                                                                                                                                in the <tt>temporalIntegration</tt> algorithm (see <a href="../User_manual_LoKI.pdf" target="_blank">Reference Guide, section 2</a> and
+                                                                                                                                                                                                                                                                <a href="electron_kinetics.html">Electron kinetics</a>): absolute tolerance, relative
+                                                                                                                                                                                                                                                                tolerance, and maximum step-size. Users should understand the role of these parameters
+                                                                                                                                                                                                                                                                before activating them in the simulations.</li>
+                                                                                                                                                                                                                                                                </ul>
+                                                                                                                                                                                                                                                                </li>
+                                                                                                                                                                                                                                                                <li>The <tt>electronTemperature</tt> corresponds to <i>T<sub>e</sub></i>.<br>
+                                                                                                                                                                                                                                                                When running LoKI, <tt>electronTemperature</tt> corresponds to the <i>initial value</i>
+                                                                                                                                                                                                                                                                of <i>T<sub>e</sub></i>, to be updated during the <i>neutrality cycle</i>, when
+                                                                                                                                                                                                                                                                choosing <tt>prescribedEedf</tt> as <tt>eedfType</tt> (see <a href="../User_manual_LoKI.pdf" target="_blank">Reference Guide, sections 1.4, 2.3</a> and
+                                                                                                                                                                                                                                                                <a href="electron_kinetics.html">Electron kinetics</a>).
+                                                                                                                                                                                                                                                                </li>
+                                                                                                                                                                                                                                                                <li>The user can choose simulations that solve the EBE or that adopt a generalized
+                                                                                                                                                                                                                                                                Maxwellian EEDF (see section <a href="../User_manual_LoKI.pdf" target="_blank">Reference Guide, section 1.4</a> and
+                                                                                                                                                                                                                                                                <a href="electron_kinetics.html">Electron kinetics</a> for details on how to select
+                                                                                                                                                                                                                                                                the type of simulation for the EEDF):
+                                                                                                                                                                                                                                                                <ul>
+                                                                                                                                                                                                                                                                <li>the parameter <tt>reducedField</tt> is activated when the "boltzmann" simulation
+                                                                                                                                                                                                                                                                is selected;</li>
+                                                                                                                                                                                                                                                                <li>the parameter <tt>electronTemperature</tt> is activated when the "prescribedEedf"
+                                                                                                                                                                                                                                                                simulation is selected.</li>
+                                                                                                                                                                                                                                                                </ul>
+                                                                                                                                                                                                                                                                When running LoKI-B, it is possible to specify the parameters <tt>reducedField</tt>
+                                                                                                                                                                                                                                                                and <tt>electronTemperature</tt> with a single value, for a single simulation, or
+                                                                                                                                                                                                                                                                an array of values, for several simulations corresponding to the different values
+                                                                                                                                                                                                                                                                prescribed. The array of values can be defined using any expression understood by
+                                                                                                                                                                                                                                                                MATLAB&reg; (<i>e.g.</i> <tt>logspace(-4,1,100)</tt>, <tt>linspace(0,100,10)</tt>,
+                                                                                                                                                                                                                                                                <tt>[0 10 20 50]</tt>, etc.), with the exception of those adopting the colon character
+                                                                                                                                                                                                                                                                ":" (<i>e.g.</i> <tt>1:10</tt> is not supported). In future releases of LoKI, this
+                                                                                                                                                                                                                                                                feature will probably be extended to other parameters.</li>
+                                                                                                                                                                                                                                                                <li>The <tt>excitationFrequency</tt> corresponds to the linear oscillation frequency
+                                                                                                                                                                                                                                                                <math><mrow><mi>ω</mi><mi>/</mi><mo form="prefix" stretchy="false">(</mo><mn>2</mn><mi>π</mi><mo form="postfix" stretchy="false">)</mo></mrow></math>.</li>
+                                                                                                                                                                                                                                                                <li>The <tt>gasTemperature</tt> <i>T<sub>g</sub></i> corresponds to (i) the <b>initial
+                                                                                                                                                                                                                                                                value of the average gas temperature</b>, if the thermal model is activated; (ii)
+                                                                                                                                                                                                                                                                the <b>value of the constant average gas temperature</b> prescribed by the user,
+                                                                                                                                                                                                                                                                if the thermal model is not activated (see <a href="../User_manual_LoKI.pdf" target="_blank">Reference Guide, sections 1.6</a>
+                                                                                                                                                                                                                                                                and <a href="chemistry.html">Chemistry</a>).
+                                                                                                                                                                                                                                                                </li>
+                                                                                                                                                                                                                                                                <li>The <tt>wallTemperature</tt> <i>T<sub>w</sub></i> corresponds to the temperature
+                                                                                                                                                                                                                                                                at the wall, to be used as <i>wall</i> boundary condition of the thermal model, if
+                                                                                                                                                                                                                                                                activated (see <a href="../User_manual_LoKI.pdf" target="_blank">Reference Guide, sections 1.6 and 5.3</a>).<br>
+                                                                                                                                                                                                                                                                The <tt>wallTemperature</tt> is <b>a mandatory parameter if the thermal model is
+                                                                                                                                                                                                                                                                activated, adopting the wall boundary condition. In other cases, this parameter is
+                                                                                                                                                                                                                                                                optional</b>.
+                                                                                                                                                                                                                                                                </li>
+                                                                                                                                                                                                                                                                <li>The <tt>extTemperature</tt> <i>T<sub>ext</sub></i> corresponds to the <b>external
+                                                                                                                                                                                                                                                                temperature</b>, to be used as <i>external</i> boundary condition of the thermal
+                                                                                                                                                                                                                                                                model, if activated (see <a href="../User_manual_LoKI.pdf" target="_blank">Reference Guide, section 1.6</a> and <a href="chemistry.html">Chemistry</a>).<br>
+                                                                                                                                                                                                                                                                The <tt>extTemperature</tt> is <b>a mandatory parameter if the thermal model is
+                                                                                                                                                                                                                                                                activated, adopting the external boundary condition. In other cases, this parameter
+                                                                                                                                                                                                                                                                is optional</b>.
+                                                                                                                                                                                                                                                                </li>
+                                                                                                                                                                                                                                                                <li>The <tt>surfaceSiteDensity</tt> corresponds to the total density of surface
+                                                                                                                                                                                                                                                                sites (<i>[F]<sub>surface</sub> + [S]<sub>surface</sub></i> in m<sup>−2</sup>;
+                                                                                                                                                                                                                                                                see <a href="../User_manual_LoKI.pdf" target="_blank">Reference Guide, section 1.5</a>), for use in a surface kinetics.
+                                                                                                                                                                                                                                                                </li>
+                                                                                                                                                                                                                                                                <li>The <tt>chamberLength</tt> corresponds to the <b>full</b> length of the discharge
+                                                                                                                                                                                                                                                                (for example between two electrodes) and the <tt>chamberRadius</tt> corresponds to
+                                                                                                                                                                                                                                                                the discharge radius.<br>
+                                                                                                                                                                                                                                                                <b>The case of a pure cylindrical geometry</b> (L ≫ R) <b>is chosen by setting</b>
+                                                                                                                                                                                                                                                                <tt>chamberLength</tt> <b>to zero.<br>
+                                                                                                                                                                                                                                                                The case of a pure slab geometry</b> (R ≫ L) <b>is chosen by setting</b>
+                                                                                                                                                                                                                                                                <tt>chamberRadius</tt> <b>to zero</b>.<br>
+                                                                                                                                                                                                                                                                The <tt>chamberRadius</tt> is a <b>mandatory</b> parameter if one the thermal models
+                                                                                                                                                                                                                                                                is activated. Recall that this model considers a parabolic profile of the gas temperature
+                                                                                                                                                                                                                                                                in the radial direction only (see <a href="../User_manual_LoKI.pdf" target="_blank">Reference Guide, section 1.6</a>), hence LoKI ignores the value of the
+                                                                                                                                                                                                                                                                parameter <tt>chamberLength</tt>.<br>
+                                                                                                                                                                                                                                                                Both, the <tt>chamberRadius</tt> and the <tt>chamberLength</tt> are mandatory parameters
+                                                                                                                                                                                                                                                                when using the rate coefficient functions <tt>inFlow</tt> and <tt>outFlow</tt>, to
+                                                                                                                                                                                                                                                                estimate the plasma volume (see <a href="../User_manual_LoKI.pdf" target="_blank">Reference Guide, section 7.2</a>).<br>
+                                                                                                                                                                                                                                                                At least one of the parameters <tt>chamberRadius</tt> or <tt>chamberLength</tt> are
+                                                                                                                                                                                                                                                                mandatory when defining a surface kinetics, to calculate the discharge area-to-volume ratio.
+                                                                                                                                                                                                                                                                </li>
+                                                                                                                                                                                                                                                                <li>The <tt>dischargeCurrent</tt> is now an optional input parameter to characterize
+                                                                                                                                                                                                                                                                one of the supported experimental conditions for the chemical kinetics.
+                                                                                                                                                                                                                                                                </li>
+                                                                                                                                                                                                                                                                <li>The <tt>totalSccmInFlow</tt> is the total input ow of the gas mixture, in sccm,
+                                                                                                                                                                                                                                                                and is a <b>mandatory</b> parameter for LoKI-C.
+                                                                                                                                                                                                                                                                </li>
+
+                                                                                                                                                                                                                                                                <li>When running LoKI-B, not all the parameters in the Working conditions are used.
+                                                                                                                                                                                                                                                                Indeed, the <tt>gasTemperature</tt> <math><msub><mi>T</mi><mi>g</mi></msub></math>
+                                                                                                                                                                                                                                                                is needed to calculate the elastic and the CAR operators \eqref{Gc} and \eqref{GCAR},
+                                                                                                                                                                                                                                                                whereas the <tt>gasPressure</tt> <i>p</i> is required to calculate the total gas
+                                                                                                                                                                                                                                                                density only in the particular case of HF excitations (for obtaining the reduced
+                                                                                                                                                                                                                                                                frequency <math><mrow><mi>ω</mi><mi>/</mi><mi>N</mi></mrow></math>) and/or if
+                                                                                                                                                                                                                                                                electron-electron collisions are considered in the calculations (for obtaining the
+                                                                                                                                                                                                                                                                ionisation degree <math><mrow><msub><mi>n</mi><mi>e</mi></msub><mi>/</mi><mi>N</mi></mrow></math>,
+                                                                                                                                                                                                                                                                in which case it is also necessary to provide the <tt>electronDensity</tt>
+                                                                                                                                                                                                                                                                <math><msub><mi>n</mi><mi>e</mi></msub></math>).
+                                                                                                                                                                                                                                                                Moreover, the parameters <tt>wallTemperature</tt>, <tt>extTemperature</tt>,
+                                                                                                                                                                                                                                                                <tt>surfaceSiteDensity</tt>, <tt>chamberLength</tt> and <tt>chamberRadius</tt> are
+                                                                                                                                                                                                                                                                not used in LoKI-B simulations.<br>
+                                                                                                                                                                                                                                                                The user can comment the line(s) of the <tt>workingConditions</tt> that specify the value(s)
+                                                                                                                                                                                                                                                                of parameter(s) not used in the simulations. Alternatively these lines can be kept
+                                                                                                                                                                                                                                                                uncommented, but in this case <b>it is mandatory to specify the values of the
+                                                                                                                                                                                                                                                                corresponding parameters</b>, regardless the fact that they are not used in the
+                                                                                                                                                                                                                                                                simulations (the values of these parameters will have no impact in the final results).</li>
+                                                                                                                                                                                                                                                                <li>Again, the code uses SI units for all physical quantities, except the energies
+                                                                                                                                                                                                                                                                that are expressed in eV (electron-volt) and the reduced fields that are expressed
+                                                                                                                                                                                                                                                                in Td (Townsend;
+                                                                                                                                                                                                                                                                <math><mrow><mn>1</mn><mspace width="0.1667em"></mspace><mrow><mtext></mtext><mi>Td</mi></mrow><mo>=</mo></mrow><mrow><msup><mn>10</mn><mrow><mo lspace="0em" rspace="0em">−</mo><mn>21</mn></mrow></msup><mspace width="0.1667em"></mspace><msup><mrow><mtext></mtext><mi>Vm</mi></mrow><mn>2</mn></msup></mrow></math>).</li>
+                                                                                                                                                                                                                                                                </ul>-->
+
+<p class="footer">
+<br>
+<a href="https://www.mathworks.com/products/matlab/">Published with MATLAB&reg; R2024b</a>
+<br>
+</p>
+</div>
+</body>
+</html>
