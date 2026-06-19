@@ -200,6 +200,8 @@ classdef Setup < handle
               setup.batches(end).units = 'Pa';
             case 'electronDensity'
               setup.batches(end).units = 'm-3';
+            case 'excitationFrequency'
+              setup.batches(end).units = 'Hz';              
             otherwise
               setup.batches(end).units = '';
           end

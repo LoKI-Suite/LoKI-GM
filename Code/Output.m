@@ -29,10 +29,12 @@ classdef Output < handle
     dataFormat = '';                    % data format to save results. Options are: 'txt' and 'hdf5'
 
     isSimulationHF = [];                % boolean vector (dim = number of electricField jobs) to know if the electron kinetics (Boltzmann only) is HF
+    isExcitationFrequencyBatch = false; % boolean value. True if ExcitationFrequency has several values
     isBoltzmann = true;                 % boolean to know if the electron kinetics is Boltzmann (true) of prescribedEedf (false)
 
     logIsToBeSaved = false;             % boolean to know if the log (as written by the CLI) must be saved
     inputsAreToBeSaved = false;         % boolean to know if the input files must be saved
+    currentJobID = 1;                   % cummulative index of the job value used for data writing
     currentJobIndeces = [1];            % indeces of the job value used for data writing
     extraDims = [];                     % Number of tasks for each property, in addition to E/N, with multiple values.
     eedfIsToBeSaved = false;            % boolean to know if the eedf must be saved
@@ -126,12 +128,12 @@ classdef Output < handle
         if isempty(setup.pulseInfo)
           for i = setup.numberOfBatchTypes:-1:1
             if strcmp(setup.batches(i).property, 'reducedField')
-              numberOfEbyNJobs = setup.batches(i).jobs;
+              numberOfEoverNJobs = setup.batches(i).jobs;
               break;
             end
           end
         else
-          numberOfEbyNJobs = setup.pulseInfo.samplingPoints+1;
+          numberOfEoverNJobs = setup.pulseInfo.samplingPoints+1;
         end
 
         % Common constants for hdf5 calls
@@ -290,16 +292,16 @@ classdef Output < handle
 
       % save the information if the electron kinetics is HF
       if isempty(setup.pulseInfo)
-%         numberOfEbyNJobs = setup.numberOfJobs;
-        numberOfEbyNJobs = setup.batches(1).jobs;
+        numberOfEoverNJobs = setup.batches(1).jobs;
+        numberOfJobs = setup.numberOfJobs;
       else
-         numberOfEbyNJobs = setup.batches(1).jobs*(setup.pulseInfo.samplingPoints+1);
-%          numberOfEbyNJobs = setup.numberOfJobs*(setup.pulseInfo.samplingPoints+1);
-%        numberOfEbyNJobs = setup.pulseInfo.samplingPoints+1;
+         numberOfEoverNJobs = setup.batches(1).jobs*(setup.pulseInfo.samplingPoints+1);
+         numberOfJobs = setup.numberOfJobs*(setup.pulseInfo.samplingPoints+1);         
       end
       workCond = setup.info.workingConditions;
       numberOfJobsFreq = length(workCond.excitationFrequency);
-      numberOfJobsModFreq = numberOfEbyNJobs/numberOfJobsFreq;
+      % numberOfJobsModFreq = numberOfEoverNJobs;
+      numberOfJobsModFreq = numberOfJobs/numberOfJobsFreq;      
       for idx = 1:numberOfJobsFreq
         if workCond.excitationFrequency(idx) > 0
             for idxJobs = 1:numberOfJobsModFreq
@@ -320,9 +322,9 @@ classdef Output < handle
           reducedField = setup.info.workingConditions.reducedField;
           % set dims dimensions
           if isempty(setup.pulseInfo)
-            dims = [1 numberOfEbyNJobs];
+            dims = [1 numberOfEoverNJobs];
           else    % reducedField(t) -> columns for t and E/N
-            dims = [2 numberOfEbyNJobs];
+            dims = [2 numberOfEoverNJobs];
           end
           spaceID = H5S.create_simple(2,fliplr(dims),[]);
           dsID = H5D.create(geid,'reducedField',doubleType,spaceID,dcpl);
@@ -439,7 +441,7 @@ classdef Output < handle
               for i = 1:length(sz)
                 H5T.insert(ctypeID,name(i),offset(i),doubleType);
               end
-              dims = [length(setup.energyGrid.cell) 1 numberOfEbyNJobs output.extraDims];
+              dims = [length(setup.energyGrid.cell) 1 numberOfEoverNJobs output.extraDims];
               h5_dims = fliplr(dims);
               spaceID = H5S.create_simple(length(dims),h5_dims,h5_dims);
               dsfID = H5D.create(geid,'eedf',ctypeID,spaceID,dcpl);
@@ -477,7 +479,9 @@ classdef Output < handle
               offset(1)=0;
               % get dims
 %               if output.isSimulationHF(output.currentJobID)
-              if output.isSimulationHF(output.currentJobIndeces(1))
+              output.isExcitationFrequencyBatch = contains([setup.batches(:).property], 'excitationFrequency');
+              if output.isSimulationHF(output.currentJobIndeces(1)) || ...
+                output.isExcitationFrequencyBatch                  
                 offset(2:9)=cumsum(sz(1:8));
                 if output.isBoltzmann
                   name = ["meanEnergy" "characEnergy" "Te" "redMobility" ...
@@ -514,7 +518,7 @@ classdef Output < handle
               for i = 1:length(sz)
                 H5T.insert(ctypeID,name(i),offset(i),doubleType);
               end
-              dims = [numberOfEbyNJobs 1 output.extraDims];
+              dims = [numberOfEoverNJobs 1 output.extraDims];
               spaceID = H5S.create_simple(length(dims),fliplr(dims),[]);
               dssID = H5D.create(geid,'swarmParameters',ctypeID,spaceID,dcpl);
               H5DS.attach_scale(dssID,dsID,1);
@@ -550,7 +554,7 @@ classdef Output < handle
                 H5T.insert(ctypeID,name(i),offset(i),doubleType);
               end
               ngas = length(setup.electronKineticsGasArray);
-              dims = [numberOfEbyNJobs 1 3 output.extraDims ngas];
+              dims = [numberOfEoverNJobs 1 3 output.extraDims ngas];
               spaceID = H5S.create_simple(length(dims),fliplr(dims),[]);
               dspID = H5D.create(geid,'powerBalanceGases',ctypeID,spaceID,dcpl);
               H5DS.attach_scale(dspID,dsID,3);
@@ -583,7 +587,7 @@ classdef Output < handle
               for i = 1:length(sz)
                 H5T.insert(ctypeID,name(i),offset(i),doubleType);
               end
-              dims = [numberOfEbyNJobs 1 3 output.extraDims];
+              dims = [numberOfEoverNJobs 1 3 output.extraDims];
               spaceID = H5S.create_simple(length(dims),fliplr(dims),[]);
               dspID = H5D.create(geid,'powerBalanceSummary',ctypeID,spaceID,dcpl);
               H5DS.attach_scale(dspID,dsID,2);
@@ -630,7 +634,7 @@ classdef Output < handle
               H5T.insert(ctypeID,'threshold',offset(4),doubleType);
               H5T.insert(ctypeID,'description',offset(5),strType);
               % get dims
-              dims = [nReactions 1 numberOfEbyNJobs output.extraDims];
+              dims = [nReactions 1 numberOfEoverNJobs output.extraDims];
               spaceID = H5S.create_simple(length(dims),fliplr(dims),[]);
               dsrID = H5D.create(geid,'rateCoefficients',ctypeID,spaceID,dcpl);
               H5DS.attach_scale(dsrID,dsID,1);
@@ -653,7 +657,7 @@ classdef Output < handle
               H5T.close(memtype);
               H5D.close(dsrID);
               clear sz;
-                H5T.close(ctypeID);
+              H5T.close(ctypeID);
               % final clean-up
               H5T.close(strType);
               H5T.close(intType);
@@ -864,7 +868,7 @@ classdef Output < handle
         end
       end
       
-%       output.currentJobID = output.currentJobID + 1;
+      output.currentJobID = output.currentJobID + 1;
     end
     
     function saveEedf(output, eedf, firstAnisotropy, energy)
@@ -956,18 +960,18 @@ classdef Output < handle
         fprintf(fileID, '                          Mean energy = %#.14e (eV)\n', swarmParam.meanEnergy);
         fprintf(fileID, '                Characteristic energy = %#.14e (eV)\n', swarmParam.characEnergy);
         fprintf(fileID, '                 Electron temperature = %#.14e (eV)\n', swarmParam.Te);
-        if ~output.isSimulationHF(output.currentJobIndeces(1))
+        if ~output.isSimulationHF(output.currentJobID)
           fprintf(fileID, '                       Drift velocity = %#.14e (ms^-1)\n', swarmParam.driftVelocity);
         end
         fprintf(fileID, '                     Reduced mobility = %#.14e ((msV)^-1)\n', swarmParam.redMobility);
-        if output.isSimulationHF(output.currentJobIndeces(1))
+        if output.isSimulationHF(output.currentJobID)
           fprintf(fileID, '                  Reduced mobility HF = %#.14e%+#.14ei ((msV)^-1)\n', ...
             real(swarmParam.redMobilityHF), imag(swarmParam.redMobilityHF));
         end
         fprintf(fileID, '        Reduced diffusion coefficient = %#.14e ((ms)^-1)\n', swarmParam.redDiffCoeff);
         fprintf(fileID, '              Reduced energy mobility = %#.14e (eV(msV)^-1)\n', swarmParam.redMobilityEnergy);
         fprintf(fileID, ' Reduced energy diffusion coefficient = %#.14e (eV(ms)^-1)\n', swarmParam.redDiffCoeffEnergy);
-        if ~output.isSimulationHF(output.currentJobIndeces(1))
+        if ~output.isSimulationHF(output.currentJobID)
           fprintf(fileID, '         Reduced Townsend coefficient = %#.14e (m^2)\n', swarmParam.redTownsendCoeff);
           fprintf(fileID, '       Reduced attachment coefficient = %#.14e (m^2)\n', swarmParam.redAttCoeff);
         end
@@ -983,7 +987,8 @@ classdef Output < handle
         sz(1:9) = H5T.get_size(doubleType);
         offset(1)=0;
         % get offset and name
-        if output.isSimulationHF(output.currentJobIndeces(1))
+        if output.isSimulationHF(output.currentJobIndeces(1)) || ...
+          output.isExcitationFrequencyBatch        
           offset(2:9)=cumsum(sz(1:8));
           if output.isBoltzmann
             name = ["meanEnergy" "characEnergy" "Te" "redMobility" ...
@@ -1001,8 +1006,13 @@ classdef Output < handle
             data.reducedField = reducedField;
           end
           data.redMobility = swarmParam.redMobility;
-          data.redMobilityHFr = real(swarmParam.redMobilityHF);
-          data.redMobilityHFi = imag(swarmParam.redMobilityHF);
+          if ~isempty(swarmParam.redMobilityHF)          
+            data.redMobilityHFr = real(swarmParam.redMobilityHF);
+            data.redMobilityHFi = imag(swarmParam.redMobilityHF);
+          else
+            data.redMobilityHFr = 0.0;
+            data.redMobilityHFi = 0.0;
+          end
           data.redDiffCoeff = swarmParam.redDiffCoeff;
           data.redMobilityEnergy = swarmParam.redMobilityEnergy;
           data.redDiffCoeffEnergy = swarmParam.redDiffCoeffEnergy;
@@ -1440,7 +1450,7 @@ classdef Output < handle
               fclose(fileID5);
             end
           end
-          if output.isSimulationHF(output.currentJobIndeces(1))
+          if output.isSimulationHF(output.currentJobID)
             fprintf(fileID1, [repmat('%-21s ', 1, 10) '\n'], 'RedField(Td)', 'RedDiff((ms)^-1)', 'RedMob((msV)^-1)', ...
               'R[RedMobHF]((msV)^-1)', 'I[RedMobHF]((msV)^-1)', 'RedDiffE(eV(ms)^-1)', 'RedMobE(eV(msV)^-1)', ...
               'MeanE(eV)', 'CharE(eV)', 'EleTemp(eV)');
@@ -1452,7 +1462,7 @@ classdef Output < handle
           fprintf(fileID2, '%-21s ', 'RedField(Td)');
           fprintf(fileID3, '%-21s ', 'RedField(Td)');
         else
-          if output.isSimulationHF(output.currentJobIndeces(1))
+          if output.isSimulationHF(output.currentJobID)
             fprintf(fileID1, [repmat('%-21s ', 1, 10) '\n'], 'EleTemp(eV)', 'RedField(Td)', 'RedDiff(1/(ms))', ...
               'RedMob(1/(msV))', 'R[RedMobHF](1/(msV))', 'I[RedMobHF](1/(msV))', 'RedDiffE(eV/(ms))', ...
               'RedMobE(eV/(msV))', 'MeanE(eV)', 'CharE(eV)');
@@ -1503,7 +1513,7 @@ classdef Output < handle
           fprintf(fileID2, '%-+21.14e ', workCond.currentTime);
           fprintf(fileID3, '%-+21.14e ', workCond.currentTime);
         end
-        if output.isSimulationHF(output.currentJobIndeces(1))
+        if output.isSimulationHF(output.currentJobID)
           fprintf(fileID1, [repmat('%-+21.14e ', 1, 10) '\n'], ...
             workCond.reducedField, swarmParams.redDiffCoeff, swarmParams.redMobility, ...
             real(swarmParams.redMobilityHF), imag(swarmParams.redMobilityHF), swarmParams.redDiffCoeffEnergy, ...
@@ -1517,7 +1527,7 @@ classdef Output < handle
         fprintf(fileID2, '%-+21.14e ', workCond.reducedField);
         fprintf(fileID3, '%-+21.14e ', workCond.reducedField);
       else
-        if output.isSimulationHF(output.currentJobIndeces(1))
+        if output.isSimulationHF(output.currentJobID)
           fprintf(fileID1, [repmat('%-+21.14e ', 1, 10) '\n'], ...
             swarmParams.Te, workCond.reducedField, swarmParams.redDiffCoeff, swarmParams.redMobility, ...
              real(swarmParams.redMobilityHF), imag(swarmParams.redMobilityHF), swarmParams.redDiffCoeffEnergy, ...
