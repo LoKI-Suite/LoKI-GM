@@ -2807,11 +2807,11 @@ classdef InputGUILokib < handle
             currentItems = listBox.Items;
             
             % Find the index of the item to replace
-            if iscell(currentItems)
-                itemIndex = find(strcmp(currentItems, itemToEdit), 1);
-            else
-                itemIndex = find(strcmp(currentItems, itemToEdit), 1);
-            end
+            % if iscell(currentItems)
+            itemIndex = find(strcmp(currentItems, itemToEdit), 1);
+            % else
+            %     itemIndex = find(strcmp(currentItems, itemToEdit), 1);
+            % end
             
             if isempty(itemIndex)
                 uialert(gui.Fig, 'Could not find the selected item.', 'Error');
