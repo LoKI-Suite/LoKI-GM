@@ -291,6 +291,11 @@ classdef Setup < handle
 
         % *** DEBUG: This next section should be moved to Output.m ***
         % obtain subFolder of the new run
+        if setup.enableElectronKinetics && strcmpi(setup.info.electronKinetics.eedfType, 'prescribedEedf')
+            isBoltzmann = false;
+        else
+            isBoltzmann = true;
+        end    
         outputSubFolder = '';
         for i = setup.numberOfBatchTypes:-1:1
           outputSubFolder = sprintf('%s%s%s_%g', outputSubFolder, filesep, setup.batches(i).property, ...
@@ -300,14 +305,17 @@ classdef Setup < handle
         % in case multiple jobs refer to a parameter different from 'reduced field' 
         outputSubFolderBatches = '';        
         iBatches = setup.numberOfBatchTypes;
-        if ~strcmp(setup.batches(iBatches).property, 'reducedField')
-          % set higher-order folder for a single job or a single 'reduced field' value
-          if setup.numberOfBatchTypes == 1 || isscalar(setup.info.workingConditions.reducedField)
-             firstFolder = 1;
-          % set higher-order folder in other cases
-          else
+        if ~strcmp(setup.batches(iBatches).property, 'reducedField') || ...
+            ~strcmp(setup.batches(iBatches).property, 'electronTemperature')
+           % set higher-order folder for a single job or a single 'reduced field' / 'electron temperature' value
+            if setup.numberOfBatchTypes == 1 || ...
+              (isBoltzmann && isscalar(setup.info.workingConditions.reducedField)) || ...
+              (~isBoltzmann && isscalar(setup.info.workingConditions.electronTemperature))
+                firstFolder = 1;
+            % set higher-order folder in other cases
+            else
              firstFolder = 2;
-          end
+            end
           for i = setup.numberOfBatchTypes:-1:firstFolder
               outputSubFolderBatches = sprintf('%s%s%s_%g', outputSubFolderBatches, filesep, ...
                   setup.batches(i).property, setup.batches(i).value(newJobIndeces{i}));
@@ -316,7 +324,8 @@ classdef Setup < handle
 
         % set subFolder for the output of the next job
         setup.output.subFolder = outputSubFolder;
-        if ~strcmp(setup.batches(iBatches).property, 'reducedField')
+        if ~strcmp(setup.batches(iBatches).property, 'reducedField') && ...
+          ~strcmp(setup.batches(iBatches).property, 'electronTemperature')
           setup.output.subFolderBatches = outputSubFolderBatches;
         end
       end

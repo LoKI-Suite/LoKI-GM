@@ -29,13 +29,15 @@ classdef Output < handle
     dataFormat = '';                    % data format to save results. Options are: 'txt' and 'hdf5'
 
     isSimulationHF = [];                % boolean vector (dim = number of electricField jobs) to know if the electron kinetics (Boltzmann only) is HF
-    isExcitationFrequencyBatch = false; % boolean value. True if ExcitationFrequency has several values
+    isExcitationFrequencyBatch = false; % boolean value. True if ExcitationFrequency has several values    
     isBoltzmann = true;                 % boolean to know if the electron kinetics is Boltzmann (true) of prescribedEedf (false)
-
+    isPulse = false;
+    
     logIsToBeSaved = false;             % boolean to know if the log (as written by the CLI) must be saved
     inputsAreToBeSaved = false;         % boolean to know if the input files must be saved
     currentJobID = 1;                   % cummulative index of the job value used for data writing
     currentJobIndeces = [1];            % indeces of the job value used for data writing
+    numberOfEoverNJobs = 1;             % number of distinct E/N values (or Te values in case of prescribedEedf)    
     extraDims = [];                     % Number of tasks for each property, in addition to E/N, with multiple values.
     eedfIsToBeSaved = false;            % boolean to know if the eedf must be saved
     swarmParamsIsToBeSaved = false;     % boolean to know if the swarm parameters info must be saved
@@ -50,6 +52,12 @@ classdef Output < handle
       
       setupInfo = setup.info;
       output.dataFormat = setupInfo.output.dataFormat;
+      output.isPulse = setup.pulsedSimulation;
+
+      % check if electronKinetics calculations are boltzmann of prescribedEedf
+      if setup.enableElectronKinetics && strcmpi(setup.info.electronKinetics.eedfType, 'prescribedEedf')
+          output.isBoltzmann = false;
+      end
 
       if contains(output.dataFormat, 'txt')
         % set output folder (if not specified in the setup, a generic folder with a timestamp is created)
@@ -72,15 +80,19 @@ classdef Output < handle
             setup.batches(i).value(1));
           end
           % locate the output subfolder at next level, 
-          % in case multiple jobs refer to a parameter different from 'reduced field'
+          % in case multiple jobs refer to a parameter different from
+          % 'reduced field' or 'electron temperature'
           outputSubFolderBatches = '';
-          if ~strcmp(setup.batches(iBatches).property, 'reducedField')
-           % set higher-order folder for a single job or a single 'reduced field' value
-            if setup.numberOfBatchTypes == 1 || isscalar(setup.info.workingConditions.reducedField)
-               firstFolder = 1;
-            % set higher-order folder in other cases
+          if ~strcmp(setup.batches(iBatches).property, 'reducedField') || ...
+              ~strcmp(setup.batches(iBatches).property, 'electronTemperature')
+           % set higher-order folder for a single job or a single 'reduced field' / 'electron temperature' value
+            if setup.numberOfBatchTypes == 1 || ...
+              (output.isBoltzmann && isscalar(setup.info.workingConditions.reducedField)) || ...
+              (~output.isBoltzmann && isscalar(setup.info.workingConditions.electronTemperature))
+                firstFolder = 1;
+            % set higher-order folder in other cases                
             else
-               firstFolder = 2;
+                firstFolder = 2;
             end
             for i = setup.numberOfBatchTypes:-1:firstFolder
                 outputSubFolderBatches = sprintf('%s%s%s_%g', outputSubFolderBatches, filesep, ...
@@ -91,7 +103,8 @@ classdef Output < handle
         % save output subfolder info (folder inside the output.folder folder)
         output.subFolder = outputSubFolder;
         if iBatches ~= 0
-            if ~strcmp(setup.batches(iBatches).property, 'reducedField')
+            if ~strcmp(setup.batches(iBatches).property, 'reducedField') && ...
+                ~strcmp(setup.batches(iBatches).property, 'electronTemperature')
                 output.subFolderBatches = outputSubFolderBatches;
             end
         end
@@ -125,16 +138,20 @@ classdef Output < handle
         output.h5file = hdfFile;
 
         % Choose the number of E/N values
-        if isempty(setup.pulseInfo)
-          for i = setup.numberOfBatchTypes:-1:1
-            if strcmp(setup.batches(i).property, 'reducedField')
-              numberOfEoverNJobs = setup.batches(i).jobs;
-              break;
+        for i = setup.numberOfBatchTypes:-1:1
+          if (strcmpi(setup.info.electronKinetics.eedfType, 'boltzmann') && ...
+            strcmp(setup.batches(i).property, 'reducedField')) || ...
+            (strcmpi(setup.info.electronKinetics.eedfType, 'prescribedEedf') && ...
+            strcmp(setup.batches(i).property, 'electronTemperature'))
+%           if strcmp(setup.batches(i).property, 'reducedField')
+            if output.isPulse
+              output.numberOfEoverNJobs = setup.pulseInfo.samplingPoints+1;
+            else
+              output.numberOfEoverNJobs = setup.batches(i).jobs;
             end
+            break;
           end
-        else
-          numberOfEoverNJobs = setup.pulseInfo.samplingPoints+1;
-        end
+        end        
 
         % Common constants for hdf5 calls
         dcpl = "H5P_DEFAULT";
@@ -143,7 +160,7 @@ classdef Output < handle
         % creates the file with default library properties (overwrite, ...)
         fID = H5F.create(hdfFile, "H5F_ACC_TRUNC", dcpl, dcpl);
 
-        % Saves working conditions as attributes if single valued
+        % Saves working conditions are single valued, saved them as attributes
         workingConditions = setup.info.workingConditions;
         spaceID = H5S.create("H5S_SCALAR");
         acpl = H5P.create("H5P_ATTRIBUTE_CREATE");
@@ -291,17 +308,15 @@ classdef Output < handle
       end
 
       % save the information if the electron kinetics is HF
-      if isempty(setup.pulseInfo)
-        numberOfEoverNJobs = setup.batches(1).jobs;
-        numberOfJobs = setup.numberOfJobs;
+      if output.isPulse
+        numberOfJobs = setup.numberOfJobs*(setup.pulseInfo.samplingPoints+1);
       else
-         numberOfEoverNJobs = setup.batches(1).jobs*(setup.pulseInfo.samplingPoints+1);
-         numberOfJobs = setup.numberOfJobs*(setup.pulseInfo.samplingPoints+1);         
+        numberOfJobs = setup.numberOfJobs;
       end
       workCond = setup.info.workingConditions;
       numberOfJobsFreq = length(workCond.excitationFrequency);
-      % numberOfJobsModFreq = numberOfEoverNJobs;
-      numberOfJobsModFreq = numberOfJobs/numberOfJobsFreq;      
+      numberOfJobsModFreq = numberOfJobs/numberOfJobsFreq;
+      % DEBUG
       for idx = 1:numberOfJobsFreq
         if workCond.excitationFrequency(idx) > 0
             for idxJobs = 1:numberOfJobsModFreq
@@ -314,27 +329,31 @@ classdef Output < handle
         end
       end
 
-      % If we study the electron kinetics, we write the reducedField or
-      % electronTemperature values on geid.
+      % If we study the electron kinetics, we write the reducedField values,
+      % electronTemperature values and all the properties with multiple values,
+      % corresponding to multiple jobs, on geid.
+      % If we have a time-dependent reducedField pulse, the E/N values are
+      % written in the end.
+      % If we study the chemistry, the maintenance field is written in the end.
       if contains(output.dataFormat, 'hdf5')
-        if strcmpi(setup.info.electronKinetics.eedfType, 'boltzmann')
+        if setup.enableElectronKinetics && strcmpi(setup.info.electronKinetics.eedfType, 'boltzmann')
           % First saves the reducedField values if we don't do the chemistry.
           reducedField = setup.info.workingConditions.reducedField;
           % set dims dimensions
-          if isempty(setup.pulseInfo)
-            dims = [1 numberOfEoverNJobs];
-          else    % reducedField(t) -> columns for t and E/N
-            dims = [2 numberOfEoverNJobs];
+          if setup.pulsedSimulation   % reducedField(t) -> columns for t and E/N
+            dims = [2 output.numberOfEoverNJobs];
+          else
+            dims = [1 output.numberOfEoverNJobs];
           end
           spaceID = H5S.create_simple(2,fliplr(dims),[]);
           dsID = H5D.create(geid,'reducedField',doubleType,spaceID,dcpl);
-          if isempty(setup.pulseInfo)
-            H5DS.set_label(dsID,0,'E/N')
-          else
+          if setup.pulsedSimulation
             H5DS.set_label(dsID,0,'time')
             H5DS.set_label(dsID,1,'E/N')
+          else
+            H5DS.set_label(dsID,0,'E/N')
           end
-                if isempty(setup.pulseInfo)
+          if ~setup.pulsedSimulation
             H5D.write(dsID,'H5ML_DEFAULT','H5S_ALL','H5S_ALL', ...
               'H5P_DEFAULT',reducedField);
           end
@@ -350,7 +369,7 @@ classdef Output < handle
           % set as scale
           H5DS.set_scale(dsID,"E/N");
           H5T.close(stypeID);
-        elseif strcmpi(setup.info.electronKinetics.eedfType, 'prescribedEedf')
+        elseif setup.enableElectronKinetics && strcmpi(setup.info.electronKinetics.eedfType, 'prescribedEedf')
           output.isBoltzmann = false;
           % First saves the electronTemperature values
           % get dims
@@ -377,13 +396,15 @@ classdef Output < handle
           H5DS.set_scale(dsID,"Te");
         end
         for i = 1:setup.numberOfBatchTypes
-          if strcmp(setup.batches(i).property, 'reducedField')
+          if (strcmpi(setup.info.electronKinetics.eedfType, 'boltzmann') && ...
+            strcmp(setup.batches(i).property, 'reducedField')) || ...
+            (strcmpi(setup.info.electronKinetics.eedfType, 'prescribedEedf') && ...
+            strcmp(setup.batches(i).property, 'electronTemperature'))
             continue    % We already wrote this dataset
           end
           dims = [1 setup.batches(i).jobs];
           spaceID = H5S.create_simple(2,fliplr(dims),[]);
           dsbID = H5D.create(geid,setup.batches(i).property,doubleType,spaceID,dcpl);
-%           H5DS.set_label(dsbID,0,'E/N');   % DEBUG <- we need the quantity name!
           H5DS.set_label(dsbID,0,setup.batches(i).property);
           H5D.write(dsbID,'H5ML_DEFAULT','H5S_ALL','H5S_ALL', ...
               'H5P_DEFAULT',setup.batches(i).value);
@@ -397,14 +418,18 @@ classdef Output < handle
           attrID = H5A.create(dsID,units,stypeID,spaceID,acpl);
           H5A.write(attrID,"H5ML_DEFAULT",units);
 %           % set as scale
+%           % DEBUG: If we want to set the property as scale, we need a name...
 %           H5DS.set_scale(dsID,setup.batches(i).property);
 %           H5T.close(stypeID);
         end
       end
 
-      % Sets the common extraDims for the datasets
+      % Sets the common extraDims (except for reducedField) for the datasets
       for i = 1:length(setup.batches)
-        if strcmpi(setup.batches(i).property, 'reducedField')
+        if (strcmpi(setup.info.electronKinetics.eedfType, 'boltzmann') && ...
+          strcmp(setup.batches(i).property, 'reducedField')) || ...
+          (strcmpi(setup.info.electronKinetics.eedfType, 'prescribedEedf') && ...
+          strcmp(setup.batches(i).property, 'electronTemperature'))
           continue
         else
           output.extraDims(end+1) = setup.batches(i).jobs;
@@ -441,7 +466,8 @@ classdef Output < handle
               for i = 1:length(sz)
                 H5T.insert(ctypeID,name(i),offset(i),doubleType);
               end
-              dims = [length(setup.energyGrid.cell) 1 numberOfEoverNJobs output.extraDims];
+%               dims = [length(setup.energyGrid.cell) 1 output.numberOfEoverNJobs output.extraDims-1];
+              dims = [length(setup.energyGrid.cell) 1 output.numberOfEoverNJobs output.extraDims];
               h5_dims = fliplr(dims);
               spaceID = H5S.create_simple(length(dims),h5_dims,h5_dims);
               dsfID = H5D.create(geid,'eedf',ctypeID,spaceID,dcpl);
@@ -478,10 +504,10 @@ classdef Output < handle
               sz(1:9) = H5T.get_size(doubleType);
               offset(1)=0;
               % get dims
-%               if output.isSimulationHF(output.currentJobID)
+              % if output.isSimulationHF(output.currentJobID)
               output.isExcitationFrequencyBatch = contains([setup.batches(:).property], 'excitationFrequency');
               if output.isSimulationHF(output.currentJobIndeces(1)) || ...
-                output.isExcitationFrequencyBatch                  
+                output.isExcitationFrequencyBatch
                 offset(2:9)=cumsum(sz(1:8));
                 if output.isBoltzmann
                   name = ["meanEnergy" "characEnergy" "Te" "redMobility" ...
@@ -518,7 +544,7 @@ classdef Output < handle
               for i = 1:length(sz)
                 H5T.insert(ctypeID,name(i),offset(i),doubleType);
               end
-              dims = [numberOfEoverNJobs 1 output.extraDims];
+              dims = [output.numberOfEoverNJobs 1 output.extraDims];              
               spaceID = H5S.create_simple(length(dims),fliplr(dims),[]);
               dssID = H5D.create(geid,'swarmParameters',ctypeID,spaceID,dcpl);
               H5DS.attach_scale(dssID,dsID,1);
@@ -554,7 +580,7 @@ classdef Output < handle
                 H5T.insert(ctypeID,name(i),offset(i),doubleType);
               end
               ngas = length(setup.electronKineticsGasArray);
-              dims = [numberOfEoverNJobs 1 3 output.extraDims ngas];
+              dims = [output.numberOfEoverNJobs 1 3 output.extraDims ngas];
               spaceID = H5S.create_simple(length(dims),fliplr(dims),[]);
               dspID = H5D.create(geid,'powerBalanceGases',ctypeID,spaceID,dcpl);
               H5DS.attach_scale(dspID,dsID,3);
@@ -587,7 +613,7 @@ classdef Output < handle
               for i = 1:length(sz)
                 H5T.insert(ctypeID,name(i),offset(i),doubleType);
               end
-              dims = [numberOfEoverNJobs 1 3 output.extraDims];
+              dims = [output.numberOfEoverNJobs 1 3 output.extraDims];              
               spaceID = H5S.create_simple(length(dims),fliplr(dims),[]);
               dspID = H5D.create(geid,'powerBalanceSummary',ctypeID,spaceID,dcpl);
               H5DS.attach_scale(dspID,dsID,2);
@@ -634,7 +660,7 @@ classdef Output < handle
               H5T.insert(ctypeID,'threshold',offset(4),doubleType);
               H5T.insert(ctypeID,'description',offset(5),strType);
               % get dims
-              dims = [nReactions 1 numberOfEoverNJobs output.extraDims];
+              dims = [nReactions 1 output.numberOfEoverNJobs output.extraDims];              
               spaceID = H5S.create_simple(length(dims),fliplr(dims),[]);
               dsrID = H5D.create(geid,'rateCoefficients',ctypeID,spaceID,dcpl);
               H5DS.attach_scale(dsrID,dsID,1);
@@ -821,26 +847,33 @@ classdef Output < handle
         end
       end
       
-      % if output format is hdf5, save the time and reducedField values
+      % if output format is hdf5 and isPulse, save the time and reducedField values
       if contains(output.dataFormat, 'hdf5')
-          data = [electronKinetics.workCond.currentTime, electronKinetics.workCond.reducedField];
-          if length(data) == 2
-              % write the values
-              fID = H5F.open(output.h5file, "H5F_ACC_RDWR", "H5P_DEFAULT");
-              dseID = H5D.open(fID,'/electronKinetics/reducedField');
-              start = [0 output.currentJobIndeces(1)-1];
-%               start = [0 output.currentJobID-1];
-              h5_block = [1 2];
-              memSpaceID = H5S.create_simple(2,h5_block,[]);
-              dspaceID = H5D.get_space(dseID);
-              H5S.select_hyperslab(dspaceID,"H5S_SELECT_SET",fliplr(start),[],[],h5_block);
-              H5D.write(dseID,"H5ML_DEFAULT",memSpaceID,dspaceID,"H5P_DEFAULT",data);
-              %
-              H5S.close(dspaceID);
-              H5S.close(memSpaceID);
-              H5D.close(dseID);
-              H5F.close(fID);
+        % DEBUG: Check if the E/N is written for 'chemistry'
+        if output.isPulse
+          % we only need to write the first output.numberOfEoverNJobs values...
+          if output.currentJobID <= output.numberOfEoverNJobs
+            data = [electronKinetics.workCond.currentTime, electronKinetics.workCond.reducedField];
+            % write the values
+            fID = H5F.open(output.h5file, "H5F_ACC_RDWR", "H5P_DEFAULT");
+            dseID = H5D.open(fID,'/electronKinetics/reducedField');
+%             if output.isPulse
+              start = [0 output.currentJobID-1];
+%             else
+%               start = [0 output.currentJobIndeces(1)-1];
+%             end
+            h5_block = [1 2];
+            memSpaceID = H5S.create_simple(2,h5_block,[]);
+            dspaceID = H5D.get_space(dseID);
+            H5S.select_hyperslab(dspaceID,"H5S_SELECT_SET",fliplr(start),[],[],h5_block);
+            H5D.write(dseID,"H5ML_DEFAULT",memSpaceID,dspaceID,"H5P_DEFAULT",data);
+            %
+            H5S.close(dspaceID);
+            H5S.close(memSpaceID);
+            H5D.close(dseID);
+            H5F.close(fID);
           end
+        end
       end
 
       % save selected results of the electron kinetics
@@ -899,34 +932,40 @@ classdef Output < handle
         fclose(fileID);
       end
       if contains(output.dataFormat, 'hdf5')
-        % write dataset on outputFile
+        % write dataset on outputFile          
         fID = H5F.open(output.h5file, "H5F_ACC_RDWR", "H5P_DEFAULT");
         dsfID = H5D.open(fID,'/electronKinetics/eedf');
         doubleType = H5T.copy('H5T_NATIVE_DOUBLE');
         offset(1)=0;
-        if ~isempty(firstAnisotropy)
-          sz(1:3) = H5T.get_size(doubleType);
-          offset(2:3)=cumsum(sz(1:2));
-        else
-          sz(1:2) = H5T.get_size(doubleType);
-          offset(2:2)=cumsum(sz(1:1));
-        end
-        memtype = H5T.create ('H5T_COMPOUND', sum(sz));
         data.Energy = energy;
         data.f0 = eedf;
         if ~isempty(firstAnisotropy)
+          sz(1:3) = H5T.get_size(doubleType);
+          offset(2:3)=cumsum(sz(1:2));
           data.f1 = firstAnisotropy;
           name = ["Energy" "EEDF" "Anisotropy"];
         else
+          sz(1:2) = H5T.get_size(doubleType);
+          offset(2:2)=cumsum(sz(1:1));
           name = ["Energy" "EEDF"];
         end
+        memtype = H5T.create ('H5T_COMPOUND', sum(sz));
         for i = 1:length(sz)
           H5T.insert(memtype,name(i),offset(i),doubleType);
         end
         extraDims = length(output.currentJobIndeces);
         extraStart = output.currentJobIndeces - ones(1,extraDims);
-        start = [0 0 extraStart];
-        block = [length(energy) 1 ones(1,extraDims)];
+        if output.isPulse
+          reducedFieldStart = mod(output.currentJobID,output.numberOfEoverNJobs);
+          if reducedFieldStart == 0
+            reducedFieldStart = output.numberOfEoverNJobs;
+          end
+          start = [0 0 reducedFieldStart-1 extraStart(2:end)];
+          block = [length(energy) 1 ones(1,extraDims)];
+        else
+          start = [0 0 extraStart];
+          block = [length(energy) 1 ones(1,extraDims)];
+        end
         h5_block = fliplr(block);
         memSpaceID = H5S.create_simple(length(block),h5_block,[]);
         dspaceID = H5D.get_space(dsfID);
@@ -1046,11 +1085,19 @@ classdef Output < handle
         for i = 1:length(sz)
           H5T.insert(memtype,name(i),offset(i),doubleType);
         end
-%         start = [output.currentJobIndeces(1)-1 0];  % Note: location is 0-based, not 1-based!
-%         h5_block = [1 1];
-        extraStart = output.currentJobIndeces(2:end) - ones(1,length(output.extraDims));
-        start = [output.currentJobIndeces(1)-1 0 extraStart];  % Note: location is 0-based, not 1-based!
-        h5_block = [1 1 ones(1,length(output.extraDims))];
+        if output.isPulse
+          extraStart = output.currentJobIndeces(2:end) - ones(1,length(output.extraDims));
+          reducedFieldStart = mod(output.currentJobID,output.numberOfEoverNJobs);
+          if reducedFieldStart == 0
+            reducedFieldStart = output.numberOfEoverNJobs;
+          end
+          start = [reducedFieldStart-1 0 extraStart];
+          h5_block = [1 1 ones(1,length(output.extraDims))];
+        else
+          extraStart = output.currentJobIndeces(2:end) - ones(1,length(output.extraDims));
+          start = [output.currentJobIndeces(1)-1 0 extraStart];  % Note: location is 0-based, not 1-based!
+          h5_block = [1 1 ones(1,length(output.extraDims))];
+        end
         memSpaceID = H5S.create_simple(length(h5_block),h5_block,[]);
         dspaceID = H5D.get_space(dssID);
         H5S.select_hyperslab(dspaceID,"H5S_SELECT_SET",fliplr(start),[],[],h5_block);
@@ -1160,10 +1207,22 @@ classdef Output < handle
             data.threshold  = rateCoeff.energy;
             data.reaction   = rateCoeff.collDescription;
             %
-            extraDims = length(output.currentJobIndeces);
-            extraStart = output.currentJobIndeces - ones(1,extraDims);
-            start = [ratePosition 0 extraStart];
-            h5_block = [1 1 ones(1,extraDims)];
+            if output.isPulse
+              extraDims = length(output.currentJobIndeces);
+              extraStart = output.currentJobIndeces - ones(1,extraDims);
+              reducedFieldStart = mod(output.currentJobID,output.numberOfEoverNJobs);
+              if reducedFieldStart == 0
+                reducedFieldStart = output.numberOfEoverNJobs;
+              end
+              start = [ratePosition 0 reducedFieldStart-1 extraStart(2:end)];
+%               start = [ratePosition 0 extraStart];
+              h5_block = [1 1 ones(1,extraDims)];
+            else
+              extraDims = length(output.currentJobIndeces);
+              extraStart = output.currentJobIndeces - ones(1,extraDims);
+              start = [ratePosition 0 extraStart];
+              h5_block = [1 1 ones(1,extraDims)];
+            end
             memSpaceID = H5S.create_simple(length(h5_block),h5_block,[]);
             dspaceID = H5D.get_space(dsrID);
             H5S.select_hyperslab(dspaceID,"H5S_SELECT_SET",fliplr(start),[],[],h5_block);
@@ -1320,7 +1379,16 @@ classdef Output < handle
         % powerBalanceSummary
         dspID = H5D.open(fID,'/electronKinetics/powerBalanceSummary');
         extraStart = output.currentJobIndeces(2:end) - ones(1,length(output.extraDims));
-        start = [output.currentJobIndeces(1)-1 0 0 extraStart];
+        if output.isPulse
+          reducedFieldStart = mod(output.currentJobID,output.numberOfEoverNJobs);
+          if reducedFieldStart == 0
+            reducedFieldStart = output.numberOfEoverNJobs;
+          end
+          start = [reducedFieldStart-1 0 0 extraStart];
+%           start = [output.currentJobIndeces(1)-1 0 0 extraStart];
+        else
+          start = [output.currentJobIndeces(1)-1 0 0 extraStart];
+        end
         block = [1 1 3 ones(1,length(output.extraDims))];
         h5_block = fliplr(block);
         memSpaceID = H5S.create_simple(length(block),h5_block,[]);
@@ -1357,7 +1425,15 @@ classdef Output < handle
           % DEBUG:
           % powerGas also includes inelastic and superelastic fields,
           % these fiels are NOT included in the initial definition!
-          start = [output.currentJobIndeces(1)-1 0 0 extraStart i-1];
+          if output.isPulse
+            reducedFieldStart = mod(output.currentJobID,output.numberOfEoverNJobs);
+            if reducedFieldStart == 0
+              reducedFieldStart = output.numberOfEoverNJobs;
+            end
+            start = [reducedFieldStart-1 0 0 extraStart i-1];
+          else
+            start = [output.currentJobIndeces(1)-1 0 0 extraStart i-1];
+          end
           block = [1 1 3 ones(1,length(output.extraDims)) 1];
           h5_block = fliplr(block);
           memSpaceID = H5S.create_simple(length(block),h5_block,[]);
