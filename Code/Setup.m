@@ -36,7 +36,7 @@ classdef Setup < handle
     pulseInfo;                      % information about the pulse to be simulated
     
     batches = struct.empty;         % information about the different jobs to be run
-    numberOfBatchTypes = 0;         % total number of batches of jobs to be run (zero by default, meaning a single job)
+    numberOfBatches = 1;            % total number of batches of jobs to be run (one by default)
     jobMatrixSize = [];             % dimensions of the matrix of jobs to be run
     numberOfJobs = 1;               % total number of jobs to be run (one by default)
     currentJobID = 1;               % ID of the job currently running (one by default, initial value)
@@ -102,7 +102,6 @@ classdef Setup < handle
 
       % Perform a diagnostic of the correctness of the configuration provided by the user
       notify(setup, 'genericStatusMessage', StatusEventData('Performing selfdiagnostic of the setup file ...\n', 'status'));
-      start = tic;
       setup.selfDiagnostic();
       str = sprintf('  Finished (%f seconds).\\n', toc(start));
       notify(setup, 'genericStatusMessage', StatusEventData(str, 'status'));
@@ -168,21 +167,6 @@ classdef Setup < handle
         else
           auxWorkingConditions = struct();
         end
-        if ~isscalar(setup.info.workingConditions.gasTemperature)
-            auxWorkingConditions.gasTemperature = setup.info.workingConditions.gasTemperature;
-        end    
-        if isfield(setup.info.workingConditions, 'gasPressure') && ...
-                ~isscalar(setup.info.workingConditions.gasPressure)
-            auxWorkingConditions.gasPressure = setup.info.workingConditions.gasPressure;
-        end    
-        if isfield(setup.info.workingConditions, 'electronDensity') && ...
-                ~isscalar(setup.info.workingConditions.electronDensity)
-            auxWorkingConditions.electronDensity = setup.info.workingConditions.electronDensity;
-        end    
-        if ~isscalar(setup.info.workingConditions.excitationFrequency)
-            auxWorkingConditions.excitationFrequency = setup.info.workingConditions.excitationFrequency;
-        end    
-
         % evaluate jobs
         for field = fieldnames(auxWorkingConditions)'
           jobs = length(auxWorkingConditions.(field{1}));
@@ -207,18 +191,11 @@ classdef Setup < handle
           end
         end
         % initialize jobs related variables
-        setup.numberOfBatchTypes = length(setup.batches);
+        setup.numberOfBatches = length(setup.batches);
         for batch = setup.batches
           setup.jobMatrixSize(end+1) = batch.jobs;
           setup.numberOfJobs = setup.numberOfJobs*setup.jobMatrixSize(end);
         end
-      else
-        % Set the electric field batches
-        setup.numberOfBatchTypes = 1;
-        setup.batches(end+1).jobs = 1;
-        setup.batches(end).property = 'reducedField';
-        setup.batches(end).value = setup.info.workingConditions.reducedField;
-        setup.batches(end).units = 'Td';
       end
       str = sprintf('\\t    Finished (%f seconds).\\n', toc(start));
       notify(setup, 'genericStatusMessage', StatusEventData(str, 'status'));
@@ -271,25 +248,22 @@ classdef Setup < handle
           oldJobIndeces{1} = setup.currentJobID-1;
           newJobIndeces{1} = setup.currentJobID;
         else % multiple batch case (not allowed for now, runs over different values of multiple working conditions)
-          [oldJobIndeces{1:setup.numberOfBatchTypes}] = ind2sub(setup.jobMatrixSize, setup.currentJobID-1);
-          [newJobIndeces{1:setup.numberOfBatchTypes}] = ind2sub(setup.jobMatrixSize, setup.currentJobID);
+          [oldJobIndeces{1:setup.numberOfBatches}] = ind2sub(setup.jobMatrixSize, setup.currentJobID-1);
+          [newJobIndeces{1:setup.numberOfBatches}] = ind2sub(setup.jobMatrixSize, setup.currentJobID);
         end
         
         % obtain properties that needs to be updated and the updated values
         propertiesToUpdate = cell.empty;
         newValues = [];
-        for batchID = 1:setup.numberOfBatchTypes
-          if oldJobIndeces{batchID} ~= newJobIndeces{batchID}
+        for batchID = 1:setup.numberOfBatches
+          if oldJobIndeces{batchID}~=newJobIndeces{batchID}
             propertiesToUpdate{end+1} = setup.batches(batchID).property;
             newValues(end+1) = setup.batches(batchID).value(newJobIndeces{batchID});
           end
         end
         % set properties for the next job
         setup.workCond.update(propertiesToUpdate, newValues);
-        % set indeces for output of results
-        setup.output.currentJobIndeces = cell2mat(newJobIndeces);
-
-        % *** DEBUG: This next section should be moved to Output.m ***
+        
         % obtain subFolder of the new run
         if setup.enableElectronKinetics && strcmpi(setup.info.electronKinetics.eedfType, 'prescribedEedf')
             isBoltzmann = false;
@@ -297,7 +271,7 @@ classdef Setup < handle
             isBoltzmann = true;
         end    
         outputSubFolder = '';
-        for i = setup.numberOfBatchTypes:-1:1
+        for i = setup.numberOfBatches:-1:1
           outputSubFolder = sprintf('%s%s%s_%g', outputSubFolder, filesep, setup.batches(i).property, ...
             setup.batches(i).value(newJobIndeces{i}));
         end
@@ -329,7 +303,7 @@ classdef Setup < handle
           setup.output.subFolderBatches = outputSubFolderBatches;
         end
       end
-
+      
     end
     
     function finishSimulation(setup)
@@ -780,61 +754,6 @@ classdef Setup < handle
         end
       end
 
-      % check if multiple jobs are for LoKI-B code and working conditions parameters
-      %  (other than reduced field and electron temperature)
-      if isfield(setup.info.workingConditions,'excitationFrequency') && ... 
-              ~isscalar(setup.info.workingConditions.excitationFrequency) && ...
-              isfield(setup.info,'chemistry') && setup.info.chemistry.isOn
-            error([str1 'Multiple jobs are supported only for LoKI-B.' str2],1);
-      elseif isfield(setup.info.workingConditions,'gasPressure') && ... 
-              ~isscalar(setup.info.workingConditions.gasPressure) && ...
-              isfield(setup.info,'chemistry') && setup.info.chemistry.isOn
-            error([str1 'Multiple jobs are supported only for LoKI-B.' str2],1);            
-      elseif isfield(setup.info.workingConditions,'gasTemperature') && ... 
-              ~isscalar(setup.info.workingConditions.gasTemperature) && ...
-              isfield(setup.info,'chemistry') && setup.info.chemistry.isOn
-            error([str1 'Multiple jobs are supported only for LoKI-B.' str2],1);
-      elseif isfield(setup.info.workingConditions,'electronDensity') && ... 
-              ~isscalar(setup.info.workingConditions.electronDensity) && ...
-              isfield(setup.info,'chemistry') && setup.info.chemistry.isOn
-            error([str1 'Multiple jobs are supported only for LoKI-B.' str2],1);            
-      elseif isfield(setup.info.workingConditions,'wallTemperature') && ... 
-              ~isscalar(setup.info.workingConditions.wallTemperature)
-            error([str1 ['Multiple jobs are supported only for LoKI-B code and ' ...
-                'working conditions parameters.'] str2],1);
-      elseif isfield(setup.info.workingConditions,'nearWallTemperature') && ... 
-              ~isscalar(setup.info.workingConditions.nearWallTemperature)
-            error([str1 ['Multiple jobs are supported only for LoKI-B code and ' ...
-                'working conditions parameters.'] str2],1);            
-      elseif isfield(setup.info.workingConditions,'extTemperature') && ... 
-              ~isscalar(setup.info.workingConditions.extTemperature)
-            error([str1 ['Multiple jobs are supported only for LoKI-B code and ' ...
-                'working conditions parameters.'] str2],1);
-      elseif isfield(setup.info.workingConditions,'surfaceSiteDensity') && ... 
-              ~isscalar(setup.info.workingConditions.surfaceSiteDensity)
-            error([str1 ['Multiple jobs are supported only for LoKI-B code and ' ...
-                'working conditions parameters.'] str2],1);
-      elseif isfield(setup.info.workingConditions,'chamberLength') && ... 
-              ~isscalar(setup.info.workingConditions.chamberLength)
-            error([str1 ['Multiple jobs are supported only for LoKI-B code and ' ...
-                'working conditions parameters.'] str2],1);
-      elseif isfield(setup.info.workingConditions,'chamberRadius') && ... 
-              ~isscalar(setup.info.workingConditions.chamberRadius)
-            error([str1 ['Multiple jobs are supported only for LoKI-B code and ' ...
-                'working conditions parameters.'] str2],1);
-      elseif isfield(setup.info.workingConditions,'dischargeCurrent') && ... 
-              ~isscalar(setup.info.workingConditions.dischargeCurrent)
-            error([str1 ['Multiple jobs are supported only for LoKI-B code and ' ...
-                'working conditions parameters.'] str2],1);
-      elseif isfield(setup.info.workingConditions,'dischargePowerDensity') && ... 
-              ~isscalar(setup.info.workingConditions.dischargePowerDensity)
-            error([str1 ['Multiple jobs are supported only for LoKI-B code and ' ...
-                'working conditions parameters.'] str2],1);
-      elseif isfield(setup.info.workingConditions,'totalSccmInFlow') && ... 
-              ~isscalar(setup.info.workingConditions.totalSccmInFlow)
-            error([str1 ['Multiple jobs are supported only for LoKI-B code and ' ...
-                'working conditions parameters.'] str2],1);
-      end      
       
       % check configuration of the electron kinetic module (in case it is present in the setup file)
       if isfield(setupInfo, 'electronKinetics')
@@ -853,14 +772,9 @@ classdef Setup < handle
             error([str1 '''eedfType'' field not found in the ' ...
               '''electronKinetics'' section of the setup file.' str2],1);
           elseif ~any(strcmp({'boltzmann' 'prescribedEedf'}, setupInfo.electronKinetics.eedfType))
-            error([str1 'Wrong value for the field ' ...
-              '''electronKinetics>eedfType''.\nValue should be either: ''boltzmann'' or ''prescribedEedf''.' str2],1);
-          elseif strcmp(setupInfo.electronKinetics.eedfType, 'boltzmann') && ~isfield(workCondStruct, 'reducedField') 
-            error([str1 '''reducedField'' (mandatory field for ''electronKinetics.eedfType=boltzmann'')\n' ...
-              'not found in the ''workingConditions'' section of the setup file.' str2],1);
-          elseif strcmp(setupInfo.electronKinetics.eedfType, 'prescribedEedf') && ~isfield(workCondStruct, 'electronTemperature') 
-            error([str1 '''electronTemperature'' (mandatory field for ''electronKinetics.eedfType=prescribedEedf'')\n' ...
-              'not found in the ''workingConditions'' section of the setup file.' str2],1);            
+            error(['Error found in the configuration of the setup file.\nWrong value for the field ' ...
+              '''electronKinetics>eedfType''.\nValue should be either: ''boltzmann'' or ''prescribedEedf''.\n' ...
+              'Please, fix the problem and run the code again.'],1);
           elseif strcmp(setupInfo.electronKinetics.eedfType, 'prescribedEedf')
             % check whether the shapeParameter field is present and the value is correct (double between 1 and 2)
             if ~isfield(setupInfo.electronKinetics, 'shapeParameter')
@@ -906,8 +820,8 @@ classdef Setup < handle
                 'not found in the ''workingConditions'' section of the setup file.' str2],1);
             elseif ~isfield(workCondStruct, 'gasPressure')
               error([str1 '''gasPressure'' (mandatory field for ''electronKinetics.includeEECollisions=true'')\n' ...
-                'not found in the ''workingConditions'' section of the setup file.' str2],1);
-            end  
+                'not found in the ''workingConditions'' section of the setup file.' str2],1);              
+            end
           end
           % --- 'LXCatFiles' field
           if ~isfield(setupInfo.electronKinetics, 'LXCatFiles')
@@ -1101,15 +1015,6 @@ classdef Setup < handle
               setupInfo.gui.refreshFrequency <= 0 || mod(setupInfo.gui.refreshFrequency,1) ~= 0
             error([str1 'Wrong value for the field ''gui>refreshFrequency''.\nValue should be a single positive ' ...
               'integer.' str2],1);
-          end
-          % check that multiple jobs refer only to reduced field and gas temperature when isOn field is true          
-          if (isfield(setup.info.workingConditions, 'gasPressure') && ...
-            ~isscalar(setup.info.workingConditions.gasPressure) ) || ...
-            (isfield(setup.info.workingConditions, 'electronDensity') && ...
-            ~isscalar(setup.info.workingConditions.electronDensity) ) || ...
-            ~isscalar(setup.info.workingConditions.excitationFrequency)
-                error([str1 ['When ''gui>isOn = true'', multiple jobs are supported only for ''reducedField'', ' ...
-                    '''electronTemperature'' and ''gasTemperature''.'] str2],1);
           end
         end
       end

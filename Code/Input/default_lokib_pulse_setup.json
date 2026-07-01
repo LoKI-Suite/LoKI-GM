@@ -40,7 +40,6 @@
       "population": [
         "N2(X^1S_g^+) = 1.0",
         "N2(X^1S_g^+,v=*) = boltzmannPopulationVibrationalCutoff@gasTemperature,0"
-        "_the use of this function is consistent with the current data in LXCat3.0 (sept 2025), but is inconsistent with the .in file calling the data in LXCat2.0"
       ]
     },
     "numerics": {

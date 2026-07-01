@@ -23,8 +23,7 @@ classdef Output < handle
   
   properties
     folder = '';                        % main output folder
-    subFolder = '';                     % sub folder (deeper level) for output of different jobs
-    subFolderBatches = '';              % sub folder (higher level) for output of different jobs    
+    subFolder = '';                     % sub folder for output of different jobs
     h5file = '';                        % output file name if dataFormat is hdf5
     dataFormat = '';                    % data format to save results. Options are: 'txt' and 'hdf5'
 
@@ -73,9 +72,8 @@ classdef Output < handle
 
         % set initial output subfolder (in case multiple jobs are to be run)
         outputSubFolder = '';
-        iBatches = setup.numberOfBatchTypes;
         if setup.numberOfJobs > 1
-          for i = setup.numberOfBatchTypes:-1:1
+          for i = setup.numberOfBatches:-1:1
             outputSubFolder = sprintf('%s%s%s_%g', outputSubFolder, filesep, setup.batches(i).property, ...
             setup.batches(i).value(1));
           end
@@ -100,7 +98,7 @@ classdef Output < handle
             end   
           end           
         end
-        % save output subfolder info (folder inside the output.folder folder)
+        % save output sub folder info (folder inside the output.folder folder)
         output.subFolder = outputSubFolder;
         if iBatches ~= 0
             if ~strcmp(setup.batches(iBatches).property, 'reducedField') && ...
@@ -117,7 +115,7 @@ classdef Output < handle
         % The hdfFile identifier is saved in output h5fid.
 
         % create root output folder in case it doesn't exist
-        % If we also have 'txt' output format we already have an output.folder
+        % If we also have 'txt' output format we have already an output.folder
         if ~contains(output.dataFormat, 'txt')
           if isfield(setup.info.output, 'folder')
             output.folder = ['Output' filesep setup.info.output.folder];
@@ -128,7 +126,6 @@ classdef Output < handle
             mkdir(output.folder);
           end
         end
-
         % The hdfFile name is the setup.info.output.folder with the h5 extension
         if isfield(setup.info.output, 'folder')
           hdfFile = [output.folder filesep setup.info.output.folder '.h5'];
@@ -136,7 +133,6 @@ classdef Output < handle
           hdfFile = [output.folder filesep 'Simulation ' datestr(datetime, 'dd mmm yyyy HHMMSS') '.h5'];
         end
         output.h5file = hdfFile;
-
         % Choose the number of E/N values
         for i = setup.numberOfBatchTypes:-1:1
           if (strcmpi(setup.info.electronKinetics.eedfType, 'boltzmann') && ...
@@ -164,89 +160,25 @@ classdef Output < handle
         workingConditions = setup.info.workingConditions;
         spaceID = H5S.create("H5S_SCALAR");
         acpl = H5P.create("H5P_ATTRIBUTE_CREATE");
+        % - Excitation frequency
+        attrID = H5A.create(fID,"Excitation frequency (Hz)",doubleType,spaceID,acpl);
+        H5A.write(attrID,"H5ML_DEFAULT",workingConditions.excitationFrequency);
+        % - Gas pressure
+        attrID = H5A.create(fID,"Gas pressure (Pa)",doubleType,spaceID,acpl);
+        H5A.write(attrID,"H5ML_DEFAULT",workingConditions.gasPressure);
         % - Temperatures
-        found = false;
-        for i = 1:setup.numberOfBatchTypes
-          if strcmpi(setup.batches(i).property, 'gasTemperature')
-            found = true;
-            if setup.batches(i).jobs == 1
-              attrID = H5A.create(fID,"Gas temperature (K)",doubleType,spaceID,acpl);
-              H5A.write(attrID,"H5ML_DEFAULT",workingConditions.gasTemperature);
-            end
-            break
-          end
-        end
-        if ~found   % gasTemperature not in setup.batches
-          attrID = H5A.create(fID,"Gas temperature (K)",doubleType,spaceID,acpl);
-          H5A.write(attrID,"H5ML_DEFAULT",workingConditions.gasTemperature);
-        end
+        attrID = H5A.create(fID,"Gas temperature (K)",doubleType,spaceID,acpl);
+        H5A.write(attrID,"H5ML_DEFAULT",workingConditions.gasTemperature);
         attrID = H5A.create(fID,"Wall temperature (K)",doubleType,spaceID,acpl);
         H5A.write(attrID,"H5ML_DEFAULT",workingConditions.wallTemperature);
         attrID = H5A.create(fID,"External temperature (K)",doubleType,spaceID,acpl);
         H5A.write(attrID,"H5ML_DEFAULT",workingConditions.extTemperature);
-        % - Gas pressure
-        % If chemistry is on, the gas pressure is mandatory.
-        if (isfield(setupInfo, 'chemistry') && setupInfo.chemistry.isOn) || ...
-          isfield(workingConditions, 'gasPressure')
-          found = false;
-          for i = 1:setup.numberOfBatchTypes
-            if strcmpi(setup.batches(i).property, 'gasPressure')
-              found = true;
-              if setup.batches(i).jobs == 1
-                attrID = H5A.create(fID,"Gas pressure (Pa)",doubleType,spaceID,acpl);
-                H5A.write(attrID,"H5ML_DEFAULT",workingConditions.gasPressure);
-              end
-              break
-            end
-          end
-          if ~found   % gasPressure not in setup.batches
-            attrID = H5A.create(fID,"Gas pressure (Pa)",doubleType,spaceID,acpl);
-            H5A.write(attrID,"H5ML_DEFAULT",workingConditions.gasPressure);
-          end
-        end
-        % - Electron density
-        % If chemistry or setupInfo.electronKinetics.includeEECollisions are on, ...
-        % the electronDensity is mandatory; in other cases writes electronDensity if present
-        if (isfield(setupInfo, 'chemistry') && setupInfo.chemistry.isOn) || ...
-          setupInfo.electronKinetics.includeEECollisions || ...
-          isfield(workingConditions, 'electronDensity')
-          found = false;
-          for i = 1:setup.numberOfBatchTypes
-            if strcmpi(setup.batches(i).property, 'electronDensity')
-              found = true;
-              if setup.batches(i).jobs == 1
-                attrID = H5A.create(fID,"Electron density (m-3)",doubleType,spaceID,acpl);
-                H5A.write(attrID,"H5ML_DEFAULT",workingConditions.electronDensity);
-              end
-              break
-            end
-          end
-          if ~found   % electronDensity not in setup.batches
-            attrID = H5A.create(fID,"Electron density (m-3)",doubleType,spaceID,acpl);
-            H5A.write(attrID,"H5ML_DEFAULT",workingConditions.electronDensity);
-          end
-        end
-
-        % - Excitation frequency
-          found = false;
-          for i = 1:setup.numberOfBatchTypes
-            if strcmpi(setup.batches(i).property, 'excitationFrequency')
-              found = true;
-              if setup.batches(i).jobs == 1
-                attrID = H5A.create(fID,"Excitation frequency (Hz)",doubleType,spaceID,acpl);
-                H5A.write(attrID,"H5ML_DEFAULT",workingConditions.excitationFrequency);
-              end
-              break
-            end
-          end
-        if ~found   % excitationFrequency not in setup.batches
-          attrID = H5A.create(fID,"Excitation frequency (Hz)",doubleType,spaceID,acpl);
-          H5A.write(attrID,"H5ML_DEFAULT",workingConditions.excitationFrequency);
-        end
-
         % - Surface site density
         attrID = H5A.create(fID,"Surface site density (m-2)",doubleType,spaceID,acpl);
         H5A.write(attrID,"H5ML_DEFAULT",workingConditions.surfaceSiteDensity);
+        % - Electron density
+        attrID = H5A.create(fID,"Electron density (m-3)",doubleType,spaceID,acpl);
+        H5A.write(attrID,"H5ML_DEFAULT",workingConditions.electronDensity);
         % - Chamber dimensions (cylindric)
         attrID = H5A.create(fID,"Chamber length (m)",doubleType,spaceID,acpl);
         H5A.write(attrID,"H5ML_DEFAULT",workingConditions.chamberLength);
@@ -263,34 +195,20 @@ classdef Output < handle
           H5A.write(attrID,"H5ML_DEFAULT",workingConditions.dischargePowerDensity);
         end
         % - Input gas flow
-        % Only if chemistry is on, the totalSccmInFlow is written (is mandatory in this case).
-        if isfield(setupInfo, 'chemistry') && setupInfo.chemistry.isOn
-          if isfield(workingConditions,'totalSccmInFlow')
-            attrID = H5A.create(fID,"Total input flow (sccm)",doubleType,spaceID,acpl);
-            H5A.write(attrID,"H5ML_DEFAULT",workingConditions.totalSccmInFlow);
-            if (~isempty(setup.workCond.totalSccmInFlow) || setup.workCond.totalSccmInFlow ~= 0) && ...
-                    setup.enableChemistry
-              % Gas composition
-              % Write inFlowFraction for each gas
-              inFlowFraction = setup.info.chemistry.gasProperties.inFlowFraction;
-              for gasFlow = inFlowFraction
-                name_flow = strsplit(gasFlow{1}, ' = ');
-                attrID = H5A.create(fID,name_flow{1}+" fraction in input flow",doubleType,spaceID,acpl);
-                H5A.write(attrID,"H5ML_DEFAULT",str2double(name_flow{2}));
-              end
-            end
-          end
-          if isfield(workingConditions,'totalSccmOutFlow')
-            if isnumeric(workingConditions.totalSccmOutFlow)
-              attrID = H5A.create(fID,"Total output flow (sccm)",doubleType,spaceID,acpl);
-              H5A.write(attrID,"H5ML_DEFAULT",workingConditions.totalSccmOutFlow);
-            elseif strcmp(workingConditions.totalSccmOutFlow, 'totalSccmInFlow')
-              attrID = H5A.create(fID,"Total output flow (sccm)",doubleType,spaceID,acpl);
-              H5A.write(attrID,"H5ML_DEFAULT",workingConditions.totalSccmInFlow);
-              % Check what to write (if anything) in this case...
-%             elseif strcmp(workCondStruct.totalSccmOutFlow, 'ensureIsobaric')
-            end
-          end
+        if isfield(workingConditions,'totalSccmInFlow')
+          attrID = H5A.create(fID,"Total input flow (sccm)",doubleType,spaceID,acpl);
+          H5A.write(attrID,"H5ML_DEFAULT",workingConditions.totalSccmInFlow);
+%           if (~isempty(setup.workCond.totalSccmInFlow) || setup.workCond.totalSccmInFlow ~= 0) && ...
+%                   setup.enableChemistry
+%             % Gas composition
+%             % Write inFlowFraction for each gas
+%             inFlowFraction = setup.info.chemistry.gasProperties.inFlowFraction;
+%             for gasFlow = inFlowFraction
+%               name_flow = strsplit(gasFlow{1}, ' = ');
+%               attrID = H5A.create(fID,name_flow{1}+" fraction in input flow",doubleType,spaceID,acpl);
+%               H5A.write(attrID,"H5ML_DEFAULT",str2double(name_flow{2}));
+%             end
+%           end
         end
         H5A.close(attrID);
         H5S.close(spaceID);
@@ -435,7 +353,6 @@ classdef Output < handle
           output.extraDims(end+1) = setup.batches(i).jobs;
         end
       end
-      output.currentJobIndeces = ones(1,length(setup.batches));
 
       % Writes the datasets
       for dataSet = dataSets
@@ -469,7 +386,7 @@ classdef Output < handle
 %               dims = [length(setup.energyGrid.cell) 1 output.numberOfEoverNJobs output.extraDims-1];
               dims = [length(setup.energyGrid.cell) 1 output.numberOfEoverNJobs output.extraDims];
               h5_dims = fliplr(dims);
-              spaceID = H5S.create_simple(length(dims),h5_dims,h5_dims);
+              spaceID = H5S.create_simple(3,h5_dims,h5_dims);
               dsfID = H5D.create(geid,'eedf',ctypeID,spaceID,dcpl);
               H5DS.attach_scale(dsfID,dsID,0);
               H5S.close(spaceID);
@@ -496,7 +413,6 @@ classdef Output < handle
               H5T.close(filetype);
               H5T.close(memtype);
               H5D.close(dsfID);
-              clear sz;
             end
           case 'swarmParameters'
             output.swarmParamsIsToBeSaved = true;
@@ -564,13 +480,13 @@ classdef Output < handle
               H5T.close(ctypeID);
               H5S.close(spaceID);
               H5D.close(dssID);
-              clear sz;
             end
           case 'powerBalance'
             output.powerBalanceIsToBeSaved = true;
             if contains(output.dataFormat, 'hdf5')
               % we set two datasets: powerBalanceSummary and powerBalanceGases
               % powerBalanceGases
+              clear sz;
               sz(1:5) = H5T.get_size(doubleType);
               offset(1) = 0;
               offset(2:5) = cumsum(sz(1:4));
@@ -602,7 +518,6 @@ classdef Output < handle
               H5T.close(ctypeID);
               H5S.close(spaceID);
               H5D.close(dspID);
-              clear sz;
               % powerBalanceSummary
               sz(1:10) = H5T.get_size(doubleType);
               offset(1) = 0;
@@ -634,7 +549,6 @@ classdef Output < handle
               H5T.close(filetype);
               H5T.close(memtype);
               H5D.close(dspID);
-              clear sz;
             end
           case 'rateCoefficients'
             output.rateCoeffsIsToBeSaved = true;
@@ -834,7 +748,7 @@ classdef Output < handle
     
       % create subfolder name in case of time-dependent boltzmann calculations
       if isa(electronKinetics, 'Boltzmann') && electronKinetics.isTimeDependent
-        output.subFolder = sprintf('%s%s%stime_%e', filesep, output.subFolderBatches, filesep, electronKinetics.workCond.currentTime);
+        output.subFolder = sprintf('%stime_%e', filesep, electronKinetics.workCond.currentTime);
       end
       % create subfolder in case it is needed (when performing runs of simmulations or in time-dependent Boltzmann)
       if ~isempty(output.subFolder) && (output.eedfIsToBeSaved || output.powerBalanceIsToBeSaved || ...
@@ -967,7 +881,7 @@ classdef Output < handle
           block = [length(energy) 1 ones(1,extraDims)];
         end
         h5_block = fliplr(block);
-        memSpaceID = H5S.create_simple(length(block),h5_block,[]);
+        memSpaceID = H5S.create_simple(3,h5_block,[]);
         dspaceID = H5D.get_space(dsfID);
         H5S.select_hyperslab(dspaceID,"H5S_SELECT_SET",fliplr(start),[],[],h5_block);
         H5D.write(dsfID,memtype,memSpaceID,dspaceID,"H5P_DEFAULT",data);
@@ -975,10 +889,8 @@ classdef Output < handle
         H5T.close(doubleType);
         H5S.close(dspaceID);
         H5S.close(memSpaceID);
-        H5T.close(memtype);
         H5D.close(dsfID);
         H5F.close(fID);
-        clear sz;
       end
       
     end
@@ -1109,7 +1021,6 @@ classdef Output < handle
         H5T.close(doubleType);
         H5D.close(dssID);
         H5F.close(fID);
-        clear sz;
       end
     end
     
@@ -1229,44 +1140,9 @@ classdef Output < handle
             H5D.write(dsrID,memtype,memSpaceID,dspaceID,"H5P_DEFAULT",data);
           end
           clear data;
-          H5S.close(dspaceID);
           H5D.close(dsrID);
-          % We don't close memtype and memSpaceID as we may need them for eKineticsRateCoeffsExtra
-          if ~isempty(eKineticsRateCoeffsExtra)
-            % process the extra e-collisions rates
-            dsrxID = H5D.open(fID,'/electronKinetics/extraRateCoefficients');
-            ratePosition = -1;
-            for rateCoeff = eKineticsRateCoeffsExtra
-              ratePosition = ratePosition + 1;
-              if length(rateCoeff.value) == 1
-                data.rate_id = int32(rateCoeff.collID);
-                data.ine_coeff = rateCoeff.value;
-                data.sup_coeff = 0.0;
-                data.threshold = rateCoeff.energy;
-                data.reaction = rateCoeff.collDescription;
-              else
-                data.rate_id = int32(rateCoeff.collID);
-                data.ine_coeff = rateCoeff.value(1);
-                data.sup_coeff = rateCoeff.value(2);
-                data.threshold = rateCoeff.energy;
-                data.reaction = rateCoeff.collDescription;
-              end
-              extraDims = length(output.currentJobIndeces);
-              extraStart = output.currentJobIndeces - ones(1,extraDims);
-              start = [ratePosition 0 extraStart];
-              h5_block = [1 1 ones(1,extraDims)];
-%               memSpaceID = H5S.create_simple(length(h5_block),h5_block,[]);  % We use the one defined for eKineticsRateCoeffs
-              dspaceID = H5D.get_space(dsrxID);
-              H5S.select_hyperslab(dspaceID,"H5S_SELECT_SET",fliplr(start),[],[],h5_block);
-              H5D.write(dsrxID,memtype,memSpaceID,dspaceID,"H5P_DEFAULT",data);
-            end
-            H5S.close(dspaceID);
-            H5D.close(dsrxID);
-            clear data sz;
-          end
-          H5S.close(memSpaceID);  % We close memSpaceID and memtype open in ...
-          H5T.close(memtype);     % eKineticsRateCoeffs
         end
+        clear data;
         %
         % H5T.close(memtype);
         % H5S.close(dspaceID);
@@ -1391,11 +1267,7 @@ classdef Output < handle
         end
         block = [1 1 3 ones(1,length(output.extraDims))];
         h5_block = fliplr(block);
-        memSpaceID = H5S.create_simple(length(block),h5_block,[]);
-%         start = [output.currentJobIndeces(1)-1 0 0];
-%         block = [1 1 3];
-%         h5_block = fliplr(block);
-%         memSpaceID = H5S.create_simple(3,h5_block,[]);
+        memSpaceID = H5S.create_simple(3,h5_block,[]);
         dspaceID = H5D.get_space(dspID);
         H5S.select_hyperslab(dspaceID,"H5S_SELECT_SET",fliplr(start),[],[],h5_block);
         H5D.write(dspID,memtype,memSpaceID,dspaceID,"H5P_DEFAULT",powerSummary);
@@ -1436,7 +1308,7 @@ classdef Output < handle
           end
           block = [1 1 3 ones(1,length(output.extraDims)) 1];
           h5_block = fliplr(block);
-          memSpaceID = H5S.create_simple(length(block),h5_block,[]);
+          memSpaceID = H5S.create_simple(4,h5_block,[]);
           dspaceID = H5D.get_space(dspID);
           H5S.select_hyperslab(dspaceID,"H5S_SELECT_SET",fliplr(start),[],[],h5_block);
           H5D.write(dspID,memtype,memSpaceID,dspaceID,"H5P_DEFAULT",powerGas);
@@ -1448,7 +1320,7 @@ classdef Output < handle
     end
     
     function saveLookUpTables(output, electronKinetics)
-    % NOTE: lookUpTables are only created if output.dataFormat is 'txt'
+    % NOTE: lookUpTables are only created if (output.dataFormat is 'txt'
 
       % name of the files containing the different lookup tables
       persistent fileName1;
@@ -1456,7 +1328,6 @@ classdef Output < handle
       persistent fileName3;
       persistent fileName4;
       persistent fileName5;
-      persistent folderLookUpTables;
       
       % local copies of different variables (for performance reasons)
       workCond = electronKinetics.workCond;
@@ -1465,19 +1336,13 @@ classdef Output < handle
       rateCoeffAll = electronKinetics.rateCoeffAll;
       rateCoeffExtra = electronKinetics.rateCoeffExtra;
       eedf = electronKinetics.eedf;
-
-      if isempty(folderLookUpTables) && ~isempty(output.subFolderBatches) 
-        folderLookUpTables = output.subFolderBatches;
-      end
-      localFolderLookUpTables = output.subFolderBatches;
       
       % initialize the files in case it is needed
-      if (isempty(fileName1) || ~strcmp(folderLookUpTables,localFolderLookUpTables)) 
-        folderLookUpTables = output.subFolderBatches;
+      if isempty(fileName1)
         % create file names
-        fileName1 = [output.folder output.subFolderBatches filesep 'lookUpTableSwarm.txt'];
-        fileName2 = [output.folder output.subFolderBatches filesep 'lookUpTablePower.txt'];
-        fileName3 = [output.folder output.subFolderBatches filesep 'lookUpTableRateCoeff.txt'];
+        fileName1 = [output.folder filesep 'lookUpTableSwarm.txt'];
+        fileName2 = [output.folder filesep 'lookUpTablePower.txt'];
+        fileName3 = [output.folder filesep 'lookUpTableRateCoeff.txt'];
         % open files
         fileID1 = fopen(fileName1, 'wt');
         fileID2 = fopen(fileName2, 'wt');
@@ -1512,7 +1377,7 @@ classdef Output < handle
             fprintf(fileID2, '%-21s ', 'Time(s)');
             fprintf(fileID3, '%-21s ', 'Time(s)');
             % create lookup table for the eedf
-            fileName4 = [output.folder filesep output.subFolderBatches filesep 'lookUpTableEedf.txt'];
+            fileName4 = [output.folder filesep 'lookUpTableEedf.txt'];
             fileID4 = fopen(fileName4, 'wt');
             % add first line with energies to eedf lookup table (eedfs will be saved as rows)
             fprintf(fileID4, '%-21.14e ', [0 electronKinetics.energyGrid.cell]);
@@ -1520,8 +1385,8 @@ classdef Output < handle
             fclose(fileID4);
             % create lookup table for the electron density (if needed)
             if electronKinetics.eDensIsTimeDependent
-             fileName5 = [output.folder filesep output.subFolderBatches filesep 'lookUpTableElectronDensity.txt'];
-             fileID5 = fopen(fileName5, 'wt');
+              fileName5 = [output.folder filesep 'lookUpTableElectronDensity.txt'];
+              fileID5 = fopen(fileName5, 'wt');
               fprintf(fileID5, '%-21s %-21s\n', 'time(s)', 'ne(m^-3)\n');
               fclose(fileID5);
             end
