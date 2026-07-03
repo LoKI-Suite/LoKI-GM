@@ -268,15 +268,16 @@ classdef Setup < handle
         % Set the electric field batches
         setup.numberOfBatchTypes = 1;
         setup.batches(end+1).jobs = 1;
-        if strcmpi(setup.info.electronKinetics.eedfType, 'boltzmann')
-          setup.batches(end).property = 'reducedField';
-          setup.batches(end).value = setup.info.workingConditions.reducedField;
-          setup.batches(end).units = 'Td';
-        elseif strcmpi(setup.info.electronKinetics.eedfType, 'prescribedEedf')
-          setup.batches(end).property = 'electronTemperature';
-        setup.batches(end).value = setup.info.workingConditions.electronTemperature;
-        setup.batches(end).units = 'eV';
-        end
+        if setup.enableElectronKinetics && ...
+            strcmpi(setup.info.electronKinetics.eedfType, 'prescribedEedf')
+            setup.batches(end).property = 'electronTemperature';
+            setup.batches(end).value = setup.info.workingConditions.electronTemperature;
+            setup.batches(end).units = 'eV';
+        else        
+            setup.batches(end).property = 'reducedField';
+            setup.batches(end).value = setup.info.workingConditions.reducedField;
+            setup.batches(end).units = 'Td';
+        end   
       end
       str = sprintf('\\t    Finished (%f seconds).\\n', toc(start));
       notify(setup, 'genericStatusMessage', StatusEventData(str, 'status'));
