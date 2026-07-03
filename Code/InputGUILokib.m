@@ -5003,7 +5003,7 @@ classdef InputGUILokib < handle
                 % --- Replace this with the actual call to your solver ---
                 % Example: status = run_loki_solver(tempInputFile);
                 % Launch simulation tool
-                lokibcl(tempInputFile(7:end));
+                loki(tempInputFile(7:end));
                 % Run the simulation
                 
             % catch ME
