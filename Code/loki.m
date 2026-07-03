@@ -56,8 +56,8 @@ function loki(setupFile)
   % ----- CLEARING PREVIOUSLY USED IDs AND CLOSING PREVIOUSLY OPEN FIGURES -----
   
   save setupFile
-  close all force
-  clear classes
+  close all
+  clearvars -except app setupFile
   clear functions
   load setupFile
   delete setupFile.mat
