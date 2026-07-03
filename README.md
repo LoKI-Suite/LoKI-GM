@@ -78,12 +78,9 @@
 
 
    To run LoKI-B only, users have different alternatives:   
-   C') Using the MATLAB command window with one of the following instructions:
+   C') Using the MATLAB command window with the following instruction:
    ```bash
    >> loki('default_lokib_setup.in')
-   ``` 
-   ```bash
-   >> lokibcl('default_lokib_setup.in')
    ``` 
    C'') Through a GUI-based input by using one of the following options:
    - from the MATLAB command window:
