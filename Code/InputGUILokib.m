@@ -258,7 +258,7 @@ classdef InputGUILokib < handle
             % Numerics
             gui.Setup.electronKinetics.numerics.energyGrid.maxEnergy = 1; % (use 18-20 for time-dependent simulations)
             gui.Setup.electronKinetics.numerics.energyGrid.cellNumber = 1000; % (use 1800-2000 for time-dependent simulations)
-            gui.Setup.electronKinetics.numerics.energyGrid.smartGrid.isOn = false;
+            gui.Setup.electronKinetics.numerics.energyGrid.smartGrid.isOn = true;
             gui.Setup.electronKinetics.numerics.energyGrid.smartGrid.minEedfDecay = 20;
             gui.Setup.electronKinetics.numerics.energyGrid.smartGrid.maxEedfDecay = 25;
             gui.Setup.electronKinetics.numerics.energyGrid.smartGrid.updateFactor = 0.05;
@@ -2183,6 +2183,13 @@ classdef InputGUILokib < handle
 
         function toggleSmartGridEnable(gui, shouldEnable)
             % Function to enable/disable smart grid related controls
+            shouldEnable = logical(shouldEnable);
+
+            if isfield(gui.UIControls.electronKinetics.numerics.energyGrid.smartGrid, 'isOn') && ...
+                    isvalid(gui.UIControls.electronKinetics.numerics.energyGrid.smartGrid.isOn)
+                gui.UIControls.electronKinetics.numerics.energyGrid.smartGrid.isOn.Value = shouldEnable;
+            end
+
             controls = {
                 gui.UIControls.electronKinetics.numerics.energyGrid.smartGrid.minEedfDecay,
                 gui.UIControls.electronKinetics.numerics.energyGrid.smartGrid.maxEedfDecay,
@@ -4275,9 +4282,18 @@ classdef InputGUILokib < handle
             % This ensures that fields not present in the file appear blocked/unselected
             % Also activate fields that WERE found in the file
             
-            % Helper function to check if a field was found
+            % Helper function to check if a field was found (or any of its subfields)
             function wasFound = isFieldFound(fieldPath)
                 wasFound = foundFields.isKey(fieldPath) && foundFields(fieldPath);
+                if ~wasFound
+                    keys = foundFields.keys();
+                    for k = 1:length(keys)
+                        if startsWith(keys{k}, [fieldPath, '.'])
+                            wasFound = true;
+                            break;
+                        end
+                    end
+                end
             end
             
             % Working Conditions optional fields - ACTIVATE if found
@@ -4390,6 +4406,13 @@ classdef InputGUILokib < handle
                     if isfield(gui.UIControls.electronKinetics, 'CARcheckbox')
                         gui.UIControls.electronKinetics.CARcheckbox.Value = false;
                     end
+                catch
+                end
+            end
+
+            if ~isFieldFound('electronKinetics.numerics.energyGrid.smartGrid')
+                try
+                    gui.toggleSmartGridEnable(false);
                 catch
                 end
             end
