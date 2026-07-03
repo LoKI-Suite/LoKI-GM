@@ -275,7 +275,7 @@ classdef InputGUILokib < handle
             gui.Setup.gui.refreshFrequency = 1;
 
             % Output [cite: 14]
-            gui.Setup.output.isOn = false;
+            gui.Setup.output.isOn = true;
             gui.Setup.output.dataFormat = 'hdf5+txt'; % 'txt', 'hdf5', 'hdf5+txt'
             gui.Setup.output.folder = 'simulation_1';
             gui.Setup.output.dataSets = {'log', 'eedf', 'swarmParameters', 'rateCoefficients', 'powerBalance', 'lookUpTables'}; % Cell array
@@ -3789,6 +3789,7 @@ classdef InputGUILokib < handle
 
             setup = gui.Setup;
             foundFields = containers.Map('KeyType', 'char', 'ValueType', 'logical'); % Track found fields
+            initializedListFields = containers.Map('KeyType', 'char', 'ValueType', 'logical');
 
             keyStack = {};
             indentStack = [-1];
@@ -3843,17 +3844,18 @@ classdef InputGUILokib < handle
                         continue;
                     end
                     pathParts = keyStack;
+                    fieldPath = strjoin(pathParts, '.');
                     % Get current list (should be empty or already started from "key:" line)
                     currentList = getByPath(setup, pathParts);
-                    if isempty(currentList) || ~iscell(currentList)
+                    if ~initializedListFields.isKey(fieldPath) || isempty(currentList) || ~iscell(currentList)
                         currentList = {};
                     end
                     % Append item to list (completely replacing, not adding to defaults)
                     currentList{end+1} = item;
                     setup = setByPath(setup, pathParts, currentList);
                     % Mark this list field as found
-                    fieldPath = strjoin(pathParts, '.');
                     foundFields(fieldPath) = true;
+                    initializedListFields(fieldPath) = true;
                     i = i + 1;
                     continue;
                 end
@@ -3870,12 +3872,38 @@ classdef InputGUILokib < handle
                 if isempty(valStr)
                     % Lookahead to decide struct vs list
                     j = i + 1;
-                    while j <= numel(lines) && isempty(strtrim(lines{j}))
+                    while j <= numel(lines)
+                        lookaheadRaw = lines{j};
+                        lookaheadTrimmed = strtrim(lookaheadRaw);
+                        if isempty(lookaheadTrimmed) || startsWith(lookaheadTrimmed, '%') || startsWith(lookaheadTrimmed, '#')
+                            j = j + 1;
+                            continue;
+                        end
+
+                        lookaheadPctIdx = strfind(lookaheadRaw, '%');
+                        if ~isempty(lookaheadPctIdx)
+                            lookaheadRaw = lookaheadRaw(1:lookaheadPctIdx(1)-1);
+                        end
+                        lookaheadHashIdx = strfind(lookaheadRaw, '#');
+                        if ~isempty(lookaheadHashIdx)
+                            lookaheadRaw = lookaheadRaw(1:lookaheadHashIdx(1)-1);
+                        end
+                        if ~isempty(strtrim(lookaheadRaw))
+                            break;
+                        end
                         j = j + 1;
                     end
                     isList = false;
                     if j <= numel(lines)
                         nxtRaw = lines{j};
+                        pctIdx = strfind(nxtRaw, '%');
+                        if ~isempty(pctIdx)
+                            nxtRaw = nxtRaw(1:pctIdx(1)-1);
+                        end
+                        hashIdx = strfind(nxtRaw, '#');
+                        if ~isempty(hashIdx)
+                            nxtRaw = nxtRaw(1:hashIdx(1)-1);
+                        end
                         nxtIndent = numel(regexp(nxtRaw, '^\s*', 'match', 'once'));
                         nxtLine = strtrim(nxtRaw);
                         if nxtIndent > indent && startsWith(nxtLine, '-')
@@ -3890,6 +3918,7 @@ classdef InputGUILokib < handle
                         % Mark this list field as found
                         fieldPath = strjoin(pathParts, '.');
                         foundFields(fieldPath) = true;
+                        initializedListFields(fieldPath) = true;
                         % Push key so "- " lines append to it
                         keyStack = pathParts;
                         indentStack(end+1) = indent; %#ok<AGROW>
