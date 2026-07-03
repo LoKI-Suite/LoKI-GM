@@ -84,8 +84,8 @@ gui:
 
 % ---  configuration of the output files ---
 output: 
-  isOn: false
-  dataFormat: txt % txt or hdf5 or hdf5+txt
+  isOn: true
+  dataFormat: hdf5+txt % txt or hdf5 or hdf5+txt
   folder: simulation_pulse_1
   dataSets:
 %     - inputs

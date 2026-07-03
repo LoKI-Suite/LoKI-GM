@@ -8,7 +8,7 @@ workingConditions:
   electronTemperature: linspace(0.03, 5, 100) % in eV
   excitationFrequency: 0                      % in Hz
   gasPressure: 133.32                         % in Pa
-  gasTemperature: 195                         % in K   (average gas temperature)
+  gasTemperature: 300                         % in K   (average gas temperature)
   wallTemperature: 390                        % in K   (wall temperature)
   extTemperature: 300                         % in K   (external temperature)
   surfaceSiteDensity: 1e19                    % in m-2 (used for surface kinetics)
@@ -30,8 +30,6 @@ electronKinetics:
   includeEECollisions: false           % true or false (to include / remove e-e collisions)
   LXCatFiles:                          % cross section files
     - CO2/CO2_LXCat.txt
-  effectiveCrossSectionPopulations:    % see doc
-    - CO2/CO2_effectivePop.txt
   gasProperties:                       % properties of the gases (S.I. Units)
     mass: Databases/masses.txt
     fraction:
@@ -56,8 +54,8 @@ electronKinetics:
       - CO2(X,v=060+220+140) = 15
     population:
       - CO2(X) = 1.0
-      - CO2(X,v=000) = 0.9859 % 0.9254 boltzmann @300K 0.9859 % boltzmann @195K 9.999926118e-1 % boltzmann @77K 
-      - CO2(X,v=010) = 0.0141 % 0.0746 boltzmann @300K 0.0141 % boltzmann @195K 7.38820000e-06 % boltzmann @77K
+      - CO2(X,v=000) = 0.9254 % 0.9254 boltzmann @300K 0.9859 % boltzmann @195K 9.999926118e-1 % boltzmann @77K 
+      - CO2(X,v=010) = 0.0746 % 0.0746 boltzmann @300K 0.0141 % boltzmann @195K 7.38820000e-06 % boltzmann @77K
   numerics:                            % configuration of numerical details of the simulation
     energyGrid:                        % properties of the energy grid (in eV)
       maxEnergy: 1                     % (use 18-20 for time-dependent simulations)
@@ -87,9 +85,9 @@ gui:
 
 % ---  configuration of the output files ---
 output:
-  isOn: false
+  isOn: true
   dataFormat: hdf5+txt % txt or hdf5 or hdf5+txt
-  folder: CO2Swarm_195K_PT
+  folder: CO2Swarm_300K_PT
   dataSets:
 %     - inputs
     - log

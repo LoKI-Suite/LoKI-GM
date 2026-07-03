@@ -1,0 +1,14 @@
+% Reduced mobilities, as a function of E/N, taken from Eliason and Kogelschatz (1986) - 
+% "Basic data for modelling of electrical discharges in gases: oxygen"
+% O+ mobility in O2
+% First column: E/N in Td
+% Second column: reduced mobility in SI (m-1 V-1 s-1)
+60	  2.11e-4*101324.72/(293*1.38064852e-23)
+120	  1.97e-4*101324.72/(293*1.38064852e-23)
+180	  1.75e-4*101324.72/(293*1.38064852e-23)
+240	  1.64e-4*101324.72/(293*1.38064852e-23)
+300	  1.58e-4*101324.72/(293*1.38064852e-23)
+600	  1.18e-4*101324.72/(293*1.38064852e-23)
+900	  0.96e-4*101324.72/(293*1.38064852e-23)
+1200	0.82e-4*101324.72/(293*1.38064852e-23)
+1500	0.79e-4*101324.72/(293*1.38064852e-23)

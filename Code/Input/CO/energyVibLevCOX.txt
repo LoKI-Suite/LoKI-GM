@@ -1,0 +1,19 @@
+% Excitation energy of vibrational levels CO(X,v=0-10)
+% Tomás Kozak and Annemie Bogaerts 
+% "Splitting of CO2 by vibrational excitation in non-equilibrium plasmas: a reaction kinetics model"
+% Plasma Sources Sci. Technol. 23 (2014) 045004 (17pp) 
+
+CO(X,v=0) 0.00000000000000
+CO(X,v=1) 0.265726651385901
+CO(X,v=2) 0.528157802805007
+CO(X,v=3) 0.787293454257315
+CO(X,v=4) 1.04313360574283
+CO(X,v=5) 1.29567825726154
+CO(X,v=6) 1.54492740881346
+CO(X,v=7) 1.79088106039859
+CO(X,v=8) 2.03353921201691
+CO(X,v=9) 2.27290186366844
+CO(X,v=10) 2.50896901535317
+CO(X,v=11) 2.74174067
+
+

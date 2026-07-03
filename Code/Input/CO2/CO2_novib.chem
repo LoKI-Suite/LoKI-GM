@@ -1,0 +1,78 @@
+%chemistry based on  A F Silva et al 2020 Plasma Sources Sci. Technol. 29 125020
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%                           %%%%
+%%%   e-impact reactions      %%%%
+%%%                           %%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+  
+e + CO2(X) -> e + e + CO2(+,X)		| eedf                      |                                  |
+e + CO2(X) -> e + CO(X) + O(1D)		| eedf                      |                                  |
+e + CO2(X) -> e + CO(a3P) + O(3P)	| eedf                      |                                  |
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%                           %%%%
+%%%   e-ion and e-attachment  %%%%
+%%%                           %%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+e + CO2(+,X) -> CO(X) + O(3P)	                | powerGasElecTemp  |  2.7e-14, 0, -0.75 | %Viggiano / Seiersen
+e + CO2(X) -> CO(X) + O(-,gnd)		            | eedf                      |                                  |
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%                           %%%%
+%%% Neutral-Neutral reactions %%%%
+%%%                           %%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+CO(a3P) + O2(X) -> CO(X) + O2(X)		| constantRateCoeff	| 0.6e-10*1e-6*0.4| %Wysong (2000)
+CO(a3P) + O2(X) -> CO(X) + 2O(3P)		| constantRateCoeff	| 0.6e-10*1e-6*0.4| %Wysong (2000)
+CO(a3P) + O2(X) -> CO2(X) + O(3P)	    | constantRateCoeff | 0.6e-10*1e-6*0.2| %Wysong (2000)
+
+CO(a3P) + CO(X) -> CO2(X) + C(X)	    | constantRateCoeff	| 0.57e-10*1e-6*0.016| %Wysong (2000)
+CO(a3P) + CO(X) -> 2CO(X)			    | constantRateCoeff | 0.57e-10*1e-6*0.984| %Wysong (2000)
+
+CO(a3P) + CO2(X) -> CO(X) + CO2(X) 		| constantRateCoeff	| 1.0e-11*1e-6*0.5|  %Skrzypkowski (1999)
+CO(a3P) + CO2(X) -> 2CO(X) + O(3P)	    | constantRateCoeff	| 1.0e-11*1e-6*0.5|  %Skrzypkowski (1999)
+
+CO(a3P) + O(3P) -> CO(X) + O(3P)        | constantRateCoeff  	| 1.9e-10*1e-6 | %Felder (1972)
+
+
+O(3P) + CO(X) + CO2(X) -> CO2(X) + CO2(X)	| arrheniusGasTemp  | 2*8.2e-46, -1510 |    %Koelman
+O(3P) + CO(X) + CO(X) -> CO2(X) + CO(X)		| arrheniusGasTemp  | 8.2e-46, -1510 |    %Koelman
+O(3P) + CO(X) + O2(X) -> CO2(X) + O2(X)		| arrheniusGasTemp  | 8.2e-46, -1510 |    %Koelman
+O2(X) + C(X) -> CO(X) + O(3P) 		        | constantRateCoeff | 3e-17	 |        %Koelman
+
+O2(b1Sg+) + CO2(X) -> CO2(X) + O2(X)        |modifiedArrheniusGasTemp|1.18e-23,1.5,595| 
+O2(b1Sg+) + CO(X) -> O2(X) + CO(X)          | constantRateCoeff      | 3.74e-21|
+O(1D) + CO2(X) -> O(3P) + CO2(X)            |arrheniusGasTemp        |7.4e-17,133|
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%                           %%%%
+%%%   Ion-Neutral & Ion-Ion   %%%%
+%%%                           %%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+CO(+,X) + O2(X) -> O2(+,X) + CO(X)		| constantRateCoeff	     |   1.2e-16 | 		%Cenian 5e-16 
+O(+,gnd) + CO2(X) -> O2(+,X) + CO(X)   	| constantRateCoeff      | 9.4e-16  |		%Koelman 8.1e-16
+%O(+,gnd) + CO2(X) -> CO2(+,X) + O(3P)	| constantRateCoeff      | 4.5e-10*1e-6 |	%Moss
+CO2(+,X) + O2(X) -> O2(+,X) + CO2(X)	| constantRateCoeff      | 5.3e-17  |		%Moss%Koelman 
+CO2(+,X) + O(3P) -> O2(+,X) + CO(X)	    | constantRateCoeff      | 1.64e-16 |		%Koelman
+CO2(+,X) + O(3P) -> O(+,gnd) + CO2(X)	| constantRateCoeff      | 9.62e-17 |		%Koelman
+CO(+,X) + CO2(X) -> CO2(+,X) + CO(X)	| constantRateCoeff 	 | 1e-15    | 		%Koelman
+CO2(+,X) + wall -> CO2(X)                       | classicalAmbipolarDiffNegIon | true | 		%IncludeNegativeIon
+CO(+,X) + wall -> CO(X)			     	| classicalAmbipolarDiffNegIon | true | 
+
+%%%%%%%%%%%%%%%%%%%%
+% negative ions    %
+%%%%%%%%%%%%%%%%%%%% 
+
+O(-,gnd) + CO(X) -> CO2(X) + e                           	| powerGasTemp  | 5.8e-15,-0.39 | %Koelman
+O(-,gnd) + CO2(X) -> CO2(X) + O(3P) + e                 	| constantRateCoeff  | 4e-18 | %7
+
+
+
+e + CO2(X) -> e + CO2(e1)	|eedf|| 
+CO2(e1) + gas -> CO2(X) + gas                                        | constantRateCoeff | 1e-11*1e-6|
+CO2(e1) + wall -> CO2(X)                                             |multicomponentTransportChantry  | 0.2, nearWallTemperature | 

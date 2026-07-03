@@ -4,7 +4,7 @@
 
 % --- configuration of the working conditions ---
 workingConditions:
-  reducedField: logspace(-3,3,100)            % in Td
+  reducedField: logspace(-3,2.7,100)          % in Td
   electronTemperature: linspace(0.03, 5, 100) % in eV
   excitationFrequency: 0                      % in Hz
   gasPressure: 133.32                         % in Pa
@@ -26,7 +26,7 @@ electronKinetics:
   eedfType: boltzmann                  % boltzmann or prescribedEedf (generalized expression Maxwellian/Druyvesteyn)
 %   shapeParameter: 1                  % prescribedEedf shape parameter from 1 (Maxwellian) to 2 (Druyvesteyn)
   ionizationOperatorType: usingSDCS    % conservative, oneTakesAll, equalSharing or usingSDCS
-  growthModelType: spatial             % temporal or spatial
+  growthModelType: temporal            % temporal or spatial
   includeEECollisions: false           % true or false (to include / remove e-e collisions)
   LXCatFiles:                          % cross section files
     - Argon/Ar_LXCat.txt

@@ -1,11 +1,43 @@
-% LoKI-B solves a time and space independent form of the two-term 
-% electron Boltzmann equation (EBE), for non-magnetised non-equilibrium 
-% low-temperature plasmas excited by DC/HF electric fields from 
-% different gases or gas mixtures.
+% LoKI-GM comprises two modules, that can run self-consistently coupled 
+% or as standalone tools.
+% 
+% LoKI-B, which solves the space independent form of the two-term 
+% electron Boltzmann equation (EBE) to calculate the isotropic and the 
+% anisotropic parts of the electron distribution function, 
+% and the associated electron macroscopic parameters. 
+% LoKI-B applies to non-magnetised non-equilibrium LTPs, excited by 
+% DC/HF electric fields or time-dependent (non-oscillatory) electric fields 
+% from different gases or gas mixtures. 
+% The tool uses a stationary description for DC fields, 
+% a Fourier time-expansion description for HF fields, 
+% and a time-dependent description for time-varying fields.
+% 
+% LoKI-C, which solves the system of zero-dimensional (volume average) 
+% rate balance equations for the most relevant 
+% charged and neutral species in the plasma. 
+% LoKI-C receives as input data the kinetic schemes for the gas/plasma/
+% surface system under study, via an intuitive csv-like input file, 
+% and gives as output the particle densities of the different gas/plasma/
+% surface species, the corresponding creation/destruction reaction rates, 
+% and the reduced electric field (and any related quantity, such as 
+% the discharge current or the discharge power-density).
+% The tool uses several modules to describe the mechanisms 
+% (collisional, radiative and transport) controlling the
+% creation/destruction of species, namely various transport models 
+% for the charged particles and for the neutral particles. 
+% LoKI-C includes also a gas/plasma thermal model, for the self-consistent 
+% calculation of the gas temperature, and supports multicomponent 
+% mean-field microkinetic mesoscopic models to handle surface kinetics 
+% in a fully coupled way with volume kinetics.
+%
 % Copyright (C) 2018 A. Tejero-del-Caz, V. Guerra, D. Goncalves, 
 % M. Lino da Silva, L. Marques, N. Pinhao, C. D. Pintassilgo and
 % L. L. Alves
 % 
+% Copyright (C) 2026 L. L. Alves, A. Tejero-del-Caz, T. C. Dias, 
+% A. Gonçalves, L. Marques, P. Pereira, N. Pinhão, C. D. Pintassilgo, 
+% T. Silva, P. Viegas and V. Guerra
+%
 % This program is free software: you can redistribute it and/or modify
 % it under the terms of the GNU General Public License as published by
 % the Free Software Foundation, either version 3 of the License, or
@@ -30,10 +62,17 @@ classdef GUI < handle
     cli;
     eedfGasArray;
     collisionArray;
+    chemistryGasArray;
+    chemistryStateArray;
+    chemistryReactionArray;
     solutions = struct.empty;
     refreshFrequency;
     evolvingParameter;
+    isSingleEvolvingParameter = false;
+    evolvingParameter2;
     evolvingParameterPopUpMenuStr;
+    evolvingParameterPopUpMenuStr2;
+    evolvingParameterSwarm;    
     isSimulationHF = false;
     
     setupPanel;
@@ -52,6 +91,16 @@ classdef GUI < handle
     anisotropyCheckBox;
     eedfPlottedSolutions;
     eedfLogScaleCheckBox;
+    chemistryVsTimeTab;
+    chemistryVsTimePlot;
+    chemistryVsTimeLegend;
+    chemistryVsTimeRunPopUpMenu;
+    chemistryVsTimeGasPopUpMenu;
+    chemistryVsTimeStatePopUpMenu;
+    chemistryVsTimeLogScaleCheckBoxX;
+    chemistryVsTimeLogScaleCheckBoxY;
+    chemistryVsTimeClearButton;
+    isGasTemperaturePlotted = false;
     crossSectionTab;
     crossSectionPlot;
     crossSectionLegend;
@@ -64,37 +113,46 @@ classdef GUI < handle
     inputRateCoeffInfo3;
     inputRateCoeffInfo4;
     inputRateCoeffInfo5;
+    swarmLegend
     redDiffTab;
     redDiffLogScaleCheckBoxX;
     redDiffLogScaleCheckBoxY;
     redDiffPlot;
+    redDiffLegend;
     redMobTab;
     redMobLogScaleCheckBoxX;
     redMobLogScaleCheckBoxY;
     redMobPlot;
+    redMobLegend;
     redDiffEnergyTab;
     redDiffEnergyLogScaleCheckBoxX;
     redDiffEnergyLogScaleCheckBoxY;
     redDiffEnergyPlot;
+    redDiffEnergyLegend;
     redMobEnergyTab;
     redMobEnergyLogScaleCheckBoxX;
     redMobEnergyLogScaleCheckBoxY;
     redMobEnergyPlot;
+    redMobEnergyLegend;
     energyTab;
     energyLogScaleCheckBoxX;
     energyLogScaleCheckBoxY;
     energyPlot;
+    TeLegend;    
     redTownsendTab;
     redTownsendLogScaleCheckBoxX;
     redTownsendLogScaleCheckBoxY;
     redTownsendPlot;
+    redTownsendLegend;    
     redAttachmentTab;
     redAttachmentLogScaleCheckBoxX;
     redAttachmentLogScaleCheckBoxY;
     redAttachmentPlot;
+    redAttachmentLegend;
     powerTab;
     powerLogScaleCheckBoxX;
     powerPlot;
+    powerLegend;
     powerFieldColor = [0 0 0];
     powerElasticColor = [1 0 0];
     powerCARColor = [0 1 0];
@@ -115,11 +173,29 @@ classdef GUI < handle
     swarmParametersInfo;
     electronImpactRateCoeffOutputTab;
     electronImpactRateCoeffOutputInfo;
+    finalDensitiesTab;
+    finalDensitiesInfo;
+    finalTemperaturesTab;
+    finalTemperaturesInfo;
+    chemParametersTab;
+    chemParametersInfo;    
+    finalBalanceTab;
+    finalBalanceInfo;
 
     statusPanel;
     statusTabGroup;
     logTab;
     logInfo;
+    chemistryIterationsTab;
+    globalErrorInfo;
+    globalErrorData;
+    globalErrorPlot;
+    neutralityErrorInfo;
+    neutralityErrorData;
+    neutralityErrorPlot;
+    pressureErrorInfo;
+    pressureErrorData;
+    pressureErrorPlot;
     
   end
   
@@ -149,6 +225,52 @@ classdef GUI < handle
       % display the setup info in the GUI
       gui.setupFileInfo.String = setup.unparsedInfo;
       
+      % adjust GUI to the type of simulation (ElectronKinetics only, Chemistry only or ElectronKinetics+Chemistry)
+      if setup.enableChemistry
+        % store handle array to the objects used in the chemistry
+        gui.chemistryGasArray = setup.chemistryGasArray;
+        gui.chemistryStateArray = setup.chemistryStateArray;
+        gui.chemistryReactionArray = setup.chemistryReactionArray;
+        % add listener to status messages of the chemistry object
+        addlistener(setup.chemistry, 'genericStatusMessage', @gui.genericStatusMessage);
+        % add listener to update the GUI when a new iteration of the pressure cycle is found
+        addlistener(setup.chemistry, 'newPressureCycleIteration', @gui.newPressureCycleIteration);
+        % add listener to update the GUI when a new iteration of the neutrality cycle is found
+        addlistener(setup.chemistry, 'newNeutralityCycleIteration', @gui.newNeutralityCycleIteration);
+        % add listener to update the GUI when a new iteration of the global cycle is found
+        addlistener(setup.chemistry, 'newGlobalCycleIteration', @gui.newGlobalCycleIteration);
+        % add listener to update the GUI when a new solution for the chemistry is found
+        addlistener(setup.chemistry, 'obtainedNewChemistrySolution', @gui.newChemistrySolution);
+        % create chemistry related tabs
+        gui.createChemistryVsTimeTab(~isempty(setup.chemistry.surfacePhaseSpeciesIDs));
+        gui.createChemistryIterationsTab();
+        gui.createFinalDensitiesTab();
+        gui.createFinalTemperaturesTab();
+        gui.createChemParametersTab();
+        gui.createFinalBalanceTab();
+        gui.createInputRateCoeffTab();
+        % select by default this tab
+        gui.statusTabGroup.SelectedTab = gui.chemistryIterationsTab;
+        % store electron collisions + create electronKinetics tabs (in case it is enabled)
+        if setup.enableElectronKinetics
+          % store handle array for all the gases in the electron kinetics
+          gui.eedfGasArray = setup.electronKineticsGasArray;
+          % store handle array for all the collisions in order to display their cross sections
+          gui.collisionArray = setup.electronKineticsCollisionArray;
+          % add listener to status messages of the electron kinetics object
+          addlistener(setup.electronKinetics, 'genericStatusMessage', @gui.genericStatusMessage);
+          % evaluate flag to change the GUI in the case of HF simulations (initialized as false)
+          if setup.workCond.reducedExcFreqSI>0
+            gui.isSimulationHF = true;
+          end
+          % create electronKinetics related tabs
+          gui.createEedfTab();
+          gui.createCrossSectionTab();
+          gui.createPowerBalanceTab();
+          gui.createSwarmParametersTab();
+          gui.createElectronImpactRateCoeffOutputTab();
+        end
+      else
         % store handle array for all the gases in the electron kinetics
         gui.eedfGasArray = setup.electronKineticsGasArray;
         % store handle array for all the collisions in order to display their cross sections
@@ -167,16 +289,37 @@ classdef GUI < handle
             if setup.electronKinetics.isTimeDependent
               xLabelText = 'Time (s)';
               gui.evolvingParameter = 'currentTime';
-              gui.evolvingParameterPopUpMenuStr = 't = %9.3e (s)';
+              if isscalar(setup.info.workingConditions.gasTemperature)
+                 gui.evolvingParameterPopUpMenuStr = 't = %9.3e (s)';
+              else
+                 gui.evolvingParameter2 = 'gasTemperature';
+                 gui.evolvingParameterPopUpMenuStr2 = 't = %9.3e (s); Tg = %9.3e (K)';
+                 gui.evolvingParameterSwarm = 'Tg = %9.3e (K)';
+              end                  
             else
               xLabelText = 'Reduced Field (Td)';
               gui.evolvingParameter = 'reducedField';
-              gui.evolvingParameterPopUpMenuStr = 'E/N = %9.3e (Td)';
+              if isscalar(setup.info.workingConditions.reducedField)
+                 gui.isSingleEvolvingParameter = 'true'; 
+              end
+              if isscalar(setup.info.workingConditions.gasTemperature)
+                gui.evolvingParameterPopUpMenuStr = 'E/N = %9.3e (Td)';
+              else  
+                gui.evolvingParameter2 = 'gasTemperature';
+                gui.evolvingParameterPopUpMenuStr2 = 'E/N = %9.3e (Td); Tg = %9.3e (K)';
+                gui.evolvingParameterSwarm = 'Tg = %9.3e (K)';
+              end
             end
           case 'PrescribedEedf'
             xLabelText = 'Electron Temperature (eV)';
             gui.evolvingParameter = 'electronTemperature';
-            gui.evolvingParameterPopUpMenuStr = 'Te = %9.3e (eV)';
+            if isscalar(setup.info.workingConditions.gasTemperature)
+              gui.evolvingParameterPopUpMenuStr = 'Te = %9.3e (eV)';
+            else  
+              gui.evolvingParameter2 = 'gasTemperature';
+              gui.evolvingParameterPopUpMenuStr2 = 'Te = %9.3e (eV); Tg = %9.3e (K)';
+              gui.evolvingParameterSwarm = 'Tg = %9.3e (K)';
+            end
         end
         gui.createEedfTab();
         gui.createRedDiffTab(xLabelText);
@@ -193,6 +336,7 @@ classdef GUI < handle
         gui.createPowerBalanceTab();
         gui.createSwarmParametersTab();
         gui.createElectronImpactRateCoeffOutputTab();
+      end
       
       % display the gui
       drawnow;
@@ -209,7 +353,7 @@ classdef GUI < handle
       screenSize = get(groot,'ScreenSize');
       gui.handle = figure('name', 'LoKI Simulation Tool', 'OuterPosition', [1 45 screenSize(3) screenSize(4)-45], ...
         'MenuBar', 'none', 'NumberTitle', 'off');
-      
+
       % create results (graph) panel
       gui.resultsGraphsPanel = uipanel('Parent', gui.handle, 'FontSize', 12, 'FontWeight', 'Bold', 'Title', ...
         'Results (graphical)', 'Position', [0.01 0.51 0.48 0.48]);
@@ -260,6 +404,42 @@ classdef GUI < handle
         'Box', 'on', 'YScale', 'log'); 
       xlabel('Energy (eV)');
       ylabel('Distribution Function (eV^{-3/2})');
+      hold on;
+      
+    end
+        
+    function createChemistryVsTimeTab(gui, isSurfaceKineticsEnabled)
+      
+      gui.chemistryVsTimeTab = uitab('Parent', gui.resultsGraphsTabGroup, 'Title', 'Chemistry Vs Time');
+      gui.chemistryVsTimeRunPopUpMenu = uicontrol('Parent', gui.chemistryVsTimeTab, 'Style', 'popupmenu', 'Units', ...
+        'normalized', 'Position', [0.1 0.9 0.1 0.05], 'String', {'All'}, 'Callback', ...
+        @gui.chemistryVsTimeRunPopUpMenuHandler);
+      gui.chemistryVsTimeGasPopUpMenu = uicontrol('Parent', gui.chemistryVsTimeTab, 'Style', 'popupmenu', 'Units', ...
+        'normalized', 'Position', [0.21 0.9 0.1 0.05], 'String', {gui.chemistryGasArray.name 'All'}, 'Value', ...
+        length(gui.chemistryGasArray)+1, 'Callback', @gui.chemistryVsTimeGasPopUpMenuHandler);
+      gui.chemistryVsTimeStatePopUpMenu = uicontrol('Parent', gui.chemistryVsTimeTab, 'Style', 'popupmenu', 'Units', ...
+        'normalized', 'Position', [0.32 0.9 0.1 0.05], 'String', {gui.chemistryStateArray.name 'All'}, 'Value', ...
+        length(gui.chemistryStateArray)+1, 'Callback', @gui.chemistryVsTimeStatePopUpMenuHandler);
+      gui.chemistryVsTimeLogScaleCheckBoxX = uicontrol('Parent', gui.chemistryVsTimeTab, 'Style', 'checkbox', ...
+        'Units', 'normalized', 'Position', [0.45 0.9 0.3 0.05], 'String', 'X axis logscale', 'Value', 1, ....
+        'Callback', @gui.changeChemistryVsTimeXScale);
+      gui.chemistryVsTimeLogScaleCheckBoxY = uicontrol('Parent', gui.chemistryVsTimeTab, 'Style', 'checkbox', ...
+        'Units', 'normalized', 'Position', [0.45 0.85 0.3 0.05], 'String', 'Y axis logscale', 'Value', 1, ...
+        'Callback', @gui.changeChemistryVsTimeYScale);
+      gui.chemistryVsTimeClearButton = uicontrol('Parent', gui.chemistryVsTimeTab, 'Style', 'pushbutton', 'Units', ...
+        'normalized', 'Position', [0.75 0.9 0.15 0.05], 'String', 'Clear Graph', 'Callback', ...
+        @gui.clearChemistryVsTimePlot);
+      gui.chemistryVsTimePlot = axes('Parent', gui.chemistryVsTimeTab, 'Units', 'normalized', ...
+        'OuterPosition', [0 0 1 0.9], 'Box', 'on', 'XScale', 'log', 'YScale', 'log'); 
+      xlabel('Time (s)');
+      yyaxis(gui.chemistryVsTimePlot, 'left');
+      if isSurfaceKineticsEnabled
+        ylabel('Volume Density (m^{-3}) / Surface Density (m^{-2})');
+      else
+        ylabel('Volume Density (m^{-3})');
+      end
+      yyaxis(gui.chemistryVsTimePlot, 'right');
+      ylabel('Temperature (K)');
       hold on;
       
     end
@@ -441,6 +621,38 @@ classdef GUI < handle
       
     end
 
+    function createInputRateCoeffTab(gui)
+      
+      gui.inputRateCoeffTab = uitab('Parent', gui.setupTabGroup, 'Title', 'Rate Coefficients');
+      values = cell(1,length(gui.chemistryReactionArray));
+      for idx = 1:length(gui.chemistryReactionArray)
+        values{idx} = sprintf('%s', gui.chemistryReactionArray(idx).description);
+      end
+      gui.inputRateCoeffList = uicontrol('Parent', gui.inputRateCoeffTab,'Style', 'listbox', 'Units', 'normalized', ...
+        'Position', [0.01 0.4 0.98 0.58], 'String', values, 'Callback', @gui.inputRateCoeffListHandler);
+      uicontrol('Parent', gui.inputRateCoeffTab, 'Style', 'text', 'Units', 'characters', 'Position', ...
+        [2 9 12 2], 'HorizontalAlignment', 'left', 'FontWeight', 'bold', 'String', 'Description:');
+      uicontrol('Parent', gui.inputRateCoeffTab, 'Style', 'text', 'Units', 'characters', 'Position', ...
+        [2 7 6 2], 'HorizontalAlignment', 'left', 'FontWeight', 'bold', 'String', 'Type:');
+      uicontrol('Parent', gui.inputRateCoeffTab, 'Style', 'text', 'Units', 'characters', 'Position', ...
+        [2 5 12 2], 'HorizontalAlignment', 'left', 'FontWeight', 'bold', 'String', 'Parameters:');
+      uicontrol('Parent', gui.inputRateCoeffTab, 'Style', 'text', 'Units', 'characters', 'Position', ...
+        [2 3 10 2], 'HorizontalAlignment', 'left', 'FontWeight', 'bold', 'String', 'Enthalpy:');
+      uicontrol('Parent', gui.inputRateCoeffTab, 'Style', 'text', 'Units', 'characters', 'Position', ...
+        [2 1 27 2], 'HorizontalAlignment', 'left', 'FontWeight', 'bold', 'String', 'Present in electron kinetics:');
+      gui.inputRateCoeffInfo1 = uicontrol('Parent', gui.inputRateCoeffTab, 'Style', 'text', 'Units', ...
+        'characters', 'Position', [14 9 50 2], 'HorizontalAlignment', 'left', 'String', 'N/A');
+      gui.inputRateCoeffInfo2 = uicontrol('Parent', gui.inputRateCoeffTab, 'Style', 'text', 'Units', ...
+        'characters', 'Position', [8 7 50 2], 'HorizontalAlignment', 'left', 'String', 'N/A');
+      gui.inputRateCoeffInfo3 = uicontrol('Parent', gui.inputRateCoeffTab, 'Style', 'text', 'Units', ...
+        'characters', 'Position', [14 5 50 2], 'HorizontalAlignment', 'left', 'String', 'N/A');
+      gui.inputRateCoeffInfo4 = uicontrol('Parent', gui.inputRateCoeffTab, 'Style', 'text', 'Units', ...
+        'characters', 'Position', [12 3 50 2], 'HorizontalAlignment', 'left', 'String', 'N/A');
+      gui.inputRateCoeffInfo5 = uicontrol('Parent', gui.inputRateCoeffTab, 'Style', 'text', 'Units', ...
+        'characters', 'Position', [29 1 50 2], 'HorizontalAlignment', 'left', 'String', 'N/A');
+      
+    end
+    
     function createPowerBalanceTab(gui)
       
       gui.powerBalanceTab = uitab('Parent', gui.resultsTextTabGroup, 'Title', 'Power Balance');
@@ -468,6 +680,76 @@ classdef GUI < handle
       
     end
     
+    function createChemistryIterationsTab(gui)
+      
+      gui.chemistryIterationsTab = uitab('Parent', gui.statusTabGroup, 'Title', 'Chemistry Iterations');
+      uicontrol('Parent', gui.chemistryIterationsTab, 'Style', 'text', 'Units', 'normalized', 'Position', ...
+        [0.03 0.9 0.3 0.05], 'HorizontalAlignment', 'left', 'FontWeight', 'bold', 'String', 'Global cycle:');
+      gui.globalErrorInfo = uicontrol('Parent', gui.chemistryIterationsTab, 'Style', 'text', 'Units', ...
+        'normalized', 'Position', [0.03 0.8 0.3 0.1], 'HorizontalAlignment', 'left', 'String', ...
+        {'iteration: N/A' 'error: N/A'});
+      gui.globalErrorPlot = axes('Parent', gui.chemistryIterationsTab, 'Units', 'normalized', 'OuterPosition', ...
+        [0 0 0.33 0.7], 'Box', 'on', 'YScale', 'log'); 
+      xlabel('Global Iteration');
+      hold on;
+      uicontrol('Parent', gui.chemistryIterationsTab, 'Style', 'text', 'Units', 'normalized', 'Position', ...
+        [0.36 0.9 0.3 0.05], 'HorizontalAlignment', 'left', 'FontWeight', 'bold', 'String', 'Quasineutrality cycle:');
+      gui.neutralityErrorInfo = uicontrol('Parent', gui.chemistryIterationsTab, 'Style', 'text', 'Units', ...
+        'normalized', 'Position', [0.36 0.7 0.3 0.2], 'HorizontalAlignment', 'left', 'String', ...
+        {'iteration: N/A' 'error: N/A' 'exc. param.: N/A'});
+      gui.neutralityErrorPlot = axes('Parent', gui.chemistryIterationsTab, 'Units', 'normalized', 'OuterPosition', ...
+        [0.33 0 0.33 0.7], 'Box', 'on', 'YScale', 'log'); 
+      xlabel('Neutrality Iteration');
+      hold on;
+      uicontrol('Parent', gui.chemistryIterationsTab, 'Style', 'text', 'Units', 'normalized', 'Position', ...
+        [0.69 0.9 0.3 0.05], 'HorizontalAlignment', 'left', 'FontWeight', 'bold', 'String', 'Pressure cycle:');
+      gui.pressureErrorInfo = uicontrol('Parent', gui.chemistryIterationsTab, 'Style', 'text', 'Units', ...
+        'normalized', 'Position', [0.69 0.8 0.3 0.1], 'HorizontalAlignment', 'left', 'String', ...
+        {'iteration: N/A' 'error: N/A'});
+      gui.pressureErrorPlot = axes('Parent', gui.chemistryIterationsTab, 'Units', 'normalized', 'OuterPosition', ...
+        [0.66 0 0.33 0.7], 'Box', 'on', 'YScale', 'log');  
+      xlabel('Pressure Iteration');
+      hold on;
+      
+    end
+    
+    function createFinalDensitiesTab(gui)
+      
+      gui.finalDensitiesTab = uitab('Parent', gui.resultsTextTabGroup, 'Title', 'Final densities');
+      gui.finalDensitiesInfo = uicontrol('Parent', gui.finalDensitiesTab, 'Style', 'edit', ...
+        'Units', 'normalized', 'Position', [0.01 0.01 0.98 0.98], 'Max', 2, 'Enable', 'inactive', ...
+        'FontName', 'Monospaced', 'Fontsize', 10, 'HorizontalAlignment', 'left');
+      
+    end
+
+    function createFinalTemperaturesTab(gui)
+      
+      gui.finalTemperaturesTab = uitab('Parent', gui.resultsTextTabGroup, 'Title', 'Final temperatures');
+      gui.finalTemperaturesInfo = uicontrol('Parent', gui.finalTemperaturesTab, 'Style', 'edit', ...
+        'Units', 'normalized', 'Position', [0.01 0.01 0.98 0.98], 'Max', 2, 'Enable', 'inactive', ...
+        'FontName', 'Monospaced', 'Fontsize', 10, 'HorizontalAlignment', 'left');
+      
+    end
+    
+    function createChemParametersTab(gui)
+      
+      gui.chemParametersTab = uitab('Parent', gui.resultsTextTabGroup, 'Title', 'Chem Parameters');
+      gui.chemParametersInfo = uicontrol('Parent', gui.chemParametersTab, 'Style', 'edit', ...
+        'Units', 'normalized', 'Position', [0.01 0.01 0.98 0.98], 'Max', 2, 'Enable', 'inactive', ...
+        'FontName', 'Monospaced', 'Fontsize', 10, 'HorizontalAlignment', 'left');
+      
+    end
+
+    
+    function createFinalBalanceTab(gui)
+      
+      gui.finalBalanceTab = uitab('Parent', gui.resultsTextTabGroup, 'Title', 'Final balance');
+      gui.finalBalanceInfo = uicontrol('Parent', gui.finalBalanceTab, 'Style', 'edit', ...
+        'Units', 'normalized', 'Position', [0.01 0.01 0.98 0.98], 'Max', 2, 'Enable', 'inactive', ...
+        'FontName', 'Monospaced', 'Fontsize', 10, 'HorizontalAlignment', 'left');
+      
+    end
+    
     function newEedf(gui, electronKinetics, ~)
       
       % evaluate new solution ID
@@ -486,14 +768,28 @@ classdef GUI < handle
       gui.solutions(newSolutionID).workCond = electronKinetics.workCond.struct;
       
       % add new entry to eedfPopUpMenu
-      newString = sprintf(gui.evolvingParameterPopUpMenuStr, electronKinetics.workCond.(gui.evolvingParameter));
+      if isempty(gui.evolvingParameter2)
+        newString = sprintf(gui.evolvingParameterPopUpMenuStr, electronKinetics.workCond.(gui.evolvingParameter));
+      else
+        newString = sprintf(gui.evolvingParameterPopUpMenuStr2, electronKinetics.workCond.(gui.evolvingParameter),...
+          electronKinetics.workCond.(gui.evolvingParameter2));
+      end  
       if length(gui.eedfPopUpMenu.String) == 1
         newString = [newString; gui.eedfPopUpMenu.String];
       else
-        newString = [gui.eedfPopUpMenu.String(1:end-1); newString; gui.eedfPopUpMenu.String(end)];
+        newString = [gui.eedfPopUpMenu.String(1:end-1); newString; gui.eedfPopUpMenu.String(end)];        
       end
       set(gui.eedfPopUpMenu, 'String', newString);
-      
+
+      % add new entry to swarmLegend
+      if ~isempty(gui.evolvingParameter2)
+        newStringSwarm = sprintf(gui.evolvingParameterSwarm, electronKinetics.workCond.(gui.evolvingParameter2)); 
+        if ~isempty(gui.swarmLegend)
+          newStringSwarm = [gui.swarmLegend(:,:); newStringSwarm];
+        end  
+      gui.swarmLegend = newStringSwarm;
+      end
+
       % add new entry to resultsPopUpMenu
       set(gui.resultsTextPopUpMenu, 'String', newString(1:end-1));
       
@@ -556,34 +852,122 @@ classdef GUI < handle
       redTown = zeros(1,numberOfSolutions);
       redAtt = zeros(1,numberOfSolutions);
       
-      for idx = 1:numberOfSolutions
-        inputParamValues(idx) = gui.solutions(idx).workCond.(evolvingParameter);
-        redDiff(idx) = gui.solutions(idx).swarmParam.redDiffCoeff;
-        redMob(idx) = gui.solutions(idx).swarmParam.redMobility;
-        if gui.isSimulationHF
-          redMobHF(idx) = gui.solutions(idx).swarmParam.redMobilityHF;
-        end
-        redDiffEnergy(idx) = gui.solutions(idx).swarmParam.redDiffCoeffEnergy;
-        redMobEnergy(idx) = gui.solutions(idx).swarmParam.redMobilityEnergy;
-        Te(idx) = gui.solutions(idx).swarmParam.Te;
-        charE(idx) = gui.solutions(idx).swarmParam.characEnergy;
-        redTown(idx) = gui.solutions(idx).swarmParam.redTownsendCoeff;
-        redAtt(idx) = gui.solutions(idx).swarmParam.redAttCoeff;
-      end
-      
-      plot(gui.redDiffPlot, inputParamValues, redDiff, 'ko', 'Tag', 'redDiffplot');
+      idx = numberOfSolutions;
+      inputParamValues(idx) = gui.solutions(idx).workCond.(evolvingParameter);
+      redDiff(idx) = gui.solutions(idx).swarmParam.redDiffCoeff;
+      redMob(idx) = gui.solutions(idx).swarmParam.redMobility;
       if gui.isSimulationHF
-        plot(gui.redMobPlot, inputParamValues, redMob, 'ko', inputParamValues, real(redMobHF), 'ro', ...
-          inputParamValues, -imag(redMobHF), 'bo', 'Tag', 'redMobplot');
-      else
-        plot(gui.redMobPlot, inputParamValues, redMob, 'ko', 'Tag', 'redMobplot');
-        plot(gui.redTownsendPlot, inputParamValues, redTown, 'ko', 'Tag', 'redTownsendplot');
-        plot(gui.redAttachmentPlot, inputParamValues, redAtt, 'ko', 'Tag', 'redAttachmentplot');
+        redMobHF(idx) = gui.solutions(idx).swarmParam.redMobilityHF;
       end
-      plot(gui.redDiffEnergyPlot, inputParamValues, redDiffEnergy, 'ko', 'Tag', 'redDiffEnergyplot');
-      plot(gui.redMobEnergyPlot, inputParamValues, redMobEnergy, 'ko', 'Tag', 'redMobEnergyplot');
-      plot(gui.energyPlot, inputParamValues, Te, 'ro', inputParamValues, charE, 'bo', 'Tag', 'meanEplot');
-      
+      redDiffEnergy(idx) = gui.solutions(idx).swarmParam.redDiffCoeffEnergy;
+      redMobEnergy(idx) = gui.solutions(idx).swarmParam.redMobilityEnergy;
+      Te(idx) = gui.solutions(idx).swarmParam.Te;
+      charE(idx) = gui.solutions(idx).swarmParam.characEnergy;
+      redTown(idx) = gui.solutions(idx).swarmParam.redTownsendCoeff;
+      redAtt(idx) = gui.solutions(idx).swarmParam.redAttCoeff;
+
+      % Select legends to write in cases of evolvingParameter2 solution
+      % (e.g., avoiding repetitions of Tg-legends for different E/N or t values)
+      if ~isempty(gui.swarmLegend)
+        for idxLegend = 1:idx
+          if strcmp(gui.swarmLegend(idxLegend,:),gui.swarmLegend(idx,:))
+            idxCurrent = 1;
+            for idx2 = 1:idx-1
+                idxCurrent = idxCurrent + ~strcmp(gui.swarmLegend(idx2,:),gui.swarmLegend(idx2+1,:));
+            end
+            if idxLegend == idx
+                if gui.isSimulationHF
+                    gui.redMobLegend{3*idx-2} = gui.swarmLegend(idx,:);
+                    gui.redMobLegend{3*idx-1} = gui.swarmLegend(idx,:);
+                    gui.redMobLegend{3*idx} = gui.swarmLegend(idx,:);                 
+                else     
+                    gui.redMobLegend{idx} = gui.swarmLegend(idx,:);
+                    gui.redTownsendLegend{idx} = gui.swarmLegend(idx,:);
+                    gui.redAttachmentLegend{idx} = gui.swarmLegend(idx,:);
+                end
+                gui.redDiffLegend{idx} = gui.swarmLegend(idx,:);
+                gui.redDiffEnergyLegend{idx} = gui.swarmLegend(idx,:);
+                gui.redMobEnergyLegend{idx} = gui.swarmLegend(idx,:);
+                gui.TeLegend{2*idx-1} = gui.swarmLegend(idx,:);
+                gui.TeLegend{2*idx} = gui.swarmLegend(idx,:);
+            else
+                if gui.isSimulationHF
+                    gui.redMobLegend{3*idx-2} = "";
+                    gui.redMobLegend{3*idx-1} = "";
+                    gui.redMobLegend{3*idx} = "";
+                else     
+                    gui.redMobLegend{idx} = "";
+                    gui.redTownsendLegend{idx} = "";
+                    gui .redAttachmentLegend{idx} = "";
+                end
+                gui.redDiffLegend{idx} = "";
+                gui.redDiffEnergyLegend{idx} = "";
+                gui.redMobEnergyLegend{idx} = "";
+                gui.TeLegend{2*idx-1} = "";
+                gui.TeLegend{2*idx} = "";
+            end
+            break
+          end
+        end   
+
+        % Generate a different marker for each evolvingParameter2 solution 
+        % (e.g., for different Tg)
+        markers = {'o', '+', '*', '.', 'x', '_', '|', 'square', 'diamond', '^', 'v', '>', '<', 'pentagram', 'hexagram'};
+        % Circular selection of markers
+        % Example:  getprop(markers, 3) = '*'
+        getFirst = @(v)v{1}; 
+        getprop = @(options, idxCurrent)getFirst(circshift(options,-idxCurrent+1));
+        markerChosen =  getprop(markers,idxCurrent);
+
+      else
+
+        % Consider the same marker for all solutions 
+        markerChosen =  'o';
+
+      end
+
+      % Plot the swarm parameters with different makers for each evolvingParameter2 solution
+      plot(gui.redDiffPlot, inputParamValues(idx), redDiff(idx), 'Color', 'black', 'LineStyle', 'none', ...
+          'Marker', markerChosen, 'Tag', 'redDiffplot');
+
+      if gui.isSimulationHF
+        plot(gui.redMobPlot, inputParamValues(idx), redMob(idx), 'Color', 'black', 'LineStyle', 'none', ...
+            'Marker', markerChosen, 'Tag', 'redMobplot');
+        plot(gui.redMobPlot, inputParamValues(idx), real(redMobHF(idx)), 'Color', 'red', 'LineStyle', 'none', ...
+            'Marker', markerChosen, 'Tag', 'redMobplot');
+        plot(gui.redMobPlot, inputParamValues(idx), -imag(redMobHF(idx)), 'Color', 'blue', 'LineStyle', 'none', ...
+            'Marker', markerChosen, 'Tag', 'redMobplot');
+      else
+        plot(gui.redMobPlot, inputParamValues(idx), redMob(idx), 'Color', 'black', 'LineStyle', 'none', ...
+          'Marker', markerChosen, 'Tag', 'redMobplot');
+        plot(gui.redTownsendPlot, inputParamValues(idx), redTown(idx), 'Color', 'black', 'LineStyle', 'none', ...
+          'Marker', markerChosen, 'Tag', 'redTownsendplot');
+        plot(gui.redAttachmentPlot, inputParamValues(idx), redAtt(idx), 'Color', 'black', 'LineStyle', 'none', ...
+          'Marker', markerChosen, 'Tag', 'redAttachmentplot');
+      end
+
+      plot(gui.redDiffEnergyPlot, inputParamValues(idx), redDiffEnergy(idx), 'Color', 'black', 'LineStyle', 'none', ...
+          'Marker', markerChosen, 'Tag', 'redDiffEnergyplot');
+      plot(gui.redMobEnergyPlot, inputParamValues(idx), redMobEnergy(idx), 'Color', 'black', 'LineStyle', 'none', ...
+          'Marker', markerChosen, 'Tag', 'redMobEnergyplot');
+      plot(gui.energyPlot, inputParamValues(idx), Te(idx), 'Color', 'red', 'LineStyle', 'none', ...
+          'Marker', markerChosen, 'Tag', 'meanEplot');
+      plot(gui.energyPlot, inputParamValues(idx), charE(idx), 'Color', 'blue', 'LineStyle', 'none', ...
+          'Marker', markerChosen, 'Tag', 'meanEplot');
+
+      % Update legends in cases of evolvingParameter2 solution  
+      if ~isempty(gui.swarmLegend)
+        legend(gui.redDiffPlot, gui.redDiffLegend);
+        legend(gui.redMobPlot, gui.redMobLegend);
+        legend(gui.redMobEnergyPlot, gui.redMobEnergyLegend);
+        legend(gui.redDiffEnergyPlot, gui.redDiffEnergyLegend);
+        legend(gui.energyPlot, gui.TeLegend);
+        if ~gui.isSimulationHF
+            legend(gui.redTownsendPlot, gui.redTownsendLegend);
+            legend(gui.redAttachmentPlot, gui.redAttachmentLegend);
+        end    
+      end
+
     end
     
     function changeRedDiffXScale(gui, ~, ~)
@@ -803,23 +1187,171 @@ classdef GUI < handle
         powerAttachment(idx) = gui.solutions(idx).power.attachmentIne;
         powerGrowth(idx) = gui.solutions(idx).power.eDensGrowth;
         powerRef(idx) = gui.solutions(idx).power.reference;
+
+        % Normalize swarmLegend
+        swarmLegendx = strtrim(string(gui.swarmLegend));        
+      end 
+
+      % Generate a different lineStyle or marker for each evolvingParameter2 solution 
+      % (e.g., for different Tg)
+      lineStyles = {'-', '--', ':', '-+', '-*', '-.', '-x', '-_', '-|', ...
+          '-square', '-diamond', '-^', '-v', '->', '-<','-pentagram', '-hexagram'};
+      markers = {'o', '+', '*', 	'.', 'x', '_', '|', 'square', 'diamond', ...
+          '^', 'v', '>', '<', 'pentagram', 'hexagram'};
+      % Circular selection of lineStyles or markers
+      % Example:  getprop(lineStyles, 3) = ':'
+      getFirst = @(v)v{1}; 
+      getprop = @(options, id)getFirst(circshift(options,-id +1));
+
+      % Legend groups
+      % to enable selecting legends to write in cases of evolvingParameter2 solution
+      % (e.g., avoiding repetitions of Tg-legends for different power channels, and E/N or t values)
+      legendLabels = unique(swarmLegendx, 'stable');
+      nLegends = numel(legendLabels);
+      % Particular case for a single Tg-value 
+      if nLegends == 0
+        nLegends = 1;
+      end  
+      
+      hField = gobjects(nLegends,1);
+      
+      for k = 1:nLegends
+        % indices belonging to this legend group for multiple Tg-values
+        if ~isempty(swarmLegendx)
+          idxGroup = swarmLegendx == legendLabels(k);
+        % indices belonging to this legend group for a single Tg-value
+        else
+          idxGroup = 1:numberOfSolutions;
+        end  
+        if ~any(idxGroup)
+           continue
+        end
+
+        idLineStyle = k;
+
+        % Single E/N calculation - use markers instead of lines in plot
+        if gui.isSingleEvolvingParameter
+            markerChosen = getprop(markers, idLineStyle);
+
+            % hField (only legend-visible)
+            hField(k) = plot(gui.powerPlot, ...
+                inputParamValues(idxGroup), powerField(idxGroup)./ powerRef(idxGroup), ...
+                'Color', gui.powerFieldColor, 'LineStyle', 'none', 'Marker', markerChosen);
+
+            % Other handles (hidden from legend)
+            hElasticGain = plot(gui.powerPlot, ...
+                inputParamValues(idxGroup), powerElasticGain(idxGroup)./ powerRef(idxGroup), ...
+                'Color', gui.powerElasticColor, 'LineStyle', 'none', 'Marker', markerChosen);
+            hElasticLoss = plot(gui.powerPlot, ...
+                inputParamValues(idxGroup), powerElasticLoss(idxGroup)./powerRef(idxGroup), ...
+                'Color', gui.powerElasticColor, 'LineStyle', 'none', 'Marker', markerChosen);       
+            hCARGain = plot(gui.powerPlot, ...
+                inputParamValues(idxGroup), powerCARGain(idxGroup)./ powerRef(idxGroup), ...
+                'Color', gui.powerCARColor, 'LineStyle', 'none', 'Marker', markerChosen);
+            hCARLoss = plot(gui.powerPlot, ...
+                inputParamValues(idxGroup), powerCARLoss(idxGroup)./powerRef(idxGroup), ...
+                'Color', gui.powerCARColor, 'LineStyle', 'none', 'Marker', markerChosen);
+            hRotationalGain = plot(gui.powerPlot, ...
+                inputParamValues(idxGroup), powerRotationalGain(idxGroup)./ powerRef(idxGroup), ...
+                'Color', gui.powerRotColor, 'LineStyle', 'none', 'Marker', markerChosen);
+            hRotationalLoss = plot(gui.powerPlot, ...
+                inputParamValues(idxGroup), powerRotationalLoss(idxGroup)./powerRef(idxGroup), ...
+                'Color', gui.powerRotColor, 'LineStyle', 'none', 'Marker', markerChosen);
+            hVibrationalGain = plot(gui.powerPlot, ...
+                inputParamValues(idxGroup), powerVibrationalGain(idxGroup)./ powerRef(idxGroup), ...
+                'Color', gui.powerVibColor, 'LineStyle', 'none', 'Marker', markerChosen);
+            hVibrationalLoss = plot(gui.powerPlot, ...
+                inputParamValues(idxGroup), powerVibrationalLoss(idxGroup)./powerRef(idxGroup), ...
+                'Color', gui.powerVibColor, 'LineStyle', 'none', 'Marker', markerChosen);
+            hElectronicGain = plot(gui.powerPlot, ...
+                inputParamValues(idxGroup), powerElectronicGain(idxGroup)./ powerRef(idxGroup), ...
+                'Color', gui.powerEleColor, 'LineStyle', 'none', 'Marker', markerChosen);
+            hElectronicLoss = plot(gui.powerPlot, ...
+                inputParamValues(idxGroup), powerElectronicLoss(idxGroup)./powerRef(idxGroup), ...
+                'Color', gui.powerEleColor, 'LineStyle', 'none', 'Marker', markerChosen);
+            hIonization = plot(gui.powerPlot, ...
+                inputParamValues(idxGroup), powerIonization(idxGroup)./powerRef(idxGroup), ...
+                'Color', gui.powerIonColor, 'LineStyle', 'none', 'Marker', markerChosen);
+            hAttachment = plot(gui.powerPlot, ...
+                inputParamValues(idxGroup), powerAttachment(idxGroup)./powerRef(idxGroup), ...
+                'Color', gui.powerAttColor, 'LineStyle', 'none', 'Marker', markerChosen);
+            hGrowth = plot(gui.powerPlot, ...
+                inputParamValues(idxGroup), powerGrowth(idxGroup)./powerRef(idxGroup), ...
+                'Color', gui.powerGrowthColor, 'LineStyle', 'none', 'Marker', markerChosen);
+
+        % Multiple E/N calculations - use lines in plot
+        else    
+            lineStyleChosen = getprop(lineStyles, idLineStyle);
+
+            % hField (only legend-visible)
+            hField(k) = plot(gui.powerPlot, ...
+                inputParamValues(idxGroup), powerField(idxGroup)./ powerRef(idxGroup), ...
+                'Color', gui.powerFieldColor, 'LineStyle', lineStyleChosen, 'LineWidth', 2);
+
+            % Other handles (hidden from legend)
+            hElasticGain = plot(gui.powerPlot, ...
+                inputParamValues(idxGroup), powerElasticGain(idxGroup)./ powerRef(idxGroup), ...
+                'Color', gui.powerElasticColor, 'LineStyle', lineStyleChosen, 'LineWidth', 2);
+            hElasticLoss = plot(gui.powerPlot, ...
+                inputParamValues(idxGroup), powerElasticLoss(idxGroup)./powerRef(idxGroup), ...
+                'Color', gui.powerElasticColor, 'LineStyle', lineStyleChosen, 'LineWidth', 2);       
+            hCARGain = plot(gui.powerPlot, ...
+                inputParamValues(idxGroup), powerCARGain(idxGroup)./ powerRef(idxGroup), ...
+                'Color', gui.powerCARColor, 'LineStyle', lineStyleChosen, 'LineWidth', 2);
+            hCARLoss = plot(gui.powerPlot, ...
+                inputParamValues(idxGroup), powerCARLoss(idxGroup)./powerRef(idxGroup), ...
+                'Color', gui.powerCARColor, 'LineStyle', lineStyleChosen, 'LineWidth', 2);
+            hRotationalGain = plot(gui.powerPlot, ...
+                inputParamValues(idxGroup), powerRotationalGain(idxGroup)./ powerRef(idxGroup), ...
+                'Color', gui.powerRotColor, 'LineStyle', lineStyleChosen, 'LineWidth', 2);
+            hRotationalLoss = plot(gui.powerPlot, ...
+                inputParamValues(idxGroup), powerRotationalLoss(idxGroup)./powerRef(idxGroup), ...
+                'Color', gui.powerRotColor, 'LineStyle', lineStyleChosen, 'LineWidth', 2);
+            hVibrationalGain = plot(gui.powerPlot, ...
+                inputParamValues(idxGroup), powerVibrationalGain(idxGroup)./ powerRef(idxGroup), ...
+                'Color', gui.powerVibColor, 'LineStyle', lineStyleChosen, 'LineWidth', 2);
+            hVibrationalLoss = plot(gui.powerPlot, ...
+                inputParamValues(idxGroup), powerVibrationalLoss(idxGroup)./powerRef(idxGroup), ...
+                'Color', gui.powerVibColor, 'LineStyle', lineStyleChosen, 'LineWidth', 2);
+            hElectronicGain = plot(gui.powerPlot, ...
+                inputParamValues(idxGroup), powerElectronicGain(idxGroup)./ powerRef(idxGroup), ...
+                'Color', gui.powerEleColor, 'LineStyle', lineStyleChosen, 'LineWidth', 2);
+            hElectronicLoss = plot(gui.powerPlot, ...
+                inputParamValues(idxGroup), powerElectronicLoss(idxGroup)./powerRef(idxGroup), ...
+                'Color', gui.powerEleColor, 'LineStyle', lineStyleChosen, 'LineWidth', 2);
+            hIonization = plot(gui.powerPlot, ...
+                inputParamValues(idxGroup), powerIonization(idxGroup)./powerRef(idxGroup), ...
+                'Color', gui.powerIonColor, 'LineStyle', lineStyleChosen, 'LineWidth', 2);
+            hAttachment = plot(gui.powerPlot, ...
+                inputParamValues(idxGroup), powerAttachment(idxGroup)./powerRef(idxGroup), ...
+                'Color', gui.powerAttColor, 'LineStyle', lineStyleChosen, 'LineWidth', 2);
+            hGrowth = plot(gui.powerPlot, ...
+                inputParamValues(idxGroup), powerGrowth(idxGroup)./powerRef(idxGroup), ...
+                'Color', gui.powerGrowthColor, 'LineStyle', lineStyleChosen, 'LineWidth', 2); 
+
+        end    
+        
+        hElasticGain.Annotation.LegendInformation.IconDisplayStyle = 'off';
+        hElasticLoss.Annotation.LegendInformation.IconDisplayStyle = 'off';
+        hCARGain.Annotation.LegendInformation.IconDisplayStyle = 'off';
+        hCARLoss.Annotation.LegendInformation.IconDisplayStyle = 'off';
+        hRotationalGain.Annotation.LegendInformation.IconDisplayStyle = 'off';
+        hRotationalLoss.Annotation.LegendInformation.IconDisplayStyle = 'off';
+        hVibrationalGain.Annotation.LegendInformation.IconDisplayStyle = 'off';
+        hVibrationalLoss.Annotation.LegendInformation.IconDisplayStyle = 'off';
+        hElectronicGain.Annotation.LegendInformation.IconDisplayStyle = 'off';
+        hElectronicLoss.Annotation.LegendInformation.IconDisplayStyle = 'off';
+        hIonization.Annotation.LegendInformation.IconDisplayStyle = 'off';
+        hAttachment.Annotation.LegendInformation.IconDisplayStyle = 'off';
+        hGrowth.Annotation.LegendInformation.IconDisplayStyle = 'off';
       end
-      
-      plot(gui.powerPlot, inputParamValues, powerField./powerRef, 'Color', gui.powerFieldColor, 'LineWidth', 2);
-      plot(gui.powerPlot, inputParamValues, powerElasticGain./powerRef, ...
-        inputParamValues, powerElasticLoss./powerRef, 'Color', gui.powerElasticColor, 'LineWidth', 2);
-      plot(gui.powerPlot, inputParamValues, powerCARGain./powerRef, ...
-        inputParamValues, powerCARLoss./powerRef, 'Color', gui.powerCARColor, 'LineWidth', 2);
-      plot(gui.powerPlot, inputParamValues, powerRotationalGain./powerRef, ...
-        inputParamValues, powerRotationalLoss./powerRef, 'Color', gui.powerRotColor, 'LineWidth', 2);
-      plot(gui.powerPlot, inputParamValues, powerVibrationalGain./powerRef, ...
-        inputParamValues, powerVibrationalLoss./powerRef, 'Color', gui.powerVibColor, 'LineWidth', 2);
-      plot(gui.powerPlot, inputParamValues, powerElectronicGain./powerRef, ...
-        inputParamValues, powerElectronicLoss./powerRef, 'Color', gui.powerEleColor, 'LineWidth', 2);
-      plot(gui.powerPlot, inputParamValues, powerIonization./powerRef, 'Color', gui.powerIonColor, 'LineWidth', 2);
-      plot(gui.powerPlot, inputParamValues, powerAttachment./powerRef, 'Color', gui.powerAttColor, 'LineWidth', 2);
-      plot(gui.powerPlot, inputParamValues, powerGrowth./powerRef, 'Color', gui.powerGrowthColor, 'LineWidth', 2);
-      
+
+      % --- Create legend (only valid handles)
+      if ~isempty(swarmLegendx)
+        valid = isgraphics(hField);
+        legend(gui.powerPlot, hField(valid), legendLabels(valid))
+      end  
+
     end
     
     function addCrossSectionPlot(gui, collID)
@@ -873,7 +1405,7 @@ classdef GUI < handle
       for solutionID = currentlyPlottedSolutions
         gui.addEedfPlot(solutionID, includeLegend);
       end
-
+      
       % refresh gui
       drawnow;
       
@@ -887,6 +1419,31 @@ classdef GUI < handle
         set(gui.eedfPlot, 'YScale', 'log');
       else
         set(gui.eedfPlot, 'YScale', 'linear');
+      end
+      
+    end
+
+    function changeChemistryVsTimeXScale(gui, ~, ~)
+    % changeChemistryVsTimeXScale is the callback function of the checkbox "chemistryVsTimeLogScaleCheckBoxX", it sets 
+    % the x axis of the chemistryVsTime plot as linear or logscale acording to the value of the checkbox.
+      
+      if get(gui.chemistryVsTimeLogScaleCheckBoxX, 'Value')
+        set(gui.chemistryVsTimePlot, 'XScale', 'log');
+      else
+        set(gui.chemistryVsTimePlot, 'XScale', 'linear');
+      end
+      
+    end
+
+    function changeChemistryVsTimeYScale(gui, ~, ~)
+    % changeChemistryVsTimeYScale is the callback function of the checkbox "chemistryVsTimeLogScaleCheckBoxY", it sets 
+    % the y axis of the chemistryVsTime plot as linear or logscale acording to the value of the checkbox.
+      
+      yyaxis(gui.chemistryVsTimePlot, 'left');
+      if get(gui.chemistryVsTimeLogScaleCheckBoxY, 'Value')
+        set(gui.chemistryVsTimePlot, 'YScale', 'log');
+      else
+        set(gui.chemistryVsTimePlot, 'YScale', 'linear');
       end
       
     end
@@ -942,12 +1499,63 @@ classdef GUI < handle
     
     end
     
+    function inputRateCoeffListHandler(gui, ~, ~)
+
+      % evaluate ID of the reaction to display its information
+      reactionID = gui.inputRateCoeffList.Value;
+      set(gui.inputRateCoeffInfo1, 'String', gui.chemistryReactionArray(reactionID).description);
+      set(gui.inputRateCoeffInfo2, 'String', gui.chemistryReactionArray(reactionID).type);
+      parametersStr = '';
+      for idx = 1:length(gui.chemistryReactionArray(reactionID).rateCoeffParams)
+        parameter = gui.chemistryReactionArray(reactionID).rateCoeffParams{idx};
+        if isnumeric(parameter)
+          parametersStr = sprintf('%s%g, ', parametersStr, parameter);
+        elseif ischar(parameter)
+          parametersStr = sprintf('%s%s, ', parametersStr, parameter);
+        elseif islogical(parameter)
+          if parameter
+            logicalStr = 'true';
+          else
+            logicalStr = 'false';
+          end
+          parametersStr = sprintf('%s%s, ', parametersStr, logicalStr);
+        end
+      end
+      if length(parametersStr) == 2
+        parametersStr = 'N/A';
+      else
+        parametersStr = parametersStr(1:end-2);
+      end
+      set(gui.inputRateCoeffInfo3, 'String', parametersStr);
+      set(gui.inputRateCoeffInfo4, 'String', sprintf('%g eV', gui.chemistryReactionArray(reactionID).enthalpy));
+      if isempty(gui.chemistryReactionArray(reactionID).eedfEquivalent)
+        eedfEquivalentStr = 'No';
+      else
+        if gui.chemistryReactionArray(reactionID).eedfEquivalent.isExtra
+          eedfEquivalentStr = 'Yes (Extra)';
+        else
+          eedfEquivalentStr = 'Yes';
+        end
+      end
+      set(gui.inputRateCoeffInfo5, 'String', eedfEquivalentStr);
+
+    end
+
     function resultsTextPopUpMenuHandler(gui, ~, ~)
     
       % evaluate solution to show
       solutionID = gui.resultsTextPopUpMenu.Value;
     
       % show selected solution(s)
+      if isfield(gui.solutions(solutionID), 'densitiesTime')
+        gui.updateFinalDensitiesInfo(solutionID);
+      end
+      if isfield(gui.solutions(solutionID), 'gasTemperatureTime')
+        gui.updateFinalTemperaturesInfo(solutionID);
+      end
+      if isfield(gui.solutions(solutionID), 'reactionRates')
+        gui.updateFinalBalanceInfo(solutionID);
+      end
       if isfield(gui.solutions(solutionID), 'power')
         gui.updatePowerBalanceInfo(solutionID);
       end
@@ -1066,7 +1674,7 @@ classdef GUI < handle
       reducedField = gui.solutions(solutionID).workCond.reducedField;
       % create information to display
       swarmStr = cell(0);
-      swarmStr{end+1} = sprintf('               Reduced electric field = %#.3e (Td)', reducedField);
+      swarmStr{end+1} = sprintf('                     Electron density = %#.3e (m^-3)', electronDensity);      swarmStr{end+1} = sprintf('               Reduced electric field = %#.3e (Td)', reducedField);
       swarmStr{end+1} = sprintf('        Reduced diffusion coefficient = %#.3e ((ms)^-1)', swarmParam.redDiffCoeff);
       swarmStr{end+1} = sprintf('                     Reduced mobility = %#.3e ((msV)^-1)', swarmParam.redMobility);
       if gui.isSimulationHF
@@ -1155,6 +1763,980 @@ classdef GUI < handle
       %update the powerBalanceInfo object (uicontrol object)
       set(gui.electronImpactRateCoeffOutputInfo, 'String', rateCoeffStr);
     
+    end
+    
+    function newPressureCycleIteration(gui, chemistry, ~)
+      
+      % add data of the new iteration to the array pressureErrorData
+      if isempty(gui.pressureErrorData)
+        data = [chemistry.pressureIterationCurrent chemistry.pressureRelErrorCurrent];
+      else
+        data = [gui.pressureErrorData; chemistry.pressureIterationCurrent chemistry.pressureRelErrorCurrent];
+      end
+      gui.pressureErrorData = data;
+      
+      % Separate positive and negative errors
+      pos_indices = data(:,2) >= 0;
+      neg_indices = data(:,2) < 0;
+      
+      % Plot positive errors in blue
+      h1 = plot(gui.pressureErrorPlot, data(pos_indices,1), abs(data(pos_indices,2)), 'o', ...
+        'MarkerEdgeColor', 'blue', 'DisplayName', 'Positive Errors');
+      hold(gui.pressureErrorPlot, 'on');
+      
+      % Plot negative errors in red
+      h2 = plot(gui.pressureErrorPlot, data(neg_indices,1), abs(data(neg_indices,2)), 'o', ...
+        'MarkerEdgeColor', 'red', 'DisplayName', 'Negative Errors');
+      
+      % Plot all errors with a connecting line in black
+      plot(gui.pressureErrorPlot, data(:,1), abs(data(:,2)), '-', 'Color', 'black');
+      
+      % Add legend
+      legend(gui.pressureErrorPlot, [h1, h2], 'Location', 'northeast');
+
+      % Update text in the chemistry iterations tab
+      pressureErrorInfoStr = cell(1,2);
+      pressureErrorInfoStr{1} = sprintf('iteration: %d', data(end,1));
+      pressureErrorInfoStr{2} = sprintf('error: %g', data(end,2));
+      set(gui.pressureErrorInfo, 'String', pressureErrorInfoStr);
+
+      % add info to log tab
+      gui.logInfo.String{end+1} = sprintf('\t- New pressure cycle iteration (%d): relative error = %e', ...
+        data(end,1), data(end,2));
+      
+      % refresh gui
+      if mod(length(data(:,1)), gui.refreshFrequency) == 0
+        drawnow;
+      end
+      
+    end
+    
+    function newNeutralityCycleIteration(gui, chemistry, ~)
+      
+      % add data of the new iteration to the array neutralityErrorData
+      if isempty(gui.neutralityErrorData)
+        data = [chemistry.neutralityIterationCurrent chemistry.neutralityRelErrorCurrent];
+      else
+        data = [gui.neutralityErrorData; chemistry.neutralityIterationCurrent chemistry.neutralityRelErrorCurrent];
+      end
+      gui.neutralityErrorData = data;
+      
+      % Separate positive and negative errors
+      pos_indices = data(:,2) >= 0;
+      neg_indices = data(:,2) < 0;
+      
+      % Plot positive errors in blue
+      h1 = plot(gui.neutralityErrorPlot, data(pos_indices,1), abs(data(pos_indices,2)), 'o', ...
+        'MarkerEdgeColor', 'blue', 'DisplayName', 'Positive Errors');
+      hold(gui.neutralityErrorPlot, 'on');
+      
+      % Plot negative errors in red
+      h2 = plot(gui.neutralityErrorPlot, data(neg_indices,1), abs(data(neg_indices,2)), 'o', ...
+        'MarkerEdgeColor', 'red', 'DisplayName', 'Negative Errors');
+      
+      % Plot all errors with a connecting line in black
+      plot(gui.neutralityErrorPlot, data(:,1), abs(data(:,2)), '-', 'Color', 'black');
+
+      % Add legend
+      legend(gui.neutralityErrorPlot, [h1, h2], 'Location', 'northeast');
+
+      % Update text in the chemistry iterations tab
+      neutralityErrorInfoStr = cell(1,2);
+      neutralityErrorInfoStr{1} = sprintf('iteration: %d', data(end,1));
+      neutralityErrorInfoStr{2} = sprintf('error: %g', data(end,2));
+      switch class(chemistry.electronKinetics)
+        case 'Boltzmann'
+          neutralityErrorInfoStr{3} = sprintf('E/N: %g(Td)', chemistry.workCond.reducedField);
+        case 'PrescribedEedf'
+          neutralityErrorInfoStr{3} = sprintf('Te: %g(eV)', chemistry.workCond.electronTemperature);
+      end
+      set(gui.neutralityErrorInfo, 'String', neutralityErrorInfoStr);
+      
+      % add info to log tab
+      gui.logInfo.String{end+1} = sprintf('\t- New neutrality cycle iteration (%d): relative error = %e', ...
+        data(end,1), data(end,2));
+
+      % refresh gui
+      drawnow;
+      
+    end
+    
+    function newGlobalCycleIteration(gui, chemistry, ~)
+      
+      % add data of the new iteration to the array neutralityErrorData
+      if isempty(gui.globalErrorData)
+        data = [chemistry.globalIterationCurrent chemistry.globalRelErrorCurrent];
+      else
+        data = [gui.globalErrorData; chemistry.globalIterationCurrent chemistry.globalRelErrorCurrent];
+      end
+      gui.globalErrorData = data;
+      
+      % Separate positive and negative errors
+      pos_indices = data(:,2) >= 0;
+      neg_indices = data(:,2) < 0;
+      
+      % Plot positive errors in blue
+      h1 = plot(gui.globalErrorPlot, data(pos_indices,1), abs(data(pos_indices,2)), 'o', ...
+        'MarkerEdgeColor', 'blue', 'DisplayName', 'Positive Errors');
+      hold(gui.globalErrorPlot, 'on');
+      
+      % Plot negative errors in red
+      h2 = plot(gui.globalErrorPlot, data(neg_indices,1), abs(data(neg_indices,2)), 'o', ...
+        'MarkerEdgeColor', 'red', 'DisplayName', 'Negative Errors');
+      
+      % Plot all errors with a connecting line in black
+      plot(gui.globalErrorPlot, data(:,1), abs(data(:,2)), '-', 'Color', 'black');
+      
+      % Add legend
+      legend(gui.globalErrorPlot, [h1, h2], 'Location', 'northeast');
+      
+      % update text in the chemistry iterations tab
+      globalErrorInfoStr = cell(1,2);
+      globalErrorInfoStr{1} = sprintf('iteration: %d', data(end,1));
+      globalErrorInfoStr{2} = sprintf('error: %g', data(end,2));
+      set(gui.globalErrorInfo, 'String', globalErrorInfoStr);
+      
+      % add info to log tab
+      gui.logInfo.String{end+1} = sprintf('\t- New global cycle iteration (%d): relative error = %e', ...
+        data(end,1), data(end,2));
+
+      % refresh gui
+      drawnow;
+      
+    end
+    
+    function newChemistrySolution(gui, chemistry, ~)
+      
+      % evaluate new solution ID
+      newSolutionID = length(gui.solutions)+1;
+      
+      % save chemistry solutions for later use on the gui
+      gui.solutions(newSolutionID).time = chemistry.solution.time;
+      gui.solutions(newSolutionID).finalDischargeDensity = chemistry.solution.finalDischargeDensity;
+      gui.solutions(newSolutionID).densitiesTime = chemistry.solution.densitiesTime;
+      gui.solutions(newSolutionID).gasTemperatureTime = chemistry.solution.gasTemperatureTime;
+      
+      if isfield(chemistry.solution, 'nearWallTemperatureTime')
+        gui.solutions(newSolutionID).nearWallTemperatureTime = chemistry.solution.nearWallTemperatureTime;
+      end
+      if isfield(chemistry.solution, 'wallTemperatureTime')
+        gui.solutions(newSolutionID).wallTemperatureTime = chemistry.solution.wallTemperatureTime;
+      end
+      gui.solutions(newSolutionID).reactionsInfo = chemistry.solution.reactionsInfo;
+      gui.solutions(newSolutionID).workCond = chemistry.workCond.struct;
+      gui.solutions(newSolutionID).targetGasPressure = chemistry.targetGasPressure;
+      gui.solutions(newSolutionID).excitationParameter = chemistry.convergenceParameter;
+      gui.solutions(newSolutionID).neutralityRelError = chemistry.neutralityRelErrorCurrent;
+
+      % save associated electron Kinetic solution for later use on the gui (in case it is activated)
+      if ~isempty(chemistry.electronKinetics)
+        switch class(chemistry.electronKinetics)
+          case 'Boltzmann'
+            gui.solutions(newSolutionID).reducedField = chemistry.workCond.reducedField;
+            gui.solutions(newSolutionID).firstAnisotropy = chemistry.electronKinetics.firstAnisotropy;
+          case 'PrescribedEedf'
+            gui.solutions(newSolutionID).electronTemperature = chemistry.workCond.electronTemperature;
+        end
+        gui.solutions(newSolutionID).eedf = chemistry.electronKinetics.eedf;
+        gui.solutions(newSolutionID).energyValues = chemistry.electronKinetics.energyGrid.cell;
+        gui.solutions(newSolutionID).power = chemistry.electronKinetics.power;
+        gui.solutions(newSolutionID).swarmParam = chemistry.electronKinetics.swarmParam;
+        gui.solutions(newSolutionID).rateCoeffAll = chemistry.electronKinetics.rateCoeffAll;
+        gui.solutions(newSolutionID).rateCoeffExtra = chemistry.electronKinetics.rateCoeffExtra;
+      end
+      
+      % add new entry to heavySpeciesDensitiesPopUpMenu
+      if length(gui.chemistryVsTimeRunPopUpMenu.String) == 1
+        newString = [sprintf('Run %d', newSolutionID); gui.chemistryVsTimeRunPopUpMenu.String];
+        set(gui.chemistryVsTimeRunPopUpMenu, 'String', newString);
+        % add new entry to eedfPopUpMenu (in case electron kinetics is activated)
+        if ~isempty(chemistry.electronKinetics)
+          set(gui.eedfPopUpMenu, 'String', newString);
+        end
+      end
+      
+      % add new entry to resultsTextPopUpMenu
+      if chemistry.isPulsed
+        newString = [sprintf('t = %g s', chemistry.workCond.currentTime); gui.resultsTextPopUpMenu.String];
+        set(gui.resultsTextPopUpMenu, 'String', newString);
+      else
+        set(gui.resultsTextPopUpMenu, 'String', gui.chemistryVsTimeRunPopUpMenu.String(1:end-1));
+      end
+      
+      % update graphical and text result panels with the new solution
+      if chemistry.isPulsed && chemistry.workCond.currentTime == chemistry.solution.time(end)
+        gui.addChemistryPlots(newSolutionID,1:length(gui.chemistryGasArray),1:length(gui.chemistryStateArray));
+      elseif ~chemistry.isPulsed
+        gui.addChemistryPlots(newSolutionID,1:length(gui.chemistryGasArray),1:length(gui.chemistryStateArray));
+      end
+      gui.updateFinalDensitiesInfo(newSolutionID);
+      gui.updateFinalTemperaturesInfo(newSolutionID);
+      gui.updateChemParametersInfo(newSolutionID);
+      gui.updateFinalBalanceInfo(newSolutionID);
+      if ~isempty(chemistry.electronKinetics)
+        gui.addEedfPlot(newSolutionID, 1);
+        gui.updatePowerBalanceInfo(newSolutionID);
+        gui.updateSwarmParamInfo(newSolutionID);
+        gui.updateRateCoeffInfo(newSolutionID);
+      end
+      
+      % refresh gui
+      drawnow;
+      
+    end
+    
+    function addChemistryPlots(gui, solutionID, gasIDArray, stateIDArray)
+      
+      % add new plot
+      time = gui.solutions(solutionID).time;
+      densitiesTime = gui.solutions(solutionID).densitiesTime;
+      gasTemperatureTime = gui.solutions(solutionID).gasTemperatureTime;
+      if isfield(gui.solutions(solutionID), 'nearWallTemperatureTime')
+        nearWallTemperatureTime = gui.solutions(solutionID).nearWallTemperatureTime;
+      else
+        nearWallTemperatureTime = [];
+      end
+      if isfield(gui.solutions(solutionID), 'wallTemperatureTime')
+        wallTemperatureTime = gui.solutions(solutionID).wallTemperatureTime;
+      else
+        wallTemperatureTime = [];
+      end
+      
+      % organise states as a family tree
+      familyIDs = [];
+      for gas = gui.chemistryGasArray
+        if any(gas.ID == gasIDArray)
+          for eleState = gas.stateArray
+            if strcmp(eleState.type, 'ele')
+              if any(eleState.ID == stateIDArray)
+                familyIDs(end+1) = eleState.ID;
+                for vibState = eleState.childArray
+                  familyIDs(end+1) = vibState.ID;
+                  for rotState = vibState.childArray
+                    familyIDs(end+1) = rotState.ID;
+                  end
+                end
+              else
+                for vibState = eleState.childArray
+                  if any(vibState.ID == stateIDArray)
+                    familyIDs(end+1) = vibState.ID;
+                    for rotState = vibState.childArray
+                      familyIDs(end+1) = rotState.ID;
+                    end
+                  else
+                    for rotState = vibState.childArray
+                      if any(rotState.ID == stateIDArray)
+                        familyIDs(end+1) = rotState.ID;
+                      end
+                    end
+                  end
+                end
+              end
+            end
+          end
+          for ionState = gas.stateArray
+            if strcmp(ionState.type, 'ion') && any(ionState.ID == stateIDArray)
+              familyIDs(end+1) = ionState.ID;
+            end
+          end
+        end
+      end
+      
+      % plot results
+      yyaxis(gui.chemistryVsTimePlot, 'left');
+      for i = 1:length(familyIDs)
+        plot(gui.chemistryVsTimePlot, time, densitiesTime(:,familyIDs(i)), '-', 'Color', [rand rand rand], 'Tag', ...
+          'chemistryVsTimePlot');
+      end
+      
+      % plot gas temperature in case it is not plotted already 
+      if ~gui.isGasTemperaturePlotted
+        yyaxis(gui.chemistryVsTimePlot, 'right')
+        plot(gui.chemistryVsTimePlot, time, gasTemperatureTime, '--', 'Color', 'r', 'LineWidth', 2);
+        if ~isempty(nearWallTemperatureTime)
+          plot(gui.chemistryVsTimePlot, time, nearWallTemperatureTime, '--', 'Color', 'b', 'LineWidth', 2);
+        end
+        if ~isempty(wallTemperatureTime)
+          plot(gui.chemistryVsTimePlot, time, wallTemperatureTime, '--', 'Color', 'k', 'LineWidth', 2);
+        end
+      end
+      
+      % add info to legend
+      if ~gui.isGasTemperaturePlotted
+        legendStr = gui.chemistryVsTimeLegend;
+        for i = 1:length(familyIDs)
+          legendStr{end+1} = gui.chemistryStateArray(familyIDs(i)).name;
+        end
+        legendStr{end+1} = 'Gas temperature';
+        if ~isempty(nearWallTemperatureTime)
+          legendStr{end+1} = 'Near wall temperature';
+        end
+        if ~isempty(wallTemperatureTime)
+          legendStr{end+1} = 'Wall temperature';
+        end
+        % set flag indicating if the gas temperature is plotted to true
+        gui.isGasTemperaturePlotted = true;
+      else
+        if isempty(wallTemperatureTime)
+          if isempty(nearWallTemperatureTime)
+            legendStr = {gui.chemistryVsTimeLegend{1:end-1}};
+          else
+            legendStr = {gui.chemistryVsTimeLegend{1:end-2}};
+          end
+        else
+          legendStr = {gui.chemistryVsTimeLegend{1:end-3}};
+        end
+        for i = 1:length(familyIDs)
+          legendStr{end+1} = gui.chemistryStateArray(familyIDs(i)).name;
+        end
+        legendStr{end+1} = 'Gas temperature';
+        if ~isempty(nearWallTemperatureTime)
+          legendStr{end+1} = 'Near wall temperature';
+        end
+        if ~isempty(wallTemperatureTime)
+          legendStr{end+1} = 'Wall temperature';
+        end
+      end
+      
+      % draw and save legend info
+      legend(gui.chemistryVsTimePlot, legendStr);
+      gui.chemistryVsTimeLegend = legendStr;
+      
+    end
+    
+    function chemistryVsTimeRunPopUpMenuHandler(gui, ~, ~)
+    
+      % evaluate solution(s) to plot
+      solutionIDArray = gui.chemistryVsTimeRunPopUpMenu.Value;
+      if solutionIDArray == length(gui.solutions)+1
+        gui.clearChemistryVsTimePlot();
+        solutionIDArray = 1:length(gui.solutions);
+      end
+    
+      % plot selected solution(s)
+      for solutionID = solutionIDArray
+        gui.addChemistryPlots(solutionID,1:length(gui.chemistryGasArray),1:length(gui.chemistryStateArray));
+      end
+      
+      % refresh gui
+      drawnow;
+    
+    end
+    
+    function chemistryVsTimeGasPopUpMenuHandler(gui, ~, ~)
+    
+      % evaluate solution(s) to plot
+      solutionIDArray = gui.chemistryVsTimeRunPopUpMenu.Value;
+      if solutionIDArray == length(gui.solutions)+1
+        gui.clearChemistryVsTimePlot();
+        solutionIDArray = 1:length(gui.solutions);
+      end
+      
+      % evaluate gas(s) to plot
+      gasIDArray = gui.chemistryVsTimeGasPopUpMenu.Value;
+      if gasIDArray == length(gui.chemistryGasArray)+1
+        gui.clearChemistryVsTimePlot();
+        gasIDArray = 1:length(gui.chemistryGasArray);
+      end
+    
+      % plot selected solution(s)
+      for solutionID = solutionIDArray
+        gui.addChemistryPlots(solutionID, gasIDArray, 1:length(gui.chemistryStateArray));
+      end
+      
+      % refresh gui
+      drawnow;
+    
+    end
+    
+    function chemistryVsTimeStatePopUpMenuHandler(gui, ~, ~)
+    
+      % evaluate solution(s) to plot
+      solutionIDArray = gui.chemistryVsTimeRunPopUpMenu.Value;
+      if solutionIDArray == length(gui.solutions)+1
+        gui.clearChemistryVsTimePlot();
+        solutionIDArray = 1:length(gui.solutions);
+      end
+      
+      % evaluate state(s) to plot
+      stateIDArray = gui.chemistryVsTimeStatePopUpMenu.Value;
+      if stateIDArray == length(gui.chemistryStateArray)+1
+        gui.clearChemistryVsTimePlot();
+        stateIDArray = 1:length(gui.chemistryStateArray);
+      end
+    
+      % plot selected solution(s)
+      for solutionID = solutionIDArray
+        gui.addChemistryPlots(solutionID, 1:length(gui.chemistryGasArray), stateIDArray);
+      end
+      
+      % refresh gui
+      drawnow;
+    
+    end
+    
+    function clearChemistryVsTimePlot(gui, ~, ~)
+
+      % clear plot
+      yyaxis(gui.chemistryVsTimePlot, 'left');
+      cla(gui.chemistryVsTimePlot);
+      yyaxis(gui.chemistryVsTimePlot, 'right');
+      cla(gui.chemistryVsTimePlot);
+      gui.isGasTemperaturePlotted = false;
+      % clear legend
+      legend(gui.chemistryVsTimePlot, 'off');
+      gui.chemistryVsTimeLegend = cell.empty;
+      
+      % refresh gui
+      drawnow;
+      
+    end
+    
+    function updateFinalDensitiesInfo(gui, solutionID)
+      
+      % save local copy of different variables
+      finalDensities = gui.solutions(solutionID).finalDischargeDensity;
+      reactionRates = [gui.solutions(solutionID).reactionsInfo.netRate];
+      % evaluate number of gases and species
+      numberOfGases = length(gui.chemistryGasArray);
+      numberOfSpecies = length(finalDensities);
+      % determine total gas density and creation/destruction rates (final time)
+      gasDensities = zeros(1,numberOfGases);
+      totalVolumeGasDensity = 0;
+      totalSurfaceSiteDensity = 0;
+      rateBalances = zeros(1,numberOfSpecies);
+      for gas = gui.chemistryGasArray
+        for state = gas.stateArray
+          if strcmp(state.type, 'ele') || strcmp(state.type, 'ion')
+            gasDensities(gas.ID) = gasDensities(gas.ID) + finalDensities(state.ID);
+          end
+          if isempty(state.childArray)
+            creationRate = 0;
+            for reaction = state.reactionsCreation
+              for j = 1:length(reaction.productArray)
+                if state.ID == reaction.productArray(j).ID
+                  creationRate = creationRate + reaction.productStoiCoeff(j)*reactionRates(reaction.ID);
+                  break;
+                end
+              end
+            end
+            destructionRate = 0;
+            for reaction = state.reactionsDestruction
+              for j = 1:length(reaction.reactantArray)
+                if state.ID == reaction.reactantArray(j).ID
+                  destructionRate = destructionRate + reaction.reactantStoiCoeff(j)*reactionRates(reaction.ID);
+                  break;
+                end
+              end
+            end
+            rateBalances(state.ID) = (creationRate-destructionRate)/creationRate;
+          end
+        end
+        if gas.isVolumeSpecies
+          totalVolumeGasDensity = totalVolumeGasDensity + gasDensities(gas.ID);
+        else
+          totalSurfaceSiteDensity = totalSurfaceSiteDensity + gasDensities(gas.ID);
+        end
+      end
+      % evaluate length of the 'Species' column
+      speciesColumnLength = 13;
+      for gas = gui.chemistryGasArray
+        speciesColumnLength = max(speciesColumnLength, length(gas.name)+12);
+        for state = gas.stateArray
+          switch state.type
+            case 'ele'
+              speciesColumnLength = max(speciesColumnLength, length(state.name)+1);
+            case 'vib'
+              speciesColumnLength = max(speciesColumnLength, length(state.name)+3);
+            case 'rot'
+              speciesColumnLength = max(speciesColumnLength, length(state.name)+5);
+            case 'ion'
+              speciesColumnLength = max(speciesColumnLength, length(state.name)+1);
+          end
+        end
+      end
+      % evaluate auxiliary strings for the proper formating of the table
+      auxStr1 = sprintf(' %%-%ds ',speciesColumnLength-1);
+      auxStr2 = sprintf(' | %%-%ds ',speciesColumnLength-3);
+      auxStr3 = sprintf(' | | %%-%ds ',speciesColumnLength-5);
+      % write volume chemistry information (final densities, final populations and final particle balances)
+      finalDensitiesStr = cell.empty;
+      finalDensitiesStr{end+1} = sprintf('*****************************');
+      finalDensitiesStr{end+1} = sprintf('*  Chemistry (Volume phase) *');
+      finalDensitiesStr{end+1} = sprintf('*****************************');
+      finalDensitiesStr{end+1} = sprintf('Species%s Abs. Density  Population    Balance', ...
+        repmat(' ', 1, speciesColumnLength-7));
+      finalDensitiesStr{end+1} = sprintf('%s (m^-3)', repmat(' ', 1, speciesColumnLength));
+      finalDensitiesStr{end+1} = repmat('-', 1, speciesColumnLength+43);
+      for gas = gui.chemistryGasArray
+        if gas.isSurfaceSpecies
+          continue
+        end
+        finalDensitiesStr{end+1} = sprintf('%s[%f%%]', gas.name, 100*gasDensities(gas.ID)/totalVolumeGasDensity);
+        for eleState = gas.stateArray
+          if strcmp(eleState.type, 'ele')
+            if isempty(eleState.childArray)
+              finalDensitiesStr{end+1} = sprintf([auxStr1 '%9.3e     %9.3e     %+9.3e'], eleState.name, ...
+                finalDensities(eleState.ID), finalDensities(eleState.ID)/gasDensities(gas.ID), ...
+                rateBalances(eleState.ID));
+            else
+              finalDensitiesStr{end+1} = sprintf([auxStr1 '%9.3e     %9.3e'], eleState.name, ...
+                finalDensities(eleState.ID), finalDensities(eleState.ID)/gasDensities(gas.ID));
+            end
+            for vibState = eleState.childArray
+              if isempty(vibState.childArray)
+                finalDensitiesStr{end+1} = sprintf([auxStr2 '| %9.3e   | %9.3e   | %+9.3e'], vibState.name, ...
+                  finalDensities(vibState.ID), finalDensities(vibState.ID)/finalDensities(eleState.ID), ...
+                  rateBalances(vibState.ID));
+              else
+                finalDensitiesStr{end+1} = sprintf([auxStr2 '| %9.3e   | %9.3e'], vibState.name, ...
+                  finalDensities(vibState.ID), finalDensities(vibState.ID)/finalDensities(eleState.ID));
+              end
+              for rotState = vibState.childArray
+                finalDensitiesStr{end+1} = sprintf([auxStr3 '| | %9.3e | | %9.3e | | %+9.3e'], rotState.name, ...
+                  finalDensities(rotState.ID), finalDensities(rotState.ID)/finalDensities(vibState.ID), ...
+                  rateBalances(rotState.ID));
+              end
+            end
+          end
+        end
+        for ionState = gas.stateArray
+          if strcmp(ionState.type, 'ion')
+            finalDensitiesStr{end+1} = sprintf([auxStr1 '%9.3e     %9.3e     %+9.3e'], ionState.name, ...
+              finalDensities(ionState.ID), finalDensities(ionState.ID)/gasDensities(gas.ID), rateBalances(ionState.ID));
+          end
+        end
+      end
+      % write surface chemistry information (final densities, final populations and final particle balances)
+      if totalSurfaceSiteDensity ~= 0
+        finalDensitiesStr{end+2} = sprintf('*****************************');
+        finalDensitiesStr{end+1} = sprintf('* Chemistry (Surface phase) *');
+        finalDensitiesStr{end+1} = sprintf('*****************************');
+        finalDensitiesStr{end+1} = sprintf('Species%s Abs. Density  Population    Balance', ...
+          repmat(' ', 1, speciesColumnLength-7));
+        finalDensitiesStr{end+1} = sprintf('%s (m^-2)', repmat(' ', 1, speciesColumnLength));
+        finalDensitiesStr{end+1} = repmat('-', 1, speciesColumnLength+43);
+        for gas = gui.chemistryGasArray
+          if gas.isVolumeSpecies
+            continue
+          end
+          finalDensitiesStr{end+1} = sprintf('%s[%f%%]', gas.name, 100*gasDensities(gas.ID)/totalSurfaceSiteDensity);
+          for eleState = gas.stateArray
+            if strcmp(eleState.type, 'ele')
+              if isempty(eleState.childArray)
+                finalDensitiesStr{end+1} = sprintf([auxStr1 '%9.3e     %9.3e     %+9.3e'], eleState.name, ...
+                  finalDensities(eleState.ID), finalDensities(eleState.ID)/gasDensities(gas.ID), ...
+                  rateBalances(eleState.ID));
+              else
+                finalDensitiesStr{end+1} = sprintf([auxStr1 '%9.3e     %9.3e'], eleState.name, ...
+                  finalDensities(eleState.ID), finalDensities(eleState.ID)/gasDensities(gas.ID));
+              end
+              for vibState = eleState.childArray
+                if isempty(vibState.childArray)
+                  finalDensitiesStr{end+1} = sprintf([auxStr2 '| %9.3e   | %9.3e   | %+9.3e'], vibState.name, ...
+                    finalDensities(vibState.ID), finalDensities(vibState.ID)/finalDensities(eleState.ID), ...
+                    rateBalances(vibState.ID));
+                else
+                  finalDensitiesStr{end+1} = sprintf([auxStr2 '| %9.3e   | %9.3e'], vibState.name, ...
+                    finalDensities(vibState.ID), finalDensities(vibState.ID)/finalDensities(eleState.ID));
+                end
+                for rotState = vibState.childArray
+                  finalDensitiesStr{end+1} = sprintf([auxStr3 '| | %9.3e | | %9.3e | | %+9.3e'], rotState.name, ...
+                    finalDensities(rotState.ID), finalDensities(rotState.ID)/finalDensities(vibState.ID), ...
+                    rateBalances(rotState.ID));
+                end
+              end
+            end
+          end
+          for ionState = gas.stateArray
+            if strcmp(ionState.type, 'ion')
+              finalDensitiesStr{end+1} = sprintf([auxStr1 '%9.3e     %9.3e     %+9.3e'], ionState.name, ...
+                finalDensities(ionState.ID), finalDensities(ionState.ID)/gasDensities(gas.ID), rateBalances(ionState.ID));
+            end
+          end
+        end
+      end
+      % write eedf information (final populations)
+      if isfield(gui.solutions(solutionID), 'eedf')
+        % evaluate length of the 'Species' column
+        speciesColumnLength = 13;
+        for gas = gui.eedfGasArray
+          speciesColumnLength = max(speciesColumnLength, length(gas.name)+12);
+          for state = gas.stateArray
+            switch state.type
+              case 'ele'
+                speciesColumnLength = max(speciesColumnLength, length(state.name)+1);
+              case 'vib'
+                speciesColumnLength = max(speciesColumnLength, length(state.name)+3);
+              case 'rot'
+                speciesColumnLength = max(speciesColumnLength, length(state.name)+5);
+              case 'ion'
+                speciesColumnLength = max(speciesColumnLength, length(state.name)+1);
+            end
+          end
+        end
+        % evaluate auxiliary strings for the proper formating of the table
+        auxStr1 = sprintf(' %%-%ds ',speciesColumnLength-1);
+        auxStr2 = sprintf(' | %%-%ds ',speciesColumnLength-3);
+        auxStr3 = sprintf(' | | %%-%ds ',speciesColumnLength-5);
+        finalDensitiesStr{end+2} = sprintf('*********************');
+        finalDensitiesStr{end+1} = sprintf('* Electron Kinetics *');
+        finalDensitiesStr{end+1} = sprintf('*********************');
+        finalDensitiesStr{end+1} = sprintf('Species%s Population', repmat(' ', 1, speciesColumnLength-7));
+        finalDensitiesStr{end+1} = repmat('-', 1, speciesColumnLength+14);
+        for gas = gui.eedfGasArray
+          finalDensitiesStr{end+1} = sprintf('%s[%f%%]', gas.name, 100*gas.fraction);
+          for eleState = gas.stateArray
+            if strcmp(eleState.type, 'ele')
+              finalDensitiesStr{end+1} = sprintf([auxStr1 '%9.3e      %9.3e'], eleState.name, eleState.population);
+              if ~isempty(eleState.childArray)
+                for vibState = eleState.childArray
+                  finalDensitiesStr{end+1} = sprintf([auxStr2 '| %9.3e'], vibState.name, vibState.population);
+                  if ~isempty(vibState.childArray)
+                    for rotState = vibState.childArray
+                      finalDensitiesStr{end+1} = sprintf([auxStr3 '| | %9.3e'], rotState.name, rotState.population);
+                    end
+                  end
+                end
+              end
+            end
+          end
+          for ionState = gas.stateArray
+            if strcmp(ionState.type, 'ion')
+              finalDensitiesStr{end+1} = sprintf([auxStr1 '%9.3e'], ionState.name, ionState.population);
+            end
+          end
+        end
+      end
+      
+      % update data in the GUI
+      set(gui.finalDensitiesInfo, 'String', finalDensitiesStr);
+      
+    end
+    
+    function updateFinalTemperaturesInfo(gui, solutionID)
+      
+      % write temperature information in cell array
+      finalTemperaturesStr = cell.empty;
+      finalTemperaturesStr{end+1} = sprintf('      Gas temperature = %9.3e (K)', ...
+        gui.solutions(solutionID).workCond.gasTemperature);
+      if ~isempty(gui.solutions(solutionID).workCond.nearWallTemperature)
+        finalTemperaturesStr{end+1} = sprintf('Near wall temperature = %9.3e (K)', ...
+          gui.solutions(solutionID).workCond.nearWallTemperature);
+      end
+      if ~isempty(gui.solutions(solutionID).workCond.wallTemperature)
+        finalTemperaturesStr{end+1} = sprintf('     Wall temperature = %9.3e (K)', ...
+          gui.solutions(solutionID).workCond.wallTemperature);
+      end
+      if ~isempty(gui.solutions(solutionID).workCond.extTemperature)
+        finalTemperaturesStr{end+1} = sprintf(' External temperature = %9.3e (K)', ...
+          gui.solutions(solutionID).workCond.extTemperature);
+      end
+      
+      % update data in the GUI
+      set(gui.finalTemperaturesInfo, 'String', finalTemperaturesStr);
+      
+    end
+
+    function updateChemParametersInfo(gui, solutionID)
+
+      % write chemistry parameters information in cell array
+      chemParametersStr = cell.empty;
+      chemParametersStr{end+1} = sprintf('          Reduced electric field = %9.3e (Td)', ...
+        gui.solutions(solutionID).workCond.reducedField);
+      chemParametersStr{end+1} = sprintf('             Target gas pressure = %9.3e (Pa)', ...
+        gui.solutions(solutionID).targetGasPressure);
+      chemParametersStr{end+1} = sprintf('              Final gas pressure = %9.3e (Pa)', ...
+        gui.solutions(solutionID).workCond.gasPressure);
+      chemParametersStr{end+1} = sprintf('           Final gas temperature = %9.3e (K)', ...
+        gui.solutions(solutionID).workCond.gasTemperature);
+      chemParametersStr{end+1} = sprintf('               Final gas density = %9.3e (m-3)', ...
+        gui.solutions(solutionID).workCond.gasDensity);
+      chemParametersStr{end+1} = sprintf('                Total input flow = %9.3e (sccm)', ...
+        gui.solutions(solutionID).workCond.totalSccmInFlow);
+      chemParametersStr{end+1} = sprintf('               Total output flow = %9.3e (sccm)', ...
+        gui.solutions(solutionID).workCond.totalSccmOutFlow);      
+
+      % save local copy of the solution
+      excitationParameter = gui.solutions(solutionID).excitationParameter;
+
+      % continue writing chemistry parameters information in cell array
+      if strcmp(excitationParameter, 'electronDensity')
+        chemParametersStr{end+1} = sprintf('         Target electron density = %9.3e (m-3)', ...
+          gui.solutions(solutionID).workCond.electronDensity);
+        chemParametersStr{end+1} = sprintf('           Neutrality rel. error = %9.3e', ...
+          gui.solutions(solutionID).neutralityRelError);
+      elseif strcmp(excitationParameter, 'dischargeCurrent')
+        chemParametersStr{end+1} = sprintf('          Final electron density = %9.3e (m-3)', ...
+          gui.solutions(solutionID).workCond.electronDensity);
+        chemParametersStr{end+1} = sprintf('           Neutrality rel. error = %9.3e', ...
+          gui.solutions(solutionID).neutralityRelError);
+        % local calculation and writing of discharge current solution and relative error 
+        targetDischargeCurrent = gui.solutions(solutionID).workCond.dischargeCurrent;
+        finalDischargeCurrent = Constant.electronCharge * gui.solutions(solutionID).workCond.electronDensity * ...
+            gui.solutions(solutionID).swarmParam.driftVelocity * pi * ...
+            gui.solutions(solutionID).workCond.chamberRadius^2; 
+        dischargeCurrentRelError = (targetDischargeCurrent - finalDischargeCurrent) / targetDischargeCurrent;
+        chemParametersStr{end+1} = sprintf('        Target discharge current = %9.3e (A)', targetDischargeCurrent);
+        chemParametersStr{end+1} = sprintf('         Final discharge current = %9.3e (A)', finalDischargeCurrent);
+        chemParametersStr{end+1} = sprintf('    Discharge current rel. error = %9.3e', dischargeCurrentRelError);
+      elseif strcmp(excitationParameter, 'dischargePowerDensity')
+        chemParametersStr{end+1} = sprintf('          Final electron density = %9.3e (m-3)', ...
+          gui.solutions(solutionID).workCond.electronDensity);
+        chemParametersStr{end+1} = sprintf('           Neutrality rel. error = %9.3e', ...
+          gui.solutions(solutionID).neutralityRelError);
+        % local calculation and writing of discharge power density solution and relative error 
+        targetDischargePowerDensity = gui.solutions(solutionID).workCond.dischargePowerDensity;
+        finalDischargePowerDensity = gui.solutions(solutionID).workCond.electronDensity * ...
+            gui.solutions(solutionID).workCond.gasDensity * ...
+              gui.solutions(solutionID).power.field * Constant.electronCharge;
+        dischargePowerDensityRelError = (targetDischargePowerDensity - finalDischargePowerDensity) / ...
+              targetDischargePowerDensity;
+        chemParametersStr{end+1} = sprintf('  Target discharge power density = %9.3e (W m-3)', targetDischargePowerDensity);
+        chemParametersStr{end+1} = sprintf('   Final discharge power density = %9.3e (W m-3)', finalDischargePowerDensity);
+        chemParametersStr{end+1} = sprintf('Discharge power dens. rel. error = %9.3e', dischargePowerDensityRelError);
+      end  
+                
+      % update data in the GUI
+      set(gui.chemParametersInfo, 'String', chemParametersStr);
+      
+    end
+
+    function updateFinalBalanceInfo(gui, solutionID)
+      
+      % evaluate maximum length of reaction descriptions
+      maxReactionLength = 0;
+      for reaction = gui.chemistryReactionArray
+        maxReactionLength = max(maxReactionLength, length(reaction.description));
+      end
+      auxStr = sprintf('      %%-%ds ', maxReactionLength);
+      % save local copy of the solution
+      reactionRates = [gui.solutions(solutionID).reactionsInfo.netRate];
+      % write detailed particle balance
+      finalBalanceStr = cell.empty;
+      for gas = gui.chemistryGasArray
+        finalBalanceStr{end+1} = repmat('*', 1, 33+length(gas.name));
+        finalBalanceStr{end+1} = sprintf('* Particle balance for %s species *', gas.name);
+        finalBalanceStr{end+1} = repmat('*', 1, 33+length(gas.name));
+        if gas.isVolumeSpecies
+          rateUnitsStr = 'm^-3s^-1';
+          rateRenorm = 1;
+        else
+          rateUnitsStr = 'm^-2s^-1';
+          rateRenorm = gui.solutions(solutionID).workCond.areaOverVolume;
+        end
+        for eleState = gas.stateArray
+          if strcmp(eleState.type, 'ele')
+            if isempty(eleState.childArray)
+              finalBalanceStr{end+1} = sprintf('-> Particle balance for %s:', eleState.name);
+              % evaluate creation channels 
+              finalBalanceStr{end+1} = sprintf('    * Reactions where %s is created:', eleState.name);
+              finalBalanceStr{end+1} = sprintf('%sRate(%s) Contribution', repmat(' ', 1, maxReactionLength+7), ...
+                rateUnitsStr);
+              reactions = eleState.reactionsCreation;
+              rates = zeros(1,length(reactions));
+              for i = 1:length(reactions)
+                for j = 1:length(reactions(i).productArray)
+                  if eleState.ID == reactions(i).productArray(j).ID
+                    stoiCoeff = reactions(i).productStoiCoeff(j);
+                    break;
+                  end
+                end
+                rates(i) = stoiCoeff*reactionRates(reactions(i).ID)/rateRenorm;
+              end
+              totalCreationRate = sum(rates(:));
+              for i = 1:length(reactions)
+                finalBalanceStr{end+1} = sprintf([auxStr '%9.3e      %9.3e%%'], reactions(i).description, ...
+                  rates(i), rates(i)*100/totalCreationRate);
+              end
+              finalBalanceStr{end+1} = sprintf('%sTOTAL %9.3e      %9.3e%%', repmat(' ', 1, 1+maxReactionLength), ...
+                totalCreationRate, 100);
+              % evaluate destruction channels
+              finalBalanceStr{end+1} = sprintf('    * Reactions where %s is destroyed:', eleState.name);
+              finalBalanceStr{end+1} = sprintf('%sRate(%s) Contribution', repmat(' ', 1, maxReactionLength+7), ...
+                rateUnitsStr);
+              reactions = eleState.reactionsDestruction;
+              rates = zeros(1,length(reactions));
+              for i = 1:length(reactions)
+                for j = 1:length(reactions(i).reactantArray)
+                  if eleState.ID == reactions(i).reactantArray(j).ID
+                    stoiCoeff = reactions(i).reactantStoiCoeff(j);
+                    break;
+                  end
+                end
+                rates(i) = stoiCoeff*reactionRates(reactions(i).ID)/rateRenorm;
+              end
+              totalDestructionRate = sum(rates(:));
+              for i = 1:length(reactions)
+                finalBalanceStr{end+1} = sprintf([auxStr '%9.3e      %9.3e%%'], reactions(i).description, ...
+                  rates(i), rates(i)*100/totalDestructionRate);
+              end
+              finalBalanceStr{end+1} = sprintf('%sTOTAL %9.3e      %9.3e%%', repmat(' ', 1, 1+maxReactionLength), ...
+                totalDestructionRate, 100);
+              % evaluate species balance
+              finalBalanceStr{end+1} = sprintf('');
+              finalBalanceStr{end+1} = sprintf('    * Relative %s balance (creation-destruction)/creation: %9.3e%%', ...
+                eleState.name, (totalCreationRate-totalDestructionRate)*100/totalCreationRate);
+              finalBalanceStr{end+1} = sprintf('');
+            else
+              for vibState = eleState.childArray
+                if isempty(vibState.childArray)
+                  finalBalanceStr{end+1} = sprintf('-> Particle balance for %s:', vibState.name);
+                  % evaluate creation channels
+                  finalBalanceStr{end+1} = sprintf('    * Reactions where %s is created:', vibState.name);
+                  finalBalanceStr{end+1} = sprintf('%sRate(%s) Contribution', repmat(' ', 1, maxReactionLength+7), ...
+                    rateUnitsStr);
+                  reactions = vibState.reactionsCreation;
+                  rates = zeros(1,length(reactions));
+                  for i = 1:length(reactions)
+                    for j = 1:length(reactions(i).productArray)
+                      if vibState.ID == reactions(i).productArray(j).ID
+                        stoiCoeff = reactions(i).productStoiCoeff(j);
+                        break;
+                      end
+                    end
+                    rates(i) = stoiCoeff*reactionRates(reactions(i).ID)/rateRenorm;
+                  end
+                  totalCreationRate = sum(rates(:));
+                  for i = 1:length(reactions)
+                    finalBalanceStr{end+1} = sprintf([auxStr '%9.3e      %9.3e%%'], reactions(i).description, ...
+                      rates(i), rates(i)*100/totalCreationRate);
+                  end
+                  finalBalanceStr{end+1} = sprintf('%sTOTAL %9.3e      %9.3e%%', ...
+                    repmat(' ', 1, 1+maxReactionLength), totalCreationRate, 100);
+                  % evaluate destruction channels
+                  finalBalanceStr{end+1} = sprintf('    * Reactions where %s is destroyed:', vibState.name);
+                  finalBalanceStr{end+1} = sprintf('%sRate(%s) Contribution', repmat(' ', 1, maxReactionLength+7), ...
+                    rateUnitsStr);
+                  reactions = vibState.reactionsDestruction;
+                  rates = zeros(1,length(reactions));
+                  for i = 1:length(reactions)
+                    for j = 1:length(reactions(i).reactantArray)
+                      if vibState.ID == reactions(i).reactantArray(j).ID
+                        stoiCoeff = reactions(i).reactantStoiCoeff(j);
+                        break;
+                      end
+                    end
+                    rates(i) = stoiCoeff*reactionRates(reactions(i).ID)/rateRenorm;
+                  end
+                  totalDestructionRate = sum(rates(:));
+                  for i = 1:length(reactions)
+                    finalBalanceStr{end+1} = sprintf([auxStr '%9.3e      %9.3e%%'], reactions(i).description, ...
+                      rates(i), rates(i)*100/totalDestructionRate);
+                  end
+                  finalBalanceStr{end+1} = sprintf('%sTOTAL %9.3e      %9.3e%%', ...
+                    repmat(' ', 1, 1+maxReactionLength), totalDestructionRate, 100);
+                  % evaluate species balance
+                  finalBalanceStr{end+1} = sprintf('');
+                  finalBalanceStr{end+1} = sprintf(['    * Relative %s balance (creation-destruction)/creation: ' ...
+                    '%9.3e%%'], vibState.name, (totalCreationRate-totalDestructionRate)*100/totalCreationRate);
+                  finalBalanceStr{end+1} = sprintf('');
+                else
+                  for rotState = vibState.childArray
+                    finalBalanceStr{end+1} = sprintf('-> Particle balance for %s:', rotState.name);
+                    % evaluate creation channels
+                    finalBalanceStr{end+1} = sprintf('    * Reactions where %s is created:', rotState.name);
+                    finalBalanceStr{end+1} = sprintf('%sRate(%s) Contribution', ...
+                      repmat(' ', 1, maxReactionLength+7), rateUnitsStr);
+                    reactions = rotState.reactionsCreation;
+                    rates = zeros(1,length(reactions));
+                    for i = 1:length(reactions)
+                      for j = 1:length(reactions(i).productArray)
+                        if rotState.ID == reactions(i).productArray(j).ID
+                          stoiCoeff = reactions(i).productStoiCoeff(j);
+                          break;
+                        end
+                      end
+                      rates(i) = stoiCoeff*reactionRates(reactions(i).ID)/rateRenorm;
+                    end
+                    totalCreationRate = sum(rates(:));
+                    for i = 1:length(reactions)
+                      finalBalanceStr{end+1} = sprintf([auxStr '%9.3e      %9.3e%%'], reactions(i).description, ...
+                        rates(i), rates(i)*100/totalCreationRate);
+                    end
+                    finalBalanceStr{end+1} = sprintf('%sTOTAL %9.3e      %9.3e%%', ...
+                      repmat(' ', 1, 1+maxReactionLength), totalCreationRate, 100);
+                    % evaluate destruction channels
+                    finalBalanceStr{end+1} = sprintf('    * Reactions where %s is destroyed:', rotState.name);
+                    finalBalanceStr{end+1} = sprintf('%sRate(%s) Contribution', ...
+                      repmat(' ', 1, maxReactionLength+7), rateUnitsStr);
+                    reactions = rotState.reactionsDestruction;
+                    rates = zeros(1,length(reactions));
+                    for i = 1:length(reactions)
+                      for j = 1:length(reactions(i).reactantArray)
+                        if rotState.ID == reactions(i).reactantArray(j).ID
+                          stoiCoeff = reactions(i).reactantStoiCoeff(j);
+                          break;
+                        end
+                      end
+                      rates(i) = stoiCoeff*reactionRates(reactions(i).ID)/rateRenorm;
+                    end
+                    totalDestructionRate = sum(rates(:));
+                    for i = 1:length(reactions)
+                      finalBalanceStr{end+1} = sprintf([auxStr '%9.3e      %9.3e%%'], reactions(i).description, ...
+                        rates(i), rates(i)*100/totalDestructionRate);
+                    end
+                    finalBalanceStr{end+1} = sprintf('%sTOTAL %9.3e      %9.3e%%', ...
+                      repmat(' ', 1, 1+maxReactionLength), totalDestructionRate, 100);
+                    % evaluate species balance
+                    finalBalanceStr{end+1} = sprintf('');
+                    finalBalanceStr{end+1} = sprintf(['    * Relative %s balance (creation-destruction)/creation: ' ...
+                      '%9.3e%%'], rotState.name, (totalCreationRate-totalDestructionRate)*100/totalCreationRate);
+                    finalBalanceStr{end+1} = sprintf('');
+                  end
+                end
+              end
+            end
+          end
+        end
+        for ionState = gas.stateArray
+          if strcmp(ionState.type, 'ion')
+            % escribir creacion-destruccion
+            finalBalanceStr{end+1} = sprintf('-> Particle balance for %s:', ionState.name);
+            % evaluate creation channels
+            finalBalanceStr{end+1} = sprintf('    * Reactions where %s is created:', ionState.name);
+            finalBalanceStr{end+1} = sprintf('%sRate(%s) Contribution', repmat(' ', 1, maxReactionLength+7), ...
+              rateUnitsStr);
+            reactions = ionState.reactionsCreation;
+            rates = zeros(1,length(reactions));
+            for i = 1:length(reactions)
+              rates(i) = reactionRates(reactions(i).ID)/rateRenorm;
+            end
+            totalCreationRate = sum(rates(:));
+            for i = 1:length(reactions)
+              finalBalanceStr{end+1} = sprintf([auxStr '%9.3e      %9.3e%%'], reactions(i).description, ...
+                rates(i), rates(i)*100/totalCreationRate);
+            end
+            finalBalanceStr{end+1} = sprintf('%sTOTAL %9.3e      %9.3e%%', repmat(' ', 1, 1+maxReactionLength), ...
+              totalCreationRate, 100);
+            % evaluate destruction channels
+            finalBalanceStr{end+1} = sprintf('    * Reactions where %s is destroyed:', ionState.name);
+            finalBalanceStr{end+1} = sprintf('%sRate(%s) Contribution', repmat(' ', 1, maxReactionLength+7), ...
+              rateUnitsStr);
+            reactions = ionState.reactionsDestruction;
+            rates = zeros(1,length(reactions));
+            for i = 1:length(reactions)
+              rates(i) = reactionRates(reactions(i).ID)/rateRenorm;
+            end
+            totalDestructionRate = sum(rates(:));
+            for i = 1:length(reactions)
+              finalBalanceStr{end+1} = sprintf([auxStr '%9.3e      %9.3e%%'], reactions(i).description, ...
+                rates(i), rates(i)*100/totalDestructionRate);
+            end
+            finalBalanceStr{end+1} = sprintf('%sTOTAL %9.3e      %9.3e%%', repmat(' ', 1, 1+maxReactionLength), ...
+              totalDestructionRate, 100);
+            % evaluate species balance
+            finalBalanceStr{end+1} = sprintf('');
+            finalBalanceStr{end+1} = sprintf('    * Relative %s balance (creation-destruction)/creation: %9.3e%%', ...
+              ionState.name, (totalCreationRate-totalDestructionRate)*100/totalCreationRate);
+            finalBalanceStr{end+1} = sprintf('');
+          end
+        end
+        finalBalanceStr{end+1} = '';
+      end
+      
+      set(gui.finalBalanceInfo, 'String', finalBalanceStr);
+      
     end
     
     function genericStatusMessage(gui, ~, statusEventData)

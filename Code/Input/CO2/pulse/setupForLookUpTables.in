@@ -1,0 +1,98 @@
+workingConditions:
+  reducedField: [0,logspace(-3,3,500)] 
+  electronTemperature: linspace(0.03, 5, 100) 
+  excitationFrequency: 0                      
+  gasPressure: 133.32                         
+  gasTemperature: 300                         
+  wallTemperature: 390                        
+  extTemperature: 300                         
+  surfaceSiteDensity: 1e19                    
+  electronDensity: 1e19                       
+  chamberLength: 1.0                          
+  chamberRadius: 1.0                          
+electronKinetics:
+  isOn: true                           
+  eedfType: boltzmann                  
+  ionizationOperatorType: usingSDCS    
+  growthModelType: temporal            
+  includeEECollisions: false           
+  LXCatFiles:                          
+    - OxygenTS/O2_LXCat.txt               
+    - OxygenTS/O_LXCat.txt
+    - CO2TS/CO2_LXCat.txt
+    - CO/CO_LXCat.txt
+    - CO/CO_rot_LXCat.txt 
+  LXCatFilesExtra:
+    - OxygenTS/O2_LXCat_extra.txt
+    - OxygenTS/O_LXCat_extra-ion.txt
+    - OxygenTS/O3_LXCat_extra.txt
+    - CO2TS/CO2_LXCat_extra.txt
+    - CO/CO_LxCat_extra.txt
+  CARgases:                           
+    - O2
+  gasProperties:                       
+    mass: Databases/masses.txt
+    fraction:
+      - O2 = 0.01   
+      - O = 0.01
+      - CO2 = 0.97  
+      - CO = 0.01
+    harmonicFrequency: Databases/harmonicFrequencies.txt
+    anharmonicFrequency: Databases/anharmonicFrequencies.txt
+    rotationalConstant: Databases/rotationalConstants.txt
+    electricQuadrupoleMoment: Databases/quadrupoleMoment.txt
+    OPBParameter: Databases/OPBParameter.txt
+  stateProperties:                     
+    energy:
+      - Oxygen/O2_vib_energy_levels.txt
+      - CO(X,v=*) = harmonicOscillatorEnergy 
+      - CO(X,v=0,J=*) = rigidRotorEnergy
+      - CO2TS/energyVibLevCO2X.txt    
+    statisticalWeight:
+      - O2(X) = 3
+      - O2(a1Dg) = 2 
+      - O2(b1Sg+) = 1 
+      - O2(A3Su+_C3Du_c1Su-) = 10
+      - O2(9.97eV)= 3
+      - O2(14.7eV) = 1  
+      - O2(X,v=*) = 3.0
+      - O(3P) = 9
+      - O(1D) = 5     
+      - O(1S) = 1   
+      - CO2TS/statWeightCO2X.txt
+      - CO(X) = 1.0
+      - CO(X,v=*) = 1.0
+      - CO(a3P) = 6
+      - CO(X,v=0,J=*) = rotationalDegeneracy    
+    population:
+      - O2(X) = 1.0
+      - O2(X,v=0) = 1.0 
+      - O(3P) = 1.0
+      - CO2(X) = 1.0
+      - CO2(X,v=000) = 1
+      - CO(X) = 1.0
+      - CO(X,v=*) = boltzmannPopulation@gasTemperature
+      - CO(X,v=0,J=*) = boltzmannPopulation@gasTemperature
+  numerics:                            
+    energyGrid:                        
+      maxEnergy: 1                     
+      cellNumber: 1500                 
+      smartGrid:                       
+        minEedfDecay: 15               
+        maxEedfDecay: 20               
+        updateFactor: 0.05             
+    maxPowerBalanceRelError: 1e-9      
+    nonLinearRoutines:
+      algorithm: mixingDirectSolutions 
+      mixingParameter: 0.7             
+      maxEedfRelError: 1e-9            
+chemistry:
+  isOn: false
+gui: 
+  isOn: true
+  refreshFrequency: 1
+output: 
+  isOn: true
+  folder: swarm_CO2_forPulse_0_1000Td
+  dataFiles:
+    - lookUpTable
