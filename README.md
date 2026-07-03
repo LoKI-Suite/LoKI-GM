@@ -34,7 +34,7 @@
    PLEASE READ THEM BEFORE USING THE CODE !!!   
 
    B) Subfolder "Code" containing   
-   &ensp;(a) Several '\*.m' files corresponding to the MATLAB code, of which 'loki.m' is the main file of LoKI-GM and 'lokibcl.m' is the main file of LoKI-B.   
+   &ensp;(a) Several '\*.m' files corresponding to the MATLAB code, of which 'loki.m' is the main file of LoKI-GM.   
    &ensp;(b) Two files to launch the GUI-based input for LoKI-B: the MATLAB file 'InputGUILokib.m', which provides a user-friendly graphical user interface for LoKI-B setup and run; and the batch file 'InputGUILokib.bat', which allows launching the GUI-based input from a cmd window (or by double-clicking the corresponding '\*.bat' file).   
    &ensp;(c) A subfolder "Input", containing the input files required for the simulations, organised as follows   
    &ensp;&ensp;i. Default configuration files in text format 'default_lokibc_setup.in', 'default_lokic_pulse_setup.in', 'default_lokib_setup.in' and 'default_lokib_pulse_setup.in', respectively, for LoKI-GM (the first two files, for steady-state simulations and quasi-stationary simulations, respectively) and for LoKI-B as standalone tool (the latter two, for electron kinetics stationary simulations and electron kinetics time-dependent simulations, respectively).   
