@@ -2145,7 +2145,7 @@ classdef InputGUILokib < handle
                 if isfield(s, parts{i})
                     s = s.(parts{i});
                 else
-                    % If a field doesnt exist, maybe create it (careful!)
+                    % If a field doesn't exist, maybe create it (careful!)
                     error('Field "%s" not found in path "%s"', parts{i}, fieldPath);
                     % Alternatively, create nested structs if needed:
                     % s.(parts{i}) = struct();
@@ -2160,7 +2160,7 @@ classdef InputGUILokib < handle
             % Alternative (safer if possible):
             % s.(parts{end}) = value; % This only works if 's' points to the correct sub-struct
             % To make the alternative work, you need to pass sub-structs by reference,
-            % which MATLAB doesnt do directly for structs. Handle classes would work.
+            % which MATLAB doesn't do directly for structs. Handle classes would work.
             % Or reconstruct the assignment.
         end
 

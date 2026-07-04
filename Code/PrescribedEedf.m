@@ -144,7 +144,7 @@ classdef PrescribedEedf < handle
       % evaluate transport parameters
       prescribedEedf.evaluateSwarmParameters();
 
-      % bradcast obtention of a solution for the EEDF
+      % broadcast obtention of a solution for the EEDF
       notify(prescribedEedf, 'obtainedNewEedf');
       
       % logging end of the EEDF evaluation
@@ -290,13 +290,13 @@ classdef PrescribedEedf < handle
         for collision = gas.collisionArray
           % collision type
           collType = collision.type;
-          % avoid Effective, Elastic, Attachment collisions and collisions whos threshold is larger than the maximum
+          % avoid Effective, Elastic, Attachment collisions and collisions whose threshold is larger than the maximum
           % energy
           if strcmp(collType, 'Effective') || strcmp(collType, 'Elastic') || strcmp(collType, 'Attachment') || ...
               collision.threshold > energyNode(end)
             continue;
           end
-          % switch to lower case because of aesthetical reasons
+          % switch to lower case for aesthetic reasons
           collType = lower(collType);
           % evaluate cross section at cell positions
           cellCrossSection = 0.5*(collision.crossSection(1:end-1)+collision.crossSection(2:end));

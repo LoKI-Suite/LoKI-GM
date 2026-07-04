@@ -546,7 +546,7 @@ classdef Boltzmann < handle
 
           % evaluation of core inelastic/superelastic matrix elements
           energyTimesCrossSection = energyCell.*cellCrossSection;
-          % evaluation of inleastic matrix elements
+          % evaluation of inelastic matrix elements
           inelasticMatrixElements = targetDensity*energyTimesCrossSection;
           % fill "exits" in the inelastic matrix (inelastic contribution)
           inelasticMatrixAux(1:cellNumber+1:cellNumber*cellNumber) = ...
@@ -746,7 +746,7 @@ classdef Boltzmann < handle
       % obtainTimeIndependentSolution solves the time-independent electron boltzmann equation 
       % (to be used for steady-state simulations) 
       
-      % save appropiate method for the selected non-linear algorithm
+      % save appropriate method for the selected non-linear algorithm
       switch boltzmann.nonLinearAlgorithm
         case 'mixingDirectSolutions'
           nonLinearSolver = str2func('mixingDirectSolutions');
@@ -810,7 +810,7 @@ classdef Boltzmann < handle
       % evaluate first anisotropy 
       boltzmann.evaluateFirstAnisotropy();
       
-      % bradcast obtention of a solution for the boltzmann equation
+      % broadcast obtention of a solution for the boltzmann equation
       notify(boltzmann, 'obtainedNewEedf');
       
     end
@@ -952,7 +952,7 @@ classdef Boltzmann < handle
         % evaluate first anisotropy
         boltzmann.evaluateFirstAnisotropy();
         
-        % bradcast obtention of a solution for the boltzmann equation
+        % broadcast obtention of a solution for the boltzmann equation
         notify(boltzmann, 'obtainedNewEedf');
       end
       
@@ -1676,7 +1676,7 @@ classdef Boltzmann < handle
             continue;
             
           end
-          % switch to lower case because of aesthetical reasons
+          % switch to lower case for aesthetic reasons
           collType = lower(collType);
           % evaluate cross section at cell positions
           cellCrossSection = 0.5*(collision.crossSection(1:end-1)+collision.crossSection(2:end));

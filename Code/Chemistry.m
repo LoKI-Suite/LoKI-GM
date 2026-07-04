@@ -811,7 +811,7 @@ classdef Chemistry < handle
         % separate time solutions into its different components
         absDensitiesTimePostDschrg = timeSolutionPostDschrg(:,1:chemistry.numberOfSpecies);
         gasTemperatureTimePostDschrg = timeSolutionPostDschrg(:,chemistry.numberOfSpecies+1);
-        % evaluate density of parent states in the porst-discharge solution (time evolution) and final total gas density
+        % evaluate density of parent states in the post-discharge solution (time evolution) and final total gas density
         totalGasDensity = 0;
         for i = 1:chemistry.numberOfSpecies
           if isempty(chemistry.childIDs{i}) && any(i == chemistry.volumePhaseSpeciesIDs)

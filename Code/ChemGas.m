@@ -115,7 +115,7 @@ classdef ChemGas < Gas
     % the user did not specify a cross section set (dummy gases). Because of the same reason the function also
     % avoids to update electronic or ionic states for which the user did not specify a non zero population.
       
-      % avoid gases that does not have an eedf equivalent or gases whos states are not target of e-impact collisions
+      % avoid gases that does not have an eedf equivalent or gases whose states are not target of e-impact collisions
       if ~isempty(gas.eedfEquivalent) && ~isempty(gas.eedfEquivalent.collisionArray)
         % loop over all the states of a gas
         for state = gas.stateArray

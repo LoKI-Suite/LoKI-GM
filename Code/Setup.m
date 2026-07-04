@@ -77,7 +77,7 @@ classdef Setup < handle
     % ---- objects of the simulation ----
     
     workCond;                       %
-    cli;                            % -> general objectes of the simulation
+    cli;                            % -> general objects of the simulation
     gui;                            %
     output;                         %
     
@@ -212,7 +212,7 @@ classdef Setup < handle
       notify(setup, 'genericStatusMessage', StatusEventData('\t- Setting up other components ...\n', 'status'));
       % (partially implemented if electron kinetics is enabled and chemistry is disabled)
       if setup.enableElectronKinetics && ~setup.enableChemistry
-        % select working conditions eligeble for jobs
+        % select working conditions eligible for jobs
         if strcmpi(setup.info.electronKinetics.eedfType, 'boltzmann')
           auxWorkingConditions.reducedField = setup.info.workingConditions.reducedField;
         elseif strcmpi(setup.info.electronKinetics.eedfType, 'prescribedEedf')
@@ -504,7 +504,7 @@ classdef Setup < handle
           false);
       end
       
-      % create "extra" collisions (and correspponding gases/states) in case they are specified in the setup file
+      % create "extra" collisions (and corresponding gases/states) in case they are specified in the setup file
       if isfield(setup.info.electronKinetics, 'LXCatFilesExtra')
 
         % if it's not empty and is not a cell array, turn into cell array
@@ -657,7 +657,7 @@ classdef Setup < handle
     % gasProperties fill the properties of the gases that are going to be used for solving either the electron kinetics 
     % or the heavy species kinetics
       
-      % seletect type of gas (electronKinetics or chemistry)
+      % select type of gas (electronKinetics or chemistry)
       switch class(gasArray)
         case 'EedfGas'
           gasType = 'electronKinetics';
@@ -712,10 +712,10 @@ classdef Setup < handle
     end
     
     function stateProperties(setup, stateArray)
-      % stateProperties fill the properties of the states that are necesary
+      % stateProperties fill the properties of the states that are necessary
       % for solving the Boltzmann equation. In particular their populations.
       
-      % seletect type of state (electronKinetics or chemistry)
+      % select type of state (electronKinetics or chemistry)
       switch class(stateArray)
         case 'EedfState'
           stateType = 'electronKinetics';
@@ -796,7 +796,7 @@ classdef Setup < handle
       % fill properties of states with the information of the input file
       setup.stateProperties(stateArray);
       
-      % check for gases for which CAR is activated to meet the appropiate conditions
+      % check for gases for which CAR is activated to meet the appropriate conditions
       if isfield(setup.info.electronKinetics, 'CARgases')
         if ischar(setup.info.electronKinetics.CARgases)
           setup.info.electronKinetics.CARgases = {setup.info.electronKinetics.CARgases};
