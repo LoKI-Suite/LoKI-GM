@@ -1995,11 +1995,13 @@ classdef Output < handle
       if output.chemSolutionTimeIsToBeSaved
         if chemistry.isPulsed && chemistry.workCond.currentTime == chemistry.solution.time(end)
             output.subFolder = [];
-            output.saveChemSolutionTime(chemistry.solution.time, chemistry.solution.gasTemperatureTime, ...
+            output.saveChemSolutionTime(chemistry.solution.time, chemistry.solution.reducedFieldTime, ...
+              chemistry.solution.electronTemperatureTime, chemistry.solution.gasTemperatureTime, ...
               chemistry.solution.nearWallTemperatureTime, chemistry.solution.wallTemperatureTime, ...
               chemistry.solution.densitiesTime, chemistry.gasArray);
         elseif ~chemistry.isPulsed
-          output.saveChemSolutionTime(chemistry.solution.time, chemistry.solution.gasTemperatureTime, ...
+          output.saveChemSolutionTime(chemistry.solution.time, chemistry.solution.reducedFieldTime, ...
+            chemistry.solution.electronTemperatureTime, chemistry.solution.gasTemperatureTime, ...
             chemistry.solution.nearWallTemperatureTime, chemistry.solution.wallTemperatureTime, ...
             chemistry.solution.densitiesTime, chemistry.gasArray);
         end
@@ -2892,8 +2894,8 @@ classdef Output < handle
       
     end
 
-    function saveChemSolutionTime(output, time, gasTemperatureTime, nearWallTemperatureTime, wallTemperatureTime, ...
-        densitiesTime, gasArray)
+    function saveChemSolutionTime(output, time, reducedFieldTime, electronTemperatureTime, gasTemperatureTime, ...
+        nearWallTemperatureTime, wallTemperatureTime, densitiesTime, gasArray)
     % saveChemSolutionTime saves the temporal evolution of all the variables solved in the chemistry
       
       % evaluate number of species and time steps 
@@ -2902,43 +2904,53 @@ classdef Output < handle
 
       % evaluate header of the output file - NOTE: only needed if output.dataFormat is 'txt'
       % ... but we need to know the # of columns
-%       name = ["Time(s)", "GasTemp(K)"];
-      name = ["Time", "GasTemp"];
+      name = ["Time(s)", "ReducedField(Td)", "ElectronTemp(eV)", "GasTemp(K)"];
+      % nameHDF5 mirrors name without units/brackets, so it is safe to use as HDF5 field names
+      nameHDF5 = ["Time", "ReducedField", "ElectronTemp", "GasTemp"];
+      % unitsHDF5 mirrors name/nameHDF5, one unit string per column, for the HDF5 'Units' attribute
+      unitsHDF5 = ["s", "Td", "eV", "K"];
       tempColumns = 1;
       if ~isempty(nearWallTemperatureTime)
-%         name(end+1) = "NearWallTemp(K)";
-        name(end+1) = "NearWallTemp";
+        name(end+1) = "NearWallTemp(K)";
+        nameHDF5(end+1) = "NearWallTemp";
+        unitsHDF5(end+1) = "K";
         tempColumns = tempColumns+1;
       end
       if ~isempty(wallTemperatureTime)
-%         name(end+1) = "WallTemp(K)";
-        name(end+1) = "WallTemp";
+        name(end+1) = "WallTemp(K)";
+        nameHDF5(end+1) = "WallTemp";
+        unitsHDF5(end+1) = "K";
         tempColumns = tempColumns+1;
       end
-      columns = numberOfSpecies+tempColumns+1;
+      columns = numberOfSpecies+tempColumns+3;
         
       stateIDs = [];
       for gas = gasArray
         if gas.isVolumeSpecies
           unitsStr = '(m^-3)';
+          unitsPlain = "m^-3";
         else
           unitsStr = '(m^-2)';
+          unitsPlain = "m^-2";
         end
         for state = gas.stateArray
           if strcmp(state.type, 'ele')
             for eleState = [state state.siblingArray]
-%               name(end+1) = ['[' eleState.name ']' unitsStr];
-              name(end+1) = eleState.name;
+              name(end+1) = ['[' eleState.name ']' unitsStr];
+              nameHDF5(end+1) = eleState.name;
+              unitsHDF5(end+1) = unitsPlain;
               stateIDs(end+1) = eleState.ID;
               if ~isempty(eleState.childArray)
                 for vibState = eleState.childArray
-%                   name(end+1) = ['[' vibState.name ']' unitsStr];
-                  name(end+1) = vibState.name;
+                  name(end+1) = ['[' vibState.name ']' unitsStr];
+                  nameHDF5(end+1) = vibState.name;
+                  unitsHDF5(end+1) = unitsPlain;
                   stateIDs(end+1) = vibState.ID;
                   if ~isempty(vibState.childArray)
                     for rotState = vibState.childArray
-%                       name(end+1) = ['[' rotState.name ']' unitsStr];
-                      name(end+1) = rotState.name;
+                      name(end+1) = ['[' rotState.name ']' unitsStr];
+                      nameHDF5(end+1) = rotState.name;
+                      unitsHDF5(end+1) = unitsPlain;
                       stateIDs(end+1) = rotState.ID;
                     end
                   end
@@ -2951,8 +2963,9 @@ classdef Output < handle
         for state = gas.stateArray
           if strcmp(state.type, 'ion')
             for ionState = [state state.siblingArray]
-%               name(end+1) = ['[' ionState.name ']' unitsStr];
-              name(end+1) = ionState.name;
+              name(end+1) = ['[' ionState.name ']' unitsStr];
+              nameHDF5(end+1) = ionState.name;
+              unitsHDF5(end+1) = unitsPlain;
               stateIDs(end+1) = ionState.ID;
             end
             break;
@@ -2961,16 +2974,18 @@ classdef Output < handle
       end
       
       % evaluate values of the table with the temporal evolution of the densities
-      for i = columns:-1:tempColumns+2
-        values(i:columns:columns*numberOfTimeSteps) = densitiesTime(:,stateIDs(i-tempColumns-1));
+      for i = columns:-1:tempColumns+4
+        values(i:columns:columns*numberOfTimeSteps) = densitiesTime(:,stateIDs(i-tempColumns-3));
       end
       if ~isempty(wallTemperatureTime)
-        values(4:columns:columns*numberOfTimeSteps) = wallTemperatureTime;
+        values(6:columns:columns*numberOfTimeSteps) = wallTemperatureTime;
       end
       if ~isempty(nearWallTemperatureTime)
-        values(3:columns:columns*numberOfTimeSteps) = nearWallTemperatureTime;
+        values(5:columns:columns*numberOfTimeSteps) = nearWallTemperatureTime;
       end
-      values(2:columns:columns*numberOfTimeSteps) = gasTemperatureTime;
+      values(4:columns:columns*numberOfTimeSteps) = gasTemperatureTime;
+      values(3:columns:columns*numberOfTimeSteps) = electronTemperatureTime;
+      values(2:columns:columns*numberOfTimeSteps) = reducedFieldTime;
       values(1:columns:columns*numberOfTimeSteps) = time;
         
       if contains(output.dataFormat, 'txt')
@@ -2986,7 +3001,7 @@ classdef Output < handle
         for i = 1:length(name)
           headerStr = sprintf('%s %-20s', headerStr, name(i));
         end
-        fprintf(fileID, '%s\n', headerStr);
+        fprintf(fileID, '%s\n', headerStr(2:end));
         formatSpeStr = [repmat('%#.14e ', 1, columns) '\n'];
         fprintf(fileID, formatSpeStr, values);
         
@@ -2995,34 +3010,40 @@ classdef Output < handle
       end
       if contains(output.dataFormat, 'hdf5')
         
-        s = struct(name(1),values(1:columns:columns*numberOfTimeSteps));
+        s = struct(nameHDF5(1),values(1:columns:columns*numberOfTimeSteps));
         for i = 2:columns
           s = setfield(s, 'd'+string(i), values(i:columns:columns*numberOfTimeSteps));
         end
         fID = H5F.open(output.h5file, "H5F_ACC_RDWR", "H5P_DEFAULT");
         typeID = H5T.copy("H5T_NATIVE_DOUBLE");
         dcpl = "H5P_DEFAULT";
-        nd = length(name);
+        nd = length(nameHDF5);
         sz(1:nd) = H5T.get_size(typeID);
         offset(1) = 0;
         offset(2:nd) = cumsum(sz(1:nd-1));
         ctypeID =  H5T.create ('H5T_COMPOUND', sum(sz));
         for i = 1:length(sz)
-          H5T.insert(ctypeID,name(i),offset(i),typeID);
+          H5T.insert(ctypeID,nameHDF5(i),offset(i),typeID);
         end
         dims = [numberOfTimeSteps 1];
         spaceID = H5S.create_simple(2,fliplr(dims),[]);
-        dscID = H5D.create(fID,'/chemistry/chemSolutionTime',ctypeID,spaceID,dcpl);       
-%         H5D.write(dscID,'H5ML_DEFAULT','H5S_ALL','H5S_ALL', 'H5P_DEFAULT',values);
+        dscID = H5D.create(fID,'/chemistry/chemSolutionTime',ctypeID,spaceID,dcpl);
         dspaceID = H5D.get_space(dscID);
-        H5D.write(dscID,ctypeID,dspaceID,dspaceID,'H5P_DEFAULT',s);
+        H5D.write(dscID,ctypeID,spaceID,dspaceID,'H5P_DEFAULT',s);
         % attributes
-        units = ['s   '; 'K   '; 'm^-3'];
-        atdims = 3;
+        atdims = length(unitsHDF5);
+        maxUnitLength = max(strlength(unitsHDF5));
+        units = repmat(' ', atdims, maxUnitLength);
+        for i = 1:atdims
+          unitStr = char(unitsHDF5(i));
+          units(i,1:length(unitStr)) = unitStr;
+        end
         filetype = H5T.copy('H5T_FORTRAN_S1');
-        H5T.set_size(filetype, 4);
+        H5T.set_size(filetype, maxUnitLength);
+        H5T.set_strpad(filetype, 'H5T_STR_SPACEPAD');
         memtype = H5T.copy('H5T_C_S1');
-        H5T.set_size(memtype, 4);
+        H5T.set_size(memtype, maxUnitLength);
+        H5T.set_strpad(memtype, 'H5T_STR_SPACEPAD');
         space = H5S.create_simple(1,fliplr(atdims), []);
         attr = H5A.create(dscID, 'Units', filetype, space, 'H5P_DEFAULT');
         H5A.write(attr, memtype, units');

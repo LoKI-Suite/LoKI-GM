@@ -756,6 +756,10 @@ classdef Chemistry < handle
       end
       chemistry.solution.thermalModel = thermalModel;
 
+      % save reduced field and electron temerature vs time (for now, constant during discharge phase)
+      reducedFieldTime = chemistry.workCond.reducedField*ones(size(time));
+      electronTemperatureTime = chemistry.workCond.electronTemperature*ones(size(time));
+
       %%%%%%%%%%%%%%%%%%%%%%%%% START OF POST-DISCHARGE CODE (WIP) %%%%%%%%%%%%%%%%%%%%%%%%%
       if chemistry.odePostDischargeTime > 0
         % in post-discharge the electron kinetics has a special dependence (checkout kinetics function for details)
@@ -831,6 +835,8 @@ classdef Chemistry < handle
         end
         absDensitiesTime = cat(1, absDensitiesTime, absDensitiesTimePostDschrg);
         gasTemperatureTime = [gasTemperatureTime; gasTemperatureTimePostDschrg];
+        reducedFieldTime = [reducedFieldTime; zeros(size(gasTemperatureTimePostDschrg))];
+        electronTemperatureTime = [electronTemperatureTime; gasTemperatureTimePostDschrg(:)*Constant.boltzmann/Constant.electronCharge];
         nearWallTemperatureTimePostDschrg = [];
         wallTemperatureTimePostDschrg = [];
         if chemistry.includeThermalModel
@@ -877,6 +883,8 @@ classdef Chemistry < handle
       chemistry.solution.gasTemperatureTime = gasTemperatureTime;
       chemistry.solution.nearWallTemperatureTime = nearWallTemperatureTime;
       chemistry.solution.wallTemperatureTime = wallTemperatureTime;
+      chemistry.solution.reducedFieldTime = reducedFieldTime;
+      chemistry.solution.electronTemperatureTime = electronTemperatureTime;
 
       % broadcast obtention of a solution for the chemistry equation
       notify(chemistry, 'obtainedNewChemistrySolution');
@@ -950,14 +958,19 @@ classdef Chemistry < handle
 
 
       % evaluate rates at each time point
+      reducedFieldTime = zeros(size(time));
       for i = 1:length(time)
         % evaluate working conditions at each time point (for the evaluation of the rates)
         chemistry.workCond.electronDensity = electronDensity(i);
+        chemistry.workCond.gasTemperature = gasTemperatureTime(i);
+        reducedFieldTime(i) = chemistry.pulseFunction(time(i), chemistry.pulseFunctionParameters);
+        chemistry.workCond.update('reducedField', reducedFieldTime(i));
         if strcmp(chemistry.electronKineticsDependence, 'quasiStationary') && strcmp(chemistry.lookUpMethod, 'localEnergy')
           chemistry.workCond.electronTemperature = electronTemperatureTime(i);
+        elseif strcmp(chemistry.electronKineticsDependence, 'quasiStationary') && strcmp(chemistry.lookUpMethod, 'localField')
+          electronTemperatureTime(i) = interp1(chemistry.lookUpTableRedFieldValues, chemistry.lookUpTableEleTempValues, ...
+            chemistry.workCond.reducedField);
         end
-        chemistry.workCond.gasTemperature = gasTemperatureTime(i);
-        chemistry.workCond.update('reducedField', chemistry.pulseFunction(time(i), chemistry.pulseFunctionParameters));
         if chemistry.includeThermalModel
           switch chemistry.thermalModelBoundary
             case 'wall'
@@ -1015,6 +1028,8 @@ classdef Chemistry < handle
         chemistry.solution.gasTemperatureTime = gasTemperatureTime;
         chemistry.solution.nearWallTemperatureTime = nearWallTemperatureTime;
         chemistry.solution.wallTemperatureTime = wallTemperatureTime;
+        chemistry.solution.electronTemperatureTime = electronTemperatureTime;
+        chemistry.solution.reducedFieldTime = reducedFieldTime;
         chemistry.neutralityRelErrorCurrent = 0;
   
         % broadcast obtention of a solution for the chemistry model
