@@ -891,7 +891,11 @@ classdef Setup < handle
     end
     
     function createChemistryGasMixture(setup)
-      % createChemistryGasMixture needs to be implemented
+      % createChemistryGasMixture creates the gas mixture that is going to be considered to solve the heavy-species
+      % kinetics. This includes: a gasArray with all the information related to the gas mixture, a stateArray with all
+      % the states of the different gases and a reactionArray with all the reactions of the chemistry model.
+      %
+      % This is done for a particular setup specified in the input file.
       
       % create arrays of gases, states and reactions with the information of the ".chem" files
       [gasArray, stateArray, reactionArray] = setup.chemData();
@@ -1003,7 +1007,8 @@ classdef Setup < handle
     end
     
     function chemistry = createChemistry(setup)
-      % createChemistry needs to be implemented
+      % createChemistry is in charge of the creation of the heavy-species kinetics solver specified by the user in
+      % the setup file, using the gas mixture and working conditions previously configured.
       
       chemistry = Chemistry(setup);
       
