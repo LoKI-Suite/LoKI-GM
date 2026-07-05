@@ -1,0 +1,551 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<meta http-equiv="Content-Type" conteunt="text/html; charset=UTF-8">
+<title>Getting Started</title>
+<link rel="schema.DC" href="http://purl.org/dc/elements/1.1/">
+<meta name="DC.date" content="2025-03-01">
+<meta charset="UTF-8">
+<link rel="stylesheet" type="text/css" href="loki.css">
+<style>
+figure {text-align: center;}
+</style>
+</head>
+
+<body>
+<div class="content">
+<h1 id="0">2. Getting Started</h1>
+
+<p>This section provides basic information enabling a user to quickly obtain and run
+LoKI-GM for the first time.<sup><a href='#footnote-1'>1</a></sup></p>
+
+<h2>Contents</h2>
+<nav>
+<ol start="2">
+<li><a href="#0">Getting Started</a>
+<ul>
+<li>2.1 <a href="#1">Requirements and installation</a>
+  <ul>
+    <li>2.1.1 <a href="#1.1">GitHub</a></li>
+    <!-- <li>2.1.2 <a href="#1.2">MATLAB&reg; Toolbox</a></li> -->
+  </ul></li>
+<li>2.2 <a href="#2">Directory Structure and Data organization</a></li>
+<li>2.3 <a href="#3">Ontology</a>
+  <ul>
+    <li>2.3.1 <a href="#3.1">Species description</a></li>
+    <li>2.3.2 <a href="#3.2">Gaseous system description</a></li>
+  </ul></li>
+<li>2.4 <a href="#4">Starting LoKI-GM</a></li>
+<li>2.5 <a href="#5">Simulation types available in LoKI-GM</a></li>
+</ul></li>
+</ol>
+</nav>
+
+<h2 id="1">2.1 Requirements and installation</h2>
+
+<p>LoKI-GM is developed under MATLAB&reg;, to benefit from its matrix-based architecture.
+The minimum requirements to run the code is a computer with an installation of MATLAB&reg;
+(oldest recommended version R2024b; we cannot ensure that all not the features of
+LoKI will under different versions).
+The hardware requirements for LoKI are not different than those for MATLAB&reg;.
+However, for complex gas mixtures or very fine energy grids, a larger RAM is
+recommended.</p>
+
+<p>If you are reading this, you probably already have LoKI-GM installed. Nevertheless,
+the following summarizes the recommended way to obtain the code.</p>
+
+<p>Alternative installation methods are discouraged, as they may result in incomplete
+setups or cause some parts of the code to function incorrectly.</p>
+
+<h3 id="1.1">2.1.1 GitHub</h3>
+<p>You can obtain the latest version of the code from the github URL
+<a href="https://github.com/LoKI-Suite/LoKI-GM" target="_blank">LoKI-GM</a>
+by downloading the LoKI-GM_26.07 zip-file and extracting it to your local repository.</p>
+<p>You can also clone the repository using git [<a href="References.html#R12">12</a>],
+particularly if you want to take part in the development of the code.</p>
+
+<!--<h3 id="1.2">2.1.2 MATLAB&reg; Toolbox</h3>
+<p>LoKI-GM is available for direct installation from the MATLAB&reg; Add-On Explorer
+(Toolbox repository). The version provided there is stable and fully tested; however,
+it may not include the most recent updates.</p>
+<p>To install the LoKI Toolbox, open Matlab&reg; and navigate to the <b>Home</b> tab.
+In the <b>ENVIRONMENT</b> section, click the <img src="add-ons_24x24.png"/>
+<b>Add-Ons</b> icon to browse the available add-ons. Search for the LoKI toolbox,
+select it, and proceed with the installation.</p>
+<p>
+<i>Note</i>: MATLAB&reg; will automatically create a <b>Toolboxes</b> folder within
+the MATLAB&reg; Add-Ons directory and install LoKI in that location.</p>-->
+
+<!--<h3 id="2.3">3. Shared files</h3>
+<p>Finally you can get the <b>LoKI</b> files from a colleague. In this case, you
+have to take care of the installation and be sure that the files are in the
+correct places. In this way, you may customize your installation and explore
+<i>"that new function that adds a new, undocumented feature and publish a paper
+some new results"</i>. However, without a full battery of regression tests, it is
+also possible that some part of the code will no longer function properly... In
+general, we don't advise to do this type of installation and only if you
+<i>really</i> know what you are doing.</p>
+<p>As LoKI is open-source code, we also expect that you report back any changes
+done on the code, with proper documentation and preferably with an example.</p>-->
+
+<h2 id="2">2.2 Directory Structure and Data Organization</h2>
+<p>The <tt>LoKI-GM_26.07</tt> folder contains</p>
+<div>
+<ol>
+<li>A subfolder <tt>Documentation</tt> which includes the user guide (available in
+both PDF and HTML formats, although the latter is still a work in progress), the
+reference manual and relevant publications;</li>
+<li>A subfolder <tt>Code</tt> containing
+  <ol type="a">
+  <li>Several <tv>'*.m'</tv> files corresponding to the MATLAB&reg; code, of which
+  <tv>'loki.m'</tv> is the main file of the LoKI-GM;</li>
+  <li>Two files to launch the GUI-based input for LoKI-B:  the MATLAB&reg; file
+  <tv>'InputGUILokib.m'</tv>, which provides a user-friendly graphical user interface
+  for LoKI-B setup and run; and the batch file <tv>'InputGUILokib.bat'</tv>, which
+  allows launching the GUI-based input form a <code>cmd</code> window (or by double-clicking the
+  corresponding <code>*.bat</code> file).</li>
+  <li>A subfolder <tt>Input</tt>, containing the input files required for the
+  simulations, organised as follows
+    <ul>
+    <li>Default configuration files in text format <tv>'default_lokibc_setup.in'</tv>,
+    <tv>'default_lokic_pulse_setup.in'</tv>, <tv>'default_lokib_setup.in'</tv> and
+    <tv>'default_lokib_pulse_setup.in'</tv>, respectively, for LoKI-GM (the first two
+    file, for <i>steady-state simulations</i> and <i>quasi-stationary simulations</i>,
+    respectively) and for LoKI-B as standalone tool (the later two, for <i>electron
+    kinetics stationary simulations</i> and for <i>electron kinetics time-dependent
+    simulations</i>, respectively) (see sections <a href="#3">2.4</a>, <a href="#3">2.5</a>
+    and <a href="setup_file.html">3</a>);</li>
+    <li>Default configuration files in json format <tv>'default_lokibc_setup.json'</tv>,
+    <tv>'default_lokic_pulse_setup.json'</tv>, <tv>'default_lokib_setup.json'</tv> and
+    <tv>'default_lokib_pulse_setup.json'</tv>, respectively, for LoKI-GM (the first two
+    file, for <i>steady-state simulations</i> and <i>quasi-stationary simulations</i>,
+    respectively) and for LoKI-B as standalone tool (the later two, for <i>electron
+    kinetics stationary simulations</i> and for <i>electron kinetics time-dependent                                                                                                                         simulations</i>, respectively) (see sections <a href="#3">2.4</a>, <a href="#3">2.5</a>                                                                                                                                                                                                                                        and <a href="setup_file.html">3</a>);</li>                                                                                                                         <li>A subfolder <tt>Databases</tt> with <tv>'*.txt'</tv> files, containing different
+    properties (masses, energies of states, atomic/molecular constants, &hellip;) for
+    the gases used in the simulations;</li>
+    <li>Several subfolders <tt>Argon</tt>, <tt>CO</tt>, &hellip; <tt>Nitrogen</tt>,
+    <tt>Oxygen</tt>, with <tv>'*.txt'</tv> files containing
+    <ul>
+      <li>the data needed to perform simulations in different gases or gaseous mixtures:
+      electron-scattering cross sections, usually obtained from the open-access website
+      LXCat [<a href="References.html#R12">13</a>]; kinetics schemes; etc; (see section
+      <a href="aux_files.html">4</a>);</li>
+      <li>setup input files to run swarm simulations;</li>
+      <li>setup input files to run chemistry simulations.</li>
+    </ul>
+    Subfolders <tt>Argon</tt>, <tt>CO</tt>, <tt>CO2</tt>, <tt>Nitrogen</tt>, <tt>Oxygen</tt> contain also
+    <tv>'*.json'</tv> files with electron-scattering cross sections (obtained from the
+    <i>demo</i> version of LXCat 3.0 [<a href="References.html#R13">14</a>]) and input
+    setups for swarm simulations.</li>
+  <li>A subfolder <tt>PropertyFunctions</tt>, with several <tv>'*.m'</tv> auxiliary
+  functions for calculating some predefined distribution of states (Boltzmann, Treanor,
+  &hellip;), the statistical weights of states due to their degeneracy, the energy of
+  the states according to some models, transport parameters and thermal conductivities
+  of different species, etc. (see section <a href="functions.html#1">5.1</a>);</li>
+  <li>A subfolder <tt>RateCoeffFunctions</tt>, organized into one-level subfolders
+  with self-explanatory names, with several <tv>'*.m'</tv> auxiliary functions for
+  calculating the values of the different rate coefficients used in LoKI-C
+  (see section <a href="functions.html#2">5.2</a>).</li>
+  <li>A subfolder <tt>OtherAuxFunctions</tt>, with several <tv>'*.m'</tv> auxiliary
+  functions, <i>e.g.</i> to calculate some working conditions (see section <a
+  href="functions.html#3">5.3</a>);</li>
+  <li>A A subfolder <tt>Utilities</tt>, with several scripts to help process or
+  parse data, etc. (see section <a href="functions.html#4">5.4</a>);</li>
+  <li>A subfolder <tt>Output</tt> (eventually), where LoKI will write the output files
+  resulting from the simulations (see section <a href="output.html">3.5</a>).</li>
+  </ol>
+</ol>
+</div>
+
+<h2 id="3">2.3 Ontology</h2>
+
+<p>Before presenting LoKI simulations and detailing the syntax of LoKI input files, we
+describe the ontology and associated syntax rules used to define individual species and
+the gaseous systems considered in the simulations.
+
+<h3 id="3.1">2.3.1 Species description</h3>
+
+<p>The ontology for species description in LoKI corresponds essentially to the one currently
+adopted in LXCat [<a href="References.html#R12">12</a>]. Note, however, that LoKI now
+supports the new ontology adopted in the <i>demo</i> version of LXCat 3.0 [<a href="References.html#R13">13</a>]
+for describing species and reactions when using JSON files. This parsing scheme is expected to
+continue evolving. Work is in progress to consolidate the transcription of LXCat data between
+versions 2.0 and 3.0, and the corresponding data parsing in numerical codes.</p>
+<p>LoKI handles two different types of species: electrons and heavy species (atomic or molecular).
+All species are represented by a <b>string without any white-space characters</b> and when
+specified in an electron collision <b>they are separated by plus signs (+)</b>.</br>
+The representation of these species follows the syntax rules below:
+  <dl>
+  <dt>Electrons:</dt>
+  <dd>can be represented by either characters <code>e</code> or <code>E</code>, which can
+  appear multiplied by an integer, <em>e.g.</em> <code>2e</code> which is equivalent to
+  <code>e + e</code>.</dd>
+  <dt>Heavy species:</dt>
+  <dd>refer to the different atomic or molecular species used in the simulations. <b>For
+  electron-collision target species, it is mandatory to provide information on its
+  configuration (see below)</b>.</br>
+  The scheme below shows the general structure to adopt, when representing the configuration
+  of a particular species:
+    <figure><img vspace="5" hspace="5" src="speciesDescription.png" alt=""></figure>
+    where
+    <ul>
+    <li><code>quantity</code>: is an <b>optional</b> field composed only by integers. It represents
+    the number of species to be considered.</li>
+    <li><code>gas name</code>: is a <b>mandatory</b> field composed by letters (English alphabet),
+    integers and underscore characters (_). It can not start with an integer and is
+    case sensitive.</li>
+    <li><code>state charge</code>: is an <b>optional</b> field composed by plus (+) and minus (-)
+    characters. It represents the charge of an ionic state and has to terminate with
+    a comma (,).</li>
+    <li><code>electronic level</code>: is a <b>mandatory</b> field composed by letters (English
+    alphabet), integers, underscore characters (_), plus characters (+), minus
+    characters (-), asterisk characters (*), apostrophe characters ('), square
+    brackets ([ ]) and periods (.).</li>
+    <li><code>vibrational level</code>: is an <b>optional</b> field composed by letters (English
+    alphabet), integers, underscore characters (_), plus characters (+), minus
+    characters (-) and asterisk characters (*). It has to start with the string " ,v=".</li>
+    <li><code>rotational level</code>: is an <b>optional</b> field composed by letters (English
+    alphabet), integers, underscore characters (_), plus characters (+), minus
+    characters (-) and asterisk characters (*). It has to start with the string " ,J="
+    and it must necessarily come after the vibrational level field.</li>
+    </ul>
+    <b>IMPORTANT NOTE:</b> The asterisk character (*) is supported <b>only</b> in the
+    setup file but <b>not in the LXCat auxiliary input files.</b>
+    </dd>
+  <dt>Special species:</dt>
+  <dd>refer to species, different from <b>electrons</b> and <b>heavy-species</b>,
+  that can also be included in the description of chemical reactions. The following
+  lists the different special species recognised by LoKI:
+    <ul>
+    <li><code>wall</code>: when found as a reactant of a chemical reaction, it identifies the
+    reaction as a transport process, <em>i.e.</em> the diffusion of the other reactant species
+    and its collision with the reactor wall;</li>
+    <li><code>gas</code>: when found as both a reactant and a product of a chemical reaction, it
+    identifies this reaction as a "gas stabilised process", <em>i.e.</em> a reaction where
+    any atomic/molecular state present in the system can act as a stabilising body (example:
+    <code>A + gas -> B + gas</code>);</li>
+    <li><code>surface species</code>: refer to heavy species (atomic or molecular) adsorbed to
+    the walls (physisorbed or chemisorbed), as well as to vacant sites on the surface, used in
+    simulations when the chemistry scheme includes a surface kinetics. The representation of
+    these species follows the same syntax rules as for the (gas) heavy species, adopting a gas
+    name that <b>MUST</b> start with <code>wall_</code>.</br>
+    Some examples of surface-species description are given below
+      <ul>
+      <li><code>wall_empty(F)</code>&#8230; a physically vacant surface site;</li>
+      <li><code>wall_empty(S)</code>&#8230; a chemically vacant surface site;</li>
+      <li><code>wall_N(F)</code>&#8230; for a nitrogen atom physically adsorbed on surface;</li>
+      <li><code>wall_O(S)</code>&#8230; for an oxygen atom chemically adsorbed on surface;</li>
+      </ul>
+    This notation represents a <em>recommended</em> (though not mandatory) ontology for describing
+    surface species, based on the general format<br>
+    <code>wall_species(state)</code><br>
+    where the only strict requirement is the use of the prefix <code>wall_</code>.<br>
+    Alternative ontologies may also be adopted, for example<br>
+    <code>wall_state(species)</code>,<br>
+    but these can limit compatibility with utility scripts such as <tt>checkChemFilesStoichiometry</tt>,
+    which performs stoichiometric consistency checks on chemistry files describing the kinetic
+    scheme (see section <a href="The_setup_file.html#3">3.3</a>)
+    </ul>
+  </dd>
+  </dl>
+</p>
+
+<h3 id="3.2">2.3.2 Gaseous system description</h3>
+
+<p>LoKI handles simulations in any atomic / molecular gas mixture, considering collisions with
+target states featuring internal degrees of freedom (electronic, vibrational and rotational),
+organized as a system of "Russian puppets"<sup><a href='#footnote-2'>2</a></sup>. The populations
+of these states are self-consistently calculated when using the LoKI simulation tool, and are
+prescribed by the user when running LoKI-B as standalone tool. Table 1 exemplifies the system
+of states for a N<sub>2</sub>-N-He gas mixture.</p>
+
+<figure>
+<figcaption>Table 1:  Example of a gas mixture (childless states are displayed in <ins style="color:red;">red</ins>).
+</figcaption>
+<img src="gasMixture.webp" alt="Gas Mixture ontology" style="width:60%">
+</figure>
+
+<p>Here,
+<dl>
+  <dt>System:</dt>
+  <dd>is the ensemble of all the gases present in the simulation (N<sub>2</sub> &#8746; N &#8746;
+                                                                  He &#8746; &#8230;).</dd>
+  <dt>Gas:</dt>
+  <dd>refers to each type of atom or molecule present in the simulation (N<sub>2</sub>, N, He,
+  &#8230; ). Each gas <em>k</em> has mass <em>M<sub>k</sub></em> and individual density
+  <em>N<sub>k</sub></em>, being composed by several electronic / vibrational / rotational levels.</dd>
+  <dt>State:</dt>
+  <dd>specific configurations of electronic (<i>i</i>), vibrational (<i>v</i>) and/or rotational
+  (<i>J</i>) levels belonging to a given gas (e.g, N<sub>2</sub>(X), N<sub>2</sub>(X,v=0),
+  N<sub>2</sub>(X,v=0,J=2), N(<sup>4</sup>S), He(2<sup>3</sup>S), &#8230;). Each gas <i>k</i> is
+  composed by several electronic states <i>k<sub>i</sub></i> with absolute density <i>N<sub>k<sub>i</sub></sub></i>;
+  each <i>k<sub>i</sub></i>-state can include several vibrational states <i>k<sub>i<sub>v</sub></sub></i>
+  with absolute density <i>N<sub>k<sub>i<sub>v</sub></sub></sub></i>, each one composed by several
+  rotational states <i>k<sub>i<sub>v<sub>J</sub></sub></sub></i> with absolute density
+  <i>N<sub>k<sub>i<sub>v<sub>J</sub></sub></sub></sub></i>.</dd>
+  <dt>Parent (state):</dt>
+  <dd>state of a certain gas comprising a set of child states. Parent states can be electronic
+  or vibrational, but not rotational (<em>e.g.</em>, N<sub>2</sub>(X) is the parent of
+  N<sub>2</sub>(X,v=0,1,2,&#8230;)). Each parent level comprises all of its children.</dd>
+  <dt>Child (states):</dt>
+  <dd>ensemble of states that share the same parent. Child states can be vibrational or rotational, but not
+  electronic (<em>e.g.</em>, N<sub>2</sub>(X,v=0,J=0,1,2,&#8230;) are the children of N<sub>2</sub>(X,v=0)).
+  <dt>Sibling (states):</dt>
+  <dd>relation between the states that share the same parent (<em>e.g.</em>, N<sub>2</sub>(X,v=0,1,2,&#8230;)
+  are siblings).</dd>
+  <dt>Childless (states):</dt>
+  <dd>ensemble of the innermost states (without children) (<em>e.g.</em>, N<sub>2</sub>(X,v=0,J=0) is childless).</dd>
+</dl></p>
+<p>The previous terminology, allows introducing several denitions and relations for the particle
+densities with the different species (gases / states) in the system.</p>
+<dl>
+  <dt>Total gas density:</dt>
+  <dd>total particle density of the heavy species in the system, evaluated as:
+    <math display="block" class="tml-display" style="display:block math;"><mtable displaystyle="true" style="width:100%;"><mtr><mtd class="tml-right" style="padding:0;width:50%;padding-left:0em;padding-right:0em;"></mtd><mtd class="tml-left" style="padding-left:1em;padding-right:0em;"><mrow><mi>N</mi><mo>=</mo><mfrac><mi>p</mi><mrow><msub><mi>k</mi><mi>B</mi></msub><msub><mi>T</mi><mi>g</mi></msub></mrow></mfrac></mrow></mtd><mtd style="padding:0;width:50%;padding-left:0em;padding-right:0em;"><mtext><span class="tml-eqn"></span></mtext></mtd></mtr></mtable></math>
+    where <em>p</em> is the total pressure, <em>k<sub>B</sub></em> is the Boltzmann constant and
+    <em>T<sub>g</sub></em> is the gas temperature (assumed equal for all <i>k</i>-gases in the system).<br>
+    In the code, this quantity is stored in variables labeled with <tt>totalGasDensity</tt>.</dd>
+    <dt>Individual gas density:</dt>
+    <dd>total particle density of a gas in the system. For gas <i>k</i> this is given by <i>N<sub>k</sub></i>,
+    with <math><mrow><msub><mo movablelimits="false">∑</mo><mi>k</mi></msub><msub><mi>N</mi><mi>k</mi></msub><mo>=</mo><mi>N</mi></mrow></math>.<br>
+    In the code, this quantity is stored in variables labeled with <tt>individualGasDensity</tt>.</dd>
+    <dt>Gas fraction:</dt>
+    <dd>fraction of a gas in the system. For gas <i>k</i> this is given by <i>&#967;<sub>k</sub> &#8801; N<sub>k</sub>/N</i>.</dd>
+    <dt>Absolute density:</dt>
+    <dd>particle (absolute) density of a state. For a generic state <i>i</i> of gas <i>k</i> this is represented
+    by <i>N<sub>k<sub>i</sub></sub></i>.<br>
+    In the code, this quantity is stored in variables labeled with <tt>abs</tt>.</dd>
+    <dt>Population:</dt>
+    <dd>density of a state relative to its siblings. For a generic state <i>i</i> of gas <i>k</i> this is represented
+    by <i>&#958;<sub>k<sub>i</sub></sub> &#8801; N<sub>k<sub>i</sub></sub>/N</i><sub>parent of <i>k<sub>i</sub></sub> =
+    N<sub>k<sub>i</sub></sub> /(∑</i><sub><i>i</i>∈siblings</sub><i>N<sub>k<sub>i</sub></sub>)</i>.</dd>
+    <dt>Density:</dt>
+    <dd>particle density of a state relative to the total gas density. For a generic state <i>i</i> of gas <i>k</i> this is
+    represented by <i>δ<sub>k<sub>i</sub></sub> ≡ N<sub>k<sub>i</sub></sub>/N</i>.<br>
+    In LoKI-B, this quantity is stored in variable <tt>density</tt>.</dd>
+</dl>
+<p>From the previous definitions, it is straightforward to obtain the following normalisation conditions
+
+<math display="block" class="tml-display" style="display:block math;"><mtable displaystyle="true" class="tml-jot" style="width:100%;"><mtr><mtd class="tml-right" style="padding:0;width:50%;padding-left:0em;padding-right:0em;"></mtd><mtd class="tml-right" style="padding-left:1em;padding-right:0em;"><mrow><mrow><munder><mo movablelimits="false">∑</mo><mrow><mi>k</mi><mo>∈</mo><mpadded lspace="0"><mi>system</mi></mpadded></mrow></munder></mrow><msub><mi>χ</mi><mi>k</mi></msub></mrow></mtd><mtd class="tml-left" style="padding-left:0em;padding-right:0em;"><mrow><mo>=</mo><mn>1</mn></mrow></mtd><mtd style="padding:0;width:50%;padding-left:1em;padding-right:0em;"><mtext><span class="tml-eqn"></span></mtext></mtd></mtr><mtr><mtd class="tml-right" style="padding:0;width:50%;padding-left:0em;padding-right:0em;"></mtd><mtd class="tml-right" style="padding-left:1em;padding-right:0em;"><mrow><mrow><munder><mo movablelimits="false">∑</mo><mrow><mi>i</mi><mo>∈</mo><mpadded lspace="0"><mi>siblings</mi></mpadded></mrow></munder></mrow><msub><mi>ξ</mi><mi>i</mi></msub></mrow></mtd><mtd class="tml-left" style="padding-left:0em;padding-right:0em;"><mrow><mo>=</mo><mn>1</mn></mrow></mtd><mtd style="padding:0;width:50%;padding-left:1em;padding-right:0em;"><mtext><span class="tml-eqn"></span></mtext></mtd></mtr><mtr><mtd class="tml-right" style="padding:0;width:50%;padding-left:0em;padding-right:0em;"></mtd><mtd class="tml-right" style="padding-left:1em;padding-right:0em;"><mrow><mrow><munder><mo movablelimits="false">∑</mo><mrow><mi>i</mi><mo>∈</mo><mpadded lspace="0"><mi>childless</mi></mpadded></mrow></munder></mrow><msub><mi>δ</mi><mi>i</mi></msub></mrow></mtd><mtd class="tml-left" style="padding-left:0em;padding-right:0em;"><mrow><mo>=</mo><mn>1</mn><mspace width="0.2778em"></mspace><mo separator="true">,</mo></mrow></mtd><mtd style="padding:0;width:50%;padding-left:1em;padding-right:0em;"><mtext><span class="tml-eqn"></span></mtext></mtd></mtr></mtable></math>
+
+concluding also that the following relationships hold
+
+<math display="block" class="tml-display" style="display:block math;"><mtable displaystyle="true" class="tml-jot" style="width:100%;"><mtr><mtd class="tml-right" style="padding:0;width:50%;padding-left:0em;padding-right:0em;"></mtd><mtd class="tml-right" style="padding-left:1em;padding-right:0em;"><msub><mi>δ</mi><mi>i</mi></msub></mtd><mtd class="tml-left" style="padding-left:0em;padding-right:0em;"><mrow><mo>=</mo><msub><mi>ξ</mi><mi>i</mi></msub><msub><mi>δ</mi><mrow><mi>i</mi><mrow><mtext>‛</mtext><mrow><mi mathvariant="normal">s</mi><mspace></mspace></mrow><mtext> </mtext><mrow><mi mathvariant="normal">p</mi><mspace></mspace></mrow><mrow><mi mathvariant="normal">a</mi><mspace></mspace></mrow><mrow><mi mathvariant="normal">r</mi><mspace></mspace></mrow><mrow><mi mathvariant="normal">e</mi><mspace></mspace></mrow><mrow><mi mathvariant="normal">n</mi><mspace></mspace></mrow><mrow><mi mathvariant="normal">t</mi><mspace></mspace></mrow></mrow></mrow></msub></mrow></mtd><mtd style="padding:0;width:50%;padding-left:1em;padding-right:0em;"><mtext><span class="tml-eqn"></span></mtext></mtd></mtr><mtr><mtd class="tml-right" style="padding:0;width:50%;padding-left:0em;padding-right:0em;"></mtd><mtd class="tml-right" style="padding-left:1em;padding-right:0em;"><msub><mi>δ</mi><msub><mi>k</mi><mi>i</mi></msub></msub></mtd><mtd class="tml-left" style="padding-left:0em;padding-right:0em;"><mrow><mo>=</mo><msub><mi>ξ</mi><msub><mi>k</mi><mi>i</mi></msub></msub><msub><mi>χ</mi><mi>k</mi></msub><mspace width="0.2778em"></mspace><mi>.</mi></mrow></mtd><mtd style="padding:0;width:50%;padding-left:1em;padding-right:0em;"><mtext><span class="tml-eqn"></span></mtext></mtd></mtr></mtable></math></p>
+
+<p>LoKI uses SI units for all physical quantities, except the energies that are expressed in eV (electron-volt),
+the reduced fields that are expressed in Td (Townsend; 1 Td = 10<sup>−21</sup>V m<sup>2</sup>), and the flows that
+are expressed in sccm (standard cubic centimeter per minute).</p>
+
+<h2 id="4">2.4 Starting LoKI-GM</h2>
+
+<p>LoKI-GM runs upon calling the MATLAB&reg; function <samp>loki(setupFile)</samp>.
+The end user interacts with the code by specifying a particular "setup" for the
+simulation. This setup is sent to the <samp>loki()</samp> function through the
+<em>required</em> input argument <samp>setupFile</samp>. As mentioned in section <a href="#2">2.2</a>,
+the setup files should be located in <samp>[repository folder]/LoKI_26.07/Code/Input/</samp> with
+<ul>
+  <li><tv>.in</tv> extension (this is just a recommendation in order to keep the input
+      folder organised; the <tv>.in</tv> setup files are just plain text files);</li>
+  <li><tv>.json</tv> extension (only for simulations using LoKI-B as standalone tool; in
+  this case it is important to use this extension, for the parsing to work properly).</li>
+</ul></p>
+<p>The distribution of LoKI-GM includes some default configuration files
+(<tv>'default_lokibc_setup.in'</tv>, <tv>'default_lokib_setup.in'</tv>,
+<tv>'default_lokic_pulse_setup.in'</tv>, <tv>'default_lokib_pulse_setup.in'</tv>,
+<tv>'default_lokib_setup.json'</tv> and <tv>'default_lokib_pulse_setup.json'</tv>) for
+the benefit of the user. By using one of these files, it is very easy to make a first run
+of the code, just following the sequence of steps below. For example, using the
+<tv>'default_lokibc_setup.in'</tv> setup file:
+  <ol type="numeric">
+  <li>Open MATLAB&reg;</li>
+  <li>Navigate to the Code folder of your local copy of the repository:
+    <pre class="codeinput">>> cd [repository folder]/LoKI_26.07/Code/);</pre></li>
+  <li>Execute the following command in the MATLAB&reg; command window:
+    <pre class="codeinput">&#8811; loki(<span class="string">'default_lokibc_setup.in'</span>)</pre></li>
+    <li>The graphical user interface (GUI) should appear showing the solution(s) for
+    the default setup file, represented in the figure 1</li>
+  </ol>
+</p>
+<figure>
+<img src="lokigm-GUI-output.webp" alt="LoKI-GM GUI" style="width:90%">
+<figcaption>Figure 1: Graphical user interface output, for the default setup-file
+of LoKI-GM (stationary coupling between LoKI-B and LoKI-C).</figcaption>
+</figure>
+
+<p><b>Congratulations! You have now concluded your first LoKI-GM simulation.</b></p>
+
+<div>
+<p>To run LoKI-B, a similar procedure should be followed, for example using the
+<tv>'default_lokib_setup.in'</tv> setup file, to obtain the GUI represented in figure 2.</p>
+<figure>
+<!-- <img src="missing.jpg" alt="LoKI-GM" style="width:100%"> -->
+<img vspace="5" hspace="5" src="lokib-GUI-output.webp" alt="loki-B_GUI" style="width:90%">
+<figcaption>Figure 2: Graphical user interface output, for the default setup-file
+of LoKI-B (stationary simulations).</figcaption>
+</figure>
+
+Additionaly, LoKI-B can be <b>configured and executed</b> through a GUI-based input by
+using one of the following options:
+  <ul>
+  <li>from the MATLAB&reg; command window:
+  <pre class="codeinput">>> InputGUILokib</tv>)</pre></li>
+  <li>from a <samp>cmd</samp> window (or by double-clicking the corresponding *.bat file)
+  <pre class="codeinput">>> InputGUILokib.bat</tv>)</pre></li>
+</p>
+<p>In both cases, the input-GUI opens as shown in figure 3.</p>
+<figure>
+<!-- <img src="lokigm-GUI-output.webp" alt="LoKI-GM GUI" style="width:90%"> -->
+<img src="LoKI-B_GUI_H.png" alt="LoKI-B GUI" style="width:90%">
+<figcaption>Figure 3: Graphical user interface to configure and execute LoKI-B.</figcaption>
+</figure>
+<p>Currently, GUI-based input is available only for LoKI-B; however, future developments
+will extend this capability to LoKI-GM.</p>
+
+<p>In order to run the code for different simulations, users just have to call
+the <samp>loki()</samp> function with a different setup file, or a modified version
+of the default ones. The details on how to configure the setup file according to your
+needs are given in section <a href="setup_file.html">3</a>.</p>
+</div>
+
+<h2 id="5">2.5 Simulation types available in LoKI-GM</h2>
+
+<p>LoKI-GM supports the following types of simulations:</p>
+<ul>
+<li><em> Steady-state simulations</em>,  in which LoKI-C and LoKI-B are run in a coupled
+manner until steady-state is reached.</br>
+In this case, the input file should be configured as follows:
+  <ul>
+  <li><tt>workingConditions</tt>, specifying:
+    <ul style="list-style-type:disc;">
+    <li><tt>reducedField</tt> or <tt>electronTemperature</tt></li>
+    <li><tt>gasPressure</tt>, <tt>gasTemperature</tt>, <tt>chamberLength</tt>,
+    <tt>chamberRadius</tt>, <tt>totalSccmInFlow</tt>, and <tt>totalSccmOutFlow</tt></li>
+    <li><tt>electronDensity</tt> and, optionally, <tt>dischargeCurrent</tt> or
+    <tt>dischargePowerDensity</tt></li>
+    </ul></li>
+  <li><tt>electronKinetics</tt>, specifying:
+    <ul style="list-style-type:disc;">
+    <li><tt>isOn:</tt> <tv>true</tv></li>
+    <li><tt>eedfType:</tt> <tv>boltzmann</tv> or <tt>eedfType:</tt> <tv>prescribedEedf</tv>,
+    consistent with the choice in <tt>workingConditions</tt></li>
+    <li>the relevant data for the selected gas or gas mixture</li>
+    </ul></li>
+  <li><tt>chemistry</tt>, specifying:
+    <ul style="list-style-type:disc;">
+    <li><tt>isOn:</tt> <tv>true</tv></li>
+    <li><tt>convergenceParameter:</tt> <tv>electronDensity, dischargeCurrent</tv>, or
+    <tv>dischargePowerDensity</tv>, consistent with the choices in <tt>workingConditions</tt></li>
+    <li>the relevant chemistry for the selected gas or gas mixture</li>
+    <li>a <tv>non-zero</tv> value for <tt>dischargeTime</tt></li>
+    <li><tt>postDischargeTime:</tt> <tv>0</tv></li>
+    </ul></li>
+  </ul></li>
+<li><em>Post-discharge simulations</em>, which start with a coupled LoKI-C/LoKI-B steady-state
+calculation, followed by a standalone LoKI-C simulation at <em>E/N = 0</em> to describe the
+time-dependent post-discharge. </br>
+The input file should be configured as for <em>steady-state simulations</em>, with the
+following modification:
+  <ul>
+  <li><tt>chemistry:</tt>
+    <ul style="list-style-type:disc;">
+    <li>set a <tv>non zero</tv> value for <tt>postDischargeTime</tt></li>
+    </ul></li>
+  </ul></li>
+<li><em>Quasi-stationary simulations</em>, in which LoKI-C runs as a standalone tool using
+precomputed lookup tables to obtain electron swarm parameters, rate coefficients, and power
+transfer as functions of the electric field (<em>Local Field Approximation</em>, LFA) or
+electron mean energy (<em>Local Mean Energy Approximation</em>, LEA).</br>
+In this case, the input file should be configured as follows:
+  <ul>
+  <li><tt>workingConditions</tt>, specifying:
+    <ul style="list-style-type:disc;">
+    <li>a time-dependent function for <tt>reducedField</tt></li>
+    <li><tt>gasPressure, gasTemperature, chamberLength, chamberRadius, totalSccmInFlow,</tt>
+    and <tt>total SccmOutFlow</tt></li>
+    <li><tt>electronDensity</tt></li>
+    </ul></li>
+  <li><tt> electronKinetics</tt>, specifying:
+    <ul style="list-style-type:disc;">
+    <li><tt>isOn:</tt> <tv>false</tv></li>
+    </ul></li>
+  <li><tt>chemistry</tt>, specifying:
+    <ul style="list-style-type:disc;">
+    <li><tt>isOn:</tt> <tv>false</tv></li>
+    <li><tt>lookupTables</tt> with files for <tt>swarm</tt>, <tt>rateCoeff</tt>, and
+    <tt>power</tt>, and <tt>lookUpMethod:</tt> <tv>localField</tv> or <tt>lookUpMethod:</tt>
+    <tv>localEnergy</tv></li>
+    <li>the relevant chemistry for the selected gas or gas mixture</li>
+    <li><tt>stateProperties</tt>, with ion populations consistent with <tt>electronDensity</tt>
+    (to ensure charge neutrality)</li>
+    </ul></li>
+  </ul></li>
+<li><em>Electron kinetics simulations</em> (including swarm analysis), in which case
+LoKI-B runs as a standalone tool.</br>
+In this case, the input file should be configured as follows:
+  <ul>
+  <li><tt>workingConditions</tt>, specifying:
+    <ul style="list-style-type:disc;">
+    <li><tt>reducedField</tt> or <tt>electronTemperature</tt>, or a time-dependent function
+    for <tt>reducedField</tt></li>
+    <li><tt>gasTemperature</tt> and, optionally, <tt>gaspressure</tt> and <tt>electronDensity</tt></li>
+    </ul></li>
+  <li><tt>electronKinetics</tt>, specifying:
+    <ul style="list-style-type:disc;">
+    <li><tt>isOn:</tt> <tv>true</tv></li>
+    <li><tt>eedfType:</tt> <tv>boltzmann</tv> or <tt>eedfType:</tt> <tv>prescribedEedf</tv>,
+    consistent with the choice in <tt>workingConditions</tt></li>
+    <li>the relevant data for the selected gas or gas mixture</li>
+    </ul></li>
+  <li><tt>chemistry</tt>, specifying:
+    <ul style="list-style-type:disc;">
+    <li><tt>isOn:</tt> <tv>false</tv></li>
+    </ul></li>
+  </ul></li>
+</ul>
+<p>Depending on whether <tt>reducedField</tt> is specified as discrete value(s) or as a
+time-dependent function, LoKI-B simulations are classified as <em>electron kinetics
+stationary simulations</em> or <em>electron kinetics time-dependent simulations</em>,
+respectively.</p>
+
+<p><b>Internally</b>, LoKI-GM uses the following the following flags to configure
+the simulations (see <samp>Chemistry.m</samp> function):
+
+<ul>
+  <li><samp>imposeQuasiNeutrality</samp>, a Boolean property that determines whether
+  quasi-neutrality is enforced during temporal integration.<br>
+  At present, <tt>imposeQuasiNeutrality</tt>=<tv>true</tv> is applied at every time-step
+  in <i>quasi-stationary simulations</i> and <i>post-discharge simulations</i>.
+  (in the latter case, only between <tt>dischargeTime</tt> and <tt>postDischargeTime</tt>;
+   see section <a href="The_setup_file.html#3">3.3</a>) In contrast, quasi-neutrality is
+  not enforced during the temporal integration of <i>steady-state simulations</i>; in
+  this case, charge neutrality is only guaranteed upon convergence
+  to steady-state (see Reference Manual [<a href="References.html#R11">11</a>]).</li>
+  <li><samp>electronKineticsDependence</samp>, a string property that specifies how the
+  electron kinetics is treated during temporal integration.<br>
+  The available options are <tv>steadyState</tv>, <tv>quasiStationary</tv> and
+  <tv>postDischarge</tv>.</li>
+  <li><samp>solveEedf</samp>, a Boolean property that specifies whether the EEDF is
+  solved self-consistently when updating the electron density during the temporal
+  integration of <i>post-discharge simulations</i>.<br>
+  Currently, only <tt>solveEedf</tt>=<tv>false</tv> is supported; support for
+  <tt>solveEedf</tt>=<tv>true</tv> is planned for future releases of LoKI-GM.
+</ul>
+</p>
+
+
+<hr>
+<p id="footnote-1"><sup>1</sup><small>This user guide refers to the MATLAB-based LoKI-GM,
+which integrates the LoKI-B and LoKI-C codes. Note that the LisbOn KInetics Boltzmann
+solver is also available as a standalone open-source tool, offered in two versions: the
+MATLAB&reg; implementation LoKI-B, and the C++ implementation LoKI-B++.</small></p>
+<p id="footnote-2"><sup>2</sup><small>LoKI handles also surface states, when the plasma
+kinetics is extended to include plasma-surface interactions.</small></p>
+
+<p class="footer">
+<br>
+<a href="https://www.mathworks.com/products/matlab/">Published with MATLAB&reg; R2024b</a>
+<br>
+</p>
+</div>
+</body>
+</html>

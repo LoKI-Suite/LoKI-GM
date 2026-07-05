@@ -1,0 +1,256 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<META http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<title>User Guide</title>
+<link rel="schema.DC" href="http://purl.org/dc/elements/1.1/">
+<meta name="DC.date" content="2025-03-09">
+<link rel="stylesheet" type="text/css" href="loki.css">
+</head>
+<body>
+<div class="content">
+<h1>User Guide</h1>
+<!--introduction-->
+<p>Aside from several <tt>*.m</tt> files, LoKI comprises data files required to
+define the problem under study, the properties of the gases as well as several
+utility files to help post-process and visualize the results. In this guide we
+cover the details of these files, instructions for the preparation of LoKI's input
+file and the organization on the output files.</p>
+<p>The results obtained by LoKI-B are based on approximations for the solution of
+Boltzmann equation. In order to obtain meaningful results, it is necessary to have
+these approximations and limits of validity present, and this is discussed in
+<a href="#7">Validity Limits and Control</a>.
+</p>
+<!--/introduction-->
+<h2>Contents</h2>
+<div>
+<ul>
+<li>
+<a href="#1">Species description</a>
+</li>
+<li>
+<a href="#2">The LoKI setup file</a>
+</li>
+<li>
+<a href="#3">Auxiliary input files</a>
+</li>
+<li>
+<a href="#4">Functions</a>
+</li>
+<li>
+<a href="#5">The Output</a>
+</li>
+<li>
+<a href="#6">Utility scripts</a>
+</li>
+<li>
+<a href="#7">Validity limits and control</a>
+</li>
+<li>
+<a href="#8">Error messages</a>
+</li>
+</ul>
+</div>
+<h2 id="1">Species description</h2>
+<p>Before delving into the details and syntax of LoKI files we need to describes
+the ontology, including syntax rules, adopted for the representation of the different
+species used in the simulations of LoKI-B.</p>
+<p>LoKI handles two different types of species: electrons and heavy species (atomic
+or molecular). All species are represented by a <b>string without any white-space
+characters</b> and, when specified in an electron collision, <b>they are separated
+by plus signs</b> (+). The representation of these species follows the syntax rules
+below:</p>
+<div>
+<ul>
+<li>
+<b>Electrons</b>: can be represented by either characters <tt>e</tt> or <tt>E</tt>,
+which can appear multiplied by an integer, <i>e.g.</i> <tt>2e</tt>, which is equivalent
+to <tt>e + e</tt>.</li>
+<li>
+<b>Heavy species</b>: refer to the different atomic or molecular species used in
+the simulations. <b>For electron-collision target species, it is mandatory to provide
+information on its configuration (see below)</b>. The scheme below shows the general
+structure to adopt, when representing the configuration of a particular species:</li>
+</ul>
+</div>
+<!--<p>
+<math display="block" class="tml-display" style="display:block math;"><mrow><mrow><munder><mn>2</mn><mstyle scriptlevel="1"><mtable columnalign="center" class="tml-small"><mtr><mtd style="padding-left:0em;padding-right:0em;"><mspace mathbackground="black" width="9.9626pt" height="0.4981pt"></mspace></mtd></mtr><mtr><mtd style="padding-left:0em;padding-right:0em;"><mo stretchy="false">↓</mo></mtd></mtr><mtr><mtd style="padding-left:0em;padding-right:0em;"><mrow><mtext></mtext><mi>quantity</mi></mrow></mtd></mtr></mtable></mstyle></munder></mrow><mrow><mover><mrow><mtext></mtext><mi>N2</mi></mrow><mstyle scriptlevel="1"><mtable columnalign="center" class="tml-small"><mtr><mtd style="padding-left:0em;padding-right:0em;"><mrow><mtext></mtext><mi>gasname</mi></mrow></mtd></mtr><mtr><mtd style="padding-left:0em;padding-right:0em;"><mo stretchy="false">↑</mo></mtd></mtr><mtr><mtd style="padding-left:0em;padding-right:0em;"><mspace mathbackground="black" width="19.9253pt" height="0.4981pt"></mspace></mtd></mtr></mtable></mstyle></mover></mrow><mrow><munder><mrow><mo form="prefix" stretchy="false" lspace="0em" rspace="0em">(</mo><mo form="prefix" stretchy="false">+</mo><mo form="prefix" stretchy="false">+</mo><mo separator="true" lspace="0em" rspace="0em">,</mo></mrow><mstyle scriptlevel="1"><mtable columnalign="center" class="tml-small"><mtr><mtd style="padding-left:0em;padding-right:0em;"><mspace mathbackground="black" width="14.944pt" height="0.4981pt"></mspace></mtd></mtr><mtr><mtd style="padding-left:0em;padding-right:0em;"><mo fence="false" stretchy="true" symmetric="true" minsize="1.8em" maxsize="1.8em">↓</mo></mtd></mtr><mtr><mtd style="padding-left:0em;padding-right:0em;"><mtext>state charge</mtext></mtd></mtr></mtable></mstyle></munder></mrow><mrow><mover><mrow><mi mathvariant="normal">X</mi></mrow><mstyle scriptlevel="1"><mtable columnalign="center" class="tml-small"><mtr><mtd style="padding-left:0em;padding-right:0em;"><mtext>electronic level</mtext></mtd></mtr><mtr><mtd style="padding-left:0em;padding-right:0em;"><mo fence="false" stretchy="true" symmetric="true" minsize="1.8em" maxsize="1.8em">↑</mo></mtd></mtr><mtr><mtd style="padding-left:0em;padding-right:0em;"><mspace mathbackground="black" width="9.9626pt" height="0.4981pt"></mspace></mtd></mtr></mtable></mstyle></mover></mrow><mrow><munder><mrow><mo separator="true" lspace="0em" rspace="0em">,</mo><mspace width="0.2778em"></mspace><mrow><mi mathvariant="normal">v</mi></mrow><mo>=</mo><mn>0</mn></mrow><mstyle scriptlevel="1"><mtable columnalign="center" class="tml-small"><mtr><mtd style="padding-left:0em;padding-right:0em;"><mspace mathbackground="black" width="29.8879pt" height="0.4981pt"></mspace></mtd></mtr><mtr><mtd style="padding-left:0em;padding-right:0em;"><mo fence="false" stretchy="true" symmetric="true" minsize="3em" maxsize="3em">↓</mo></mtd></mtr><mtr><mtd style="padding-left:0em;padding-right:0em;"><mtext>vibrational level</mtext></mtd></mtr></mtable></mstyle></munder></mrow><mrow><mover><mrow><mo separator="true" lspace="0em" rspace="0em">,</mo><mspace width="0.2778em"></mspace><mrow><mi mathvariant="normal">J</mi></mrow><mo>=</mo><mn>0</mn><mo form="postfix" stretchy="false" lspace="0em" rspace="0em">)</mo></mrow><mstyle scriptlevel="1"><mtable columnalign="center" class="tml-small"><mtr><mtd style="padding-left:0em;padding-right:0em;"><mtext>rotational level</mtext></mtd></mtr><mtr><mtd style="padding-left:0em;padding-right:0em;"><mo fence="false" stretchy="true" symmetric="true" minsize="3em" maxsize="3em">↑</mo></mtd></mtr><mtr><mtd style="padding-left:0em;padding-right:0em;"><mspace mathbackground="black" width="29.8879pt" height="0.4981pt"></mspace></mtd></mtr></mtable></mstyle></mover></mrow></mrow></math>
+</p>-->
+<p>
+<img vspace="5" hspace="5" src="speciesDescription.png" alt=""> </p>
+<p>where</p>
+<div>
+<ul>
+<li>quantity: is an <b>optional</b> field composed only by integers. It represents
+the number of species to be considered.</li>
+<li>gas name: is a <b>mandatory</b> field composed by letters (English alphabet),
+integers and underscore characters (_). It can not start with an integer and is
+case sensitive.</li>
+<li>state charge: is an <b>optional</b> field composed by plus (+) and minus (-)
+characters. It represents the charge of an ionic state and has to terminate with
+a comma (,).</li>
+<li>electronic level: is a <b>mandatory</b> field composed by letters (English
+alphabet), integers, underscore characters (_), plus characters (+), minus
+characters (-), asterisk characters (*), apostrophe characters ('), square
+brackets ([ ]) and periods (.).</li>
+<li>vibrational level: is an <b>optional</b> field composed by letters (English
+alphabet), integers, underscore characters (_), plus characters (+), minus
+characters (-) and asterisk characters (*). It has to start with the string " ,v=".</li>
+<li>rotational level: is an <b>optional</b> field composed by letters (English
+alphabet), integers, underscore characters (_), plus characters (+), minus
+characters (-) and asterisk characters (*). It has to start with the string " ,J="
+and it must necessarily come after the vibrational level field.</li>
+</ul>
+</div>
+<p>
+<b>IMPORTANT NOTE:</b> The asterisk character (*) is supported <b>only</b> in the
+setup file but <b>not in the LXCat auxiliary input files.</b>
+</p>
+<h2 id="2">The LoKI setup file</h2>
+<p>The setup file contains all the informations defining the type of discharge,
+gas mixture, numeric details and data output. The setup file is the main input
+file of LoKI, as well as the main User Interface (UI) with the code. The syntax
+and field values of the setup file are described in
+<a href="setup_file.html">The setup File</a>.</p>
+
+<h2 id="3">Auxiliary input files</h2>
+<p>Other input files are used by LoKI. This includes cross sections files using
+the LXCat format, and several auxiliary files with gas properties or vibrational
+populations. These files are described in
+<a href="aux_files.html">Auxiliary input files</a>.</p>
+
+<h2 id="4">Functions</h2>
+<p>Several of LoKI functions are defined in relatively small Matlab <tt>*.m</tt>
+files and organized in subfolders of the main <tt>Code</tt> folder. These functions
+fall in two classifications: <i>Property functions</i> and <i>Other auxiliary
+functions</i> discussed in
+<a href="functions.html">Auxiliary functions</a>.</p>
+
+<h2 id="5">The Output</h2>
+<p>The results of LoKI can be written in two formats: ASCII text files and the
+<i>hdf5</i> <i>Hierarchical Data Format</i>
+[ <a href="#R7">7</a> ]. In the first case
+the files are easily read with any text editor but the results are spread in multiple
+files and folders. The <i>hdf5</i> format includes all the results in a single file,
+organized in a hierarchical structure, but requires an auxiliary <i>hdf5</i> viewer.
+Both formats require post-processing of the results and the <b>Utilities folder</b>
+include some scripts for this purpose. The two formats and files are discussed in
+<a href="output.html">Output</a>.</p>
+
+<h2 id="6">Utility scripts</h2>
+<p>The <i>Utilities</i> folder includes several scripts, mostly witten in <b>Python</b>,
+to help process the output data or to convert <tt>*.chem</tt> reaction files into
+<i>LaTeX</i> tables. These files are discussed in
+<a href="utilities.html">Utilities</a>.</p>
+<h2 id="7">Validity limits and control</h2>
+<p>As any numerical tool, LoKI-B provides a mere representation of the energy
+distribution of the electrons in a LTP, because it is based on a specific formulation
+with embedded approximations. Therefore, the tool should be used only in situations
+fitting its validity limits, and users are advised to carefully read the extensive
+literature on the two-term EBE [11], for obtaining details about its solution. The
+two-term approximation adopted in LoKI-B to solve the EBE is valid in a situation
+of small anisotropies [11], corresponding to electron-neutral mean-free-paths much
+smaller than any characteristic dimension of the plasma container, and an energy
+gain from the electric field, between collisions, much smaller than the electron
+kinetic energy. For a homogeneous scenario like the one described here, the latter
+condition is the most relevant and can be approximately written as (see <a href="../User_manual_LoKI.pdf" target="_blank">Reference Guide, eq. (52a) and (58b)</a>)</p>
+<p>
+<math display="block" class="tml-display" style="display:block math;"><mrow><msub><mrow><mi mathvariant="normal">Θ</mi></mrow><mi>E</mi></msub><mo>∼</mo><msub><mi>μ</mi><mi>e</mi></msub><msup><mi>E</mi><mn>2</mn></msup><mo>≪</mo><mi>ε</mi><msub><mi>ν</mi><mi>c</mi></msub><mspace width="0.2778em"></mspace><mo separator="true">,</mo></mrow></math>
+</p>
+<p>which yields, for a Maxwellian EEDF at 1 eV temperature and a typical reduced
+collision frequency
+<math><mrow><msub><mi>ν</mi><mi>c</mi></msub><mi>/</mi><mi>N</mi><mo>∼</mo></mrow><mrow><msub><mi>σ</mi><mi>c</mi></msub><mo form="prefix" stretchy="false">⟨</mo><mi>v</mi><mo form="postfix" stretchy="false">⟩</mo><mo>∼</mo></mrow><mrow><msup><mn>10</mn><mrow><mo lspace="0em" rspace="0em">−</mo><mn>19</mn></mrow></msup><mo>×</mo></mrow><mrow><msup><mn>10</mn><mn>6</mn></msup><mo>=</mo></mrow><mrow><msup><mn>10</mn><mrow><mo lspace="0em" rspace="0em">−</mo><mn>13</mn></mrow></msup><msup><mpadded lspace="0" rspace="0"><mi mathvariant="normal">m</mi></mpadded><mn>3</mn></msup><msup><mpadded lspace="0" rspace="0"><mi mathvariant="normal">s</mi></mpadded><mrow><mo lspace="0em" rspace="0em">−</mo><mn>1</mn></mrow></msup></mrow></math>,
+<math><mrow><mi>E</mi><mi>/</mi><mi>N</mi><mo>≪</mo></mrow><mrow><msqrt><mrow><msub><mi>m</mi><mi>e</mi></msub><mi>ε</mi><mi>/</mi><mi>e</mi></mrow></msqrt><mo form="prefix" stretchy="false">(</mo><msub><mi>ν</mi><mi>c</mi></msub><mi>/</mi><mi>N</mi><mo form="postfix" stretchy="false">)</mo><mo>∼</mo></mrow><mrow><mn>300</mn></mrow></math> Td. This is a conservative
+limit for the reduced electric-field, often exceeded in calculations because the
+two-term approximation yields fairly good results still.<br>
+<b>However, users are advised to check the <i>EEDF</i> results when taking</b>
+<i>E/N</i> <b>values much above the estimated validity limit, namely by comparing
+the solution obtained for the isotropic and the anisotropic parts of the electron
+distribution function.</b></p>
+<p>Also, HF calculations are valid only if the oscillation frequency of the electric
+field is much larger than the typical frequency for the electron energy relaxation,
+which can be approximately written as (see <a href="../User_manual_LoKI.pdf" target="_blank">Reference Guide, eq. (12b)</a>)</p>
+<p>
+<math display="block" class="tml-display" style="display:block math;"><mrow><mi>ω</mi><mo>≫</mo><mo form="prefix" stretchy="false">(</mo><msub><mi>m</mi><mi>e</mi></msub><mi>/</mi><mi>M</mi><mo form="postfix" stretchy="false">)</mo><mi>N</mi><mo form="prefix" stretchy="false">(</mo><msub><mi>ν</mi><mi>c</mi></msub><mi>/</mi><mi>N</mi><mo form="postfix" stretchy="false">)</mo><mspace width="0.2778em"></mspace><mo separator="true">,</mo></mrow></math>
+</p>
+<p>corresponding to
+<math><mrow><mi>ω</mi><mi>/</mi><mo form="prefix" stretchy="false">(</mo><mn>2</mn><mi>π</mi><mo form="postfix" stretchy="false">)</mo><mo>≫</mo></mrow><mrow><mn>20</mn><mspace width="0.2778em"></mspace><mrow><mtext></mtext><mi>MHz</mi></mrow><mo>−</mo></mrow><mrow><mn>20</mn><mspace width="0.2778em"></mspace><mrow><mtext></mtext><mi>kHz</mi></mrow></mrow></math>
+for
+<math><mrow><msub><mi>ν</mi><mi>c</mi></msub><mi>/</mi><mi>N</mi><mo>∼</mo></mrow><mrow><msup><mn>10</mn><mrow><mo lspace="0em" rspace="0em">−</mo><mn>13</mn></mrow></msup><mspace width="0.1667em"></mspace><msup><mpadded lspace="0" rspace="0"><mi mathvariant="normal">m</mi></mpadded><mn>3</mn></msup><mspace width="0.2778em"></mspace><msup><mpadded lspace="0" rspace="0"><mi mathvariant="normal">s</mi></mpadded><mrow><mo lspace="0em" rspace="0em">−</mo><mn>1</mn></mrow></msup><mo separator="true">,</mo><mspace width="0.2778em"></mspace></mrow><mrow><msub><mi>m</mi><mi>e</mi></msub><mi>/</mi><mi>M</mi><mo>∼</mo></mrow><mrow><mn>5</mn><mo>×</mo></mrow><mrow><msup><mn>10</mn><mrow><mo lspace="0em" rspace="0em">−</mo><mn>5</mn></mrow></msup><mo separator="true">,</mo></mrow><mrow><msub><mi>T</mi><mi>g</mi></msub><mo>=</mo></mrow><mrow><mn>300</mn><mspace width="0.1667em"></mspace><mpadded lspace="0" rspace="0"><mi mathvariant="normal">K</mi></mpadded></mrow></math>
+and
+<math><mrow><mi>p</mi><mo>∼</mo></mrow><mrow><msup><mn>10</mn><mn>5</mn></msup><mspace width="0.1667em"></mspace><mrow><mtext></mtext><mi>Pa</mi></mrow><mo>−</mo></mrow><mrow><mn>130</mn><mspace width="0.1667em"></mspace><mrow><mtext></mtext><mi>Pa</mi></mrow></mrow></math>.<br>
+<b>Again, users are advised to check the validity of the HF approximation for the
+particular working conditions considered.</b></p>
+<p>LoKI-B contains several control features upon the input data and the calculation
+results, and in some cases it <b>returns warning messages</b> for the benefit of
+users. In particular:</p>
+<div>
+<ul>
+<li>the code controls the maximum value <math><msub><mi>u</mi><mrow><mtext></mtext><mi>max</mi></mrow></msub></math>
+of the energy grid adopted, comparing it with the cutoff energy
+<math><msub><mi>u</mi><mrow><mtext></mtext><mi>cutoff</mi></mrow></msub></math>
+of the electron-neutral elastic momentum-transfer cross section.<br>
+<b>When
+<math><mrow><msub><mi>u</mi><mrow><mtext></mtext><mi>cutoff</mi></mrow></msub><mo>&lt;</mo></mrow><mrow><msub><mi>u</mi><mrow><mtext></mtext><mi>max</mi></mrow></msub></mrow></math>
+a warning message is returned</b>, and if the user accepts to proceed with the
+calculations these are carried out by setting to zero the values of any cross section
+from its corresponding <math><msub><mi>u</mi><mrow><mtext></mtext><mi>cutoff</mi></mrow></msub></math>
+and up to <math><msub><mi>u</mi><mrow><mtext></mtext><mi>max</mi></mrow></msub></math>.
+<b>LoKI-B does not extrapolate cross sections beyond the cutoff energies defined
+in the input data-files</b>, again because it adopts an ontology that separates
+the tool and the data. The user is recommended to always careful examine the cross
+sections being used and, if needed, he/she should adopt adequate laws to extrapolate
+them, chosen according to the specific processes considered (<i>e.g.</i> dipole allowed
+or dipole forbidden electron excitation, ionization, etc);</li>
+<li>the code <b>returns a warning message</b> if the calculation of the elastic
+momentum-transfer cross section from the corresponding effective <b>produces negative
+values for</b>
+<math><msubsup><mi>σ</mi><mrow><mi>k</mi><mo separator="true">,</mo><mi>c</mi></mrow><mrow><mtext></mtext><mi>el</mi></mrow></msubsup></math>
+(see <a href="electron_kinetics.html">Electron kinetics</a>), which is
+then set to zero. <b>In this case, users are advised to check the cross section
+data adopted</b>;</li>
+<li> <b>in stationary simulations</b>, the code controls the quality of the Boltzmann-matrix
+inversion, by monitoring the error upon the fractional electron power-balance.
+The latter is obtained from (<a href="../User_manual_LoKI.pdf" target="_blank">Reference Guide, eq. (56a)</a>),
+by normalizing this equation with respect to a <i>reference power-density</i>
+<math display="inline" class="tml-display" style="display:inline math;"><msub><mrow><mi mathvariant="normal">Θ</mi></mrow><mrow><mtext></mtext><mi>ref</mi></mrow></msub></math><msubsup><mi>σ</mi><mrow><mi>k</mi><mo separator="true">,</mo><mi>c</mi></mrow><mrow><mtext></mtext><mi>el</mi></mrow></msubsup></math>,
+<b>defined for each calculation as the sum of all power-gain terms</b> (see <a href="../User_manual_LoKI.pdf" target="_blank">Reference Guide, sec. 3.1</a>).<br>
+The relative error
+<math><mrow><mrow><mo fence="true" form="prefix">[</mo><msub><mpadded lspace="0" rspace="0"><mi mathvariant="normal">Θ</mi></mpadded><mi>E</mi></msub><mo>+</mo><msubsup><mpadded lspace="0" rspace="0"><mi mathvariant="normal">Θ</mi></mpadded><mrow><mtext></mtext><mi>coll</mi></mrow><mrow><mtext></mtext><mi>gain</mi></mrow></msubsup><mo>+</mo><msubsup><mpadded lspace="0" rspace="0"><mi mathvariant="normal">Θ</mi></mpadded><mrow><mtext></mtext><mi>coll</mi></mrow><mrow><mtext></mtext><mi>loss</mi></mrow></msubsup><mo>+</mo><msub><mpadded lspace="0" rspace="0"><mi mathvariant="normal">Θ</mi></mpadded><mrow><mtext></mtext><mi>growth</mi></mrow></msub><mo fence="true" form="postfix">]</mo></mrow><mi>/</mi><msub><mpadded lspace="0" rspace="0"><mi mathvariant="normal">Θ</mi></mpadded><mrow><mtext></mtext><mi>ref</mi></mrow></msub></mrow></math>
+(with typical values
+<math><mrow><mo>∼</mo></mrow><mrow><msup><mn>10</mn><mrow><mo lspace="0em" rspace="0em">−</mo><mn>9</mn></mrow></msup><mo>−</mo></mrow><mrow><msup><mn>10</mn><mrow><mo lspace="0em" rspace="0em">−</mo><mn>10</mn></mrow></msup></mrow></math>,
+and user-defined <tt>maxPowerBalanceRelError</tt> <b>threshold for producing a
+warning message, see <a href="electron_kinetics.html">Electron kinetics</a>)
+degrades for very-low</b> <i>E/N</i>s, due to the smallness of the power-density
+values for all the power-transfer channels, <b>and for very-high</b> <i>E/N</i>s,
+if the <math><msub><mi>u</mi><mrow><mtext></mtext><mi>max</mi></mrow></msub></math>
+grid-limit adopted in the calculations is not large enough to prevent ill-conditioned EBE-matrices.</p></li>
+</ul></div>
+<div>
+<p>Concerning cross section data, the user is further advised to carefully check:</p>
+<ul>
+<li>if the electron-scattering cross sections are set to zero at the threshold
+energy, as it is coherently assumed by LoKI-B. Note that, excluding errors, the
+LXCat files obtained from the IST-Lisbon database comply with this recommendation;</li>
+<li>the maximum value
+<math><msub><mi>u</mi><mrow><mtext></mtext><mi>max</mi></mrow></msub></math>
+of the energy grid adopted, comparing it with the highest threshold
+<math><msub><mi>u</mi><mrow><mtext></mtext><mi>th-max</mi></mrow></msub></math>
+of the collisional cross sections associated with reactions for which superelastic
+mechanisms are activated. Note that
+<math><mrow><msub><mi>u</mi><mrow><mtext></mtext><mi>max</mi></mrow></msub><mo>≫</mo></mrow><mrow><msub><mi>u</mi><mrow><mpadded lspace="0" rspace="0"><mi mathvariant="normal">t</mi></mpadded><mpadded lspace="0" rspace="0"><mi mathvariant="normal">h</mi></mpadded><mo>−</mo><mpadded lspace="0" rspace="0"><mi mathvariant="normal">m</mi></mpadded><mpadded lspace="0" rspace="0"><mi mathvariant="normal">a</mi></mpadded><mpadded lspace="0" rspace="0"><mi mathvariant="normal">x</mi></mpadded></mrow></msub></mrow></math>
+should be ensured, to properly account for the superelastic effects.</li>
+</ul>
+</div>
+
+<h2 id="8">Error messages</h2>
+
+<p class="footer">
+<br>
+<a href="https://www.mathworks.com/products/matlab/">Published with MATLAB&reg; R2024b</a>
+<br>
+</p>
+</div>
+
+</body>
+</html>

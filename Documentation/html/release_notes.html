@@ -1,0 +1,487 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<META http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+<title>Release notes</title>
+<link rel="schema.DC" href="http://purl.org/dc/elements/1.1/">
+<meta name="DC.date" content="2025-03-03">
+<link rel="stylesheet" type="text/css" href="loki.css">
+</head>
+<body>
+<div class="content">
+<h1>Release notes</h1>
+<p>This is probably not very interesting for the ordinary user. But since you have
+made it this far, please take a moment to read a brief history of the code since
+its first release.</p>
+
+<h2>Contents</h2>
+<div>
+<ul>
+<li>
+<a href="#25">LoKI_v3.1.0 (2022/11/04)</a>
+</li>
+<li>
+<a href="#24">LoKI-C_v3.1.0 (2022/11/04)</a>
+</li>
+<li>
+<a href="#23">LoKI-B_v2.2.0 (2022/11/04)</a>
+</li>
+<li>
+<a href="#22">LoKI-C_v3.0.0 (2022/03/04)</a>
+</li>
+<li>
+<a href="#21">LoKI-C_v3.0.0 (2022/03/04)</a>
+</li>
+<li>
+<a href="#20">LoKI-B_v2.1.0 (2022/03/04)</a>
+</li>
+<li>
+<a href="#19">LoKI-B_v2.0.1 (2021/09/20)</a>
+</li>
+<li>
+<a href="#18">LoKI_v2.0.0 (2021/02/14)</a>
+</li>
+<li>
+<a href="#17">LoKI-C_v2.0.0 (2021/02/14)</a>
+</li>
+<li>
+<a href="#16">LoKI-B_v2.0.0 (2021/02/14)</a>
+</li>
+<li>
+<a href="#15">LoKI_v1.0.0 (2019/03/20)</a>
+</li>
+<li>
+<a href="#14">LoKI-C_v1.0.0 (2019/03/19)</a>
+</li>
+<li>
+<a href="#13">LoKI-B_v1.0.0 (2019/03/20)</a>
+</li>
+<li>
+<a href="#12">LoKI_v0.1.0 (2018/03/26)</a>
+</li>
+<li>
+<a href="#11">LoKI-C_v0.1.0 (2018/03/26)</a>
+</li>
+<li>
+<a href="#10">LoKI-B_v0.6.3 (2018/03/26)</a>
+</li>
+<li>
+<a href="#9">LoKI-B_v0.6.2 (2018/01/18)</a>
+</li>
+<li>
+<a href="#8">LoKI-B_v0.6.1 (2018/01/16)</a>
+</li>
+<li>
+<a href="#7">LoKI-B_v0.6.0 (2018/01/13)</a>
+</li>
+<li>
+<a href="#6">LoKI-B_v0.5.0 (2017/12/14)</a>
+</li>
+<li>
+<a href="#5">LoKI-B_v0.4.0 (2017/10/17)</a>
+</li>
+<li>
+<a href="#4">LoKI-B_v0.3.0 (2017/09/08)</a>
+</li>
+<li>
+<a href="#3">LoKI-B_v0.2.0 (2017/06/09)</a>
+</li>
+<li>
+<a href="#2">LoKI-B_v0.1.1 (2017/04/10)</a>
+</li>
+<li>
+<a href="#1">LoKI-B_v0.1.0 (2017/04/05)</a>
+</li>
+</ul>
+</div>
+
+<h2 id="25">LoKI_v3.1.0 (2022/11/04)</h2>
+<div>
+<ul>
+<li>Forth release of the code with newer versions of both the Boltzmann and
+Chemistry modules (LoKI-B_v2.2.0 and LoKI-C_v3.1.0)</li>
+<li>NEW FEATURE: added general saving of all input files as output.</li>
+<li>NEW FEATURE: added support for one-level subfolder organization of source files.</li>
+<li>NEW FEATURE: first implementation of logging system.</li>
+<li>NEW (hidden) FEATURE: first implementation of the coupling between LoKI-B and
+LoKI-C for post-discharge simulations (to be verified/extended for stability
+improvement and towards a full coupling between the tools, in future releases).</li>
+<li>A few minor changes to improve stability and performance of the code.</li>
+</ul>
+</div>
+<h2 id="24">LoKI-C_v3.1.0 (2022/11/04)</h2>
+<div>
+<ul>
+<li>NEW FEATURE: added new transport rate coefficient function
+<tt>classicalAmbipolarDiffNegIon</tt>.</li>
+<li>NEW FEATURE: detailed balance calculations have been extended to reverse mechanisms
+other than the default ones (eedf and two-body volume heavy-species reactions).</li>
+<li>NEW FEATURE: new implementation of the thermal module, considering different
+boundary conditions (see section 1.6), and adding support for the GUI and Output
+classes.</li>
+<li>NEW FEATURE: information on the steady-state rate coefficients of the chemistry
+is now included in the rateCoefficients.txt output file.</li>
+<li>NEW FEATURE: users can select the temperature adopted in the rate coefficient
+functions of transport models where the thermal velocity is evaluated.</li>
+<li>NEW FEATURE: added errors when reaching the maximum number of iterations for
+the chemistry cycles.</li>
+<li>NEW FEATURE: added new tab to the GUI with information on the input of the
+chemistry reactions.</li>
+<li>NEW FEATURE: added the possibility of selecting lin/log scale for both axis on
+the chemistry-related graphs.</li>
+<li>BUG FIX: the code was not prepared to consider negative charges when evaluating
+the electron density (imposing quasi-neutrality) during post-discharge calculations.</li>
+<li>BUG FIX: added checks for (partially) empty reactions (i.e. reactions without
+reactants and/or products), for which the code now throws an error message. Accordingly,
+the calling of the inFlow / outFlow rate coefficient functions now uses e &#8594; X and
+X &#8594; e, respectively (workaround to be solved in future releases).</li>
+<li>BUG FIX: proper normalization of populations for empty gases.</li>
+<li>BUG FIX: improve <tt>iterateOverParameter</tt> function to avoid stalling.</li>
+<li>A few minor changes to improve stability and performance of the code.</li>
+</ul>
+</div>
+<h2 id="23">LoKI-B_v2.2.0 (2022/11/04)</h2>
+<div>
+<ul>
+<li>NEW FEATURE: general implementation of anisotropic e-impact collisions.</li>
+<li>NEW FEATURE: proper implementation of hf simulations for prescribed eedf.</li>
+<li>BUG FIX: added checking to avoid e-impact collisions types non-supported by LXCat.</li>
+<li>BUG FIX: improve the evaluation of power in electron-electron collisions.</li>
+<li>BUG FIX: solved error in the temporal growth operator, when using the
+time-integration algorithm.</li>
+<li>A few minor changes to improve stability and performance of the code.</li>
+</ul>
+</div>
+<h2 id="22">LoKI-C_v3.0.0 (2022/03/04)</h2>
+<div>
+<ul>
+<li>Third release of the code with newer versions of both the Boltzmann and Chemistry
+modules (LoKI-B_v2.1.0 and LoKI-C_v3.0.0)</li>
+<li>BUG FIX: solved error in the population property functions when using
+<tt>electronTemperature</tt> as parameter.</li>
+<li>BUG FIX: solved a problem in the displaying of text in the GUI for UNIX machines.</li>
+<li>Removed some deprecated functions and files.</li>
+<li>A few minor changes to improve stability and performance of the code.</li>
+</ul>
+</div>
+<h2 id="21">LoKI-C_v3.0.0 (2022/03/04)</h2>
+<div>
+<ul>
+<li>NEW FEATURE: First implementation of surface kinetics (including a revision of
+transport functions)</li>
+<li>BUG FIX: solved a problem with the normalization of vibrational distributions
+during output for both GUI and text files.</li>
+<li>BUG FIX: <tt>wallTemperature</tt> is now used when available in the calculation
+of thermal velocity for transport models.</li>
+<li>BUG FIX: solved small error in the evaluation of the power transferred from
+electrons to gas temperature in the thermal module.</li>
+<li>BUG FIX: solved small error in the units presented in output files.</li>
+<li>BUG FIX: for HF simulations the chemistry module now receives and uses the DC
+mobility for transport calculations.</li>
+<li>Thermal model now only accounts for radial losses.</li>
+<li>Improved performance of the chemistry integration following suggestions by Luis Marques.</li>
+<li>A few minor changes to improve stability and performance of the code.</li>
+</ul>
+</div>
+<h2 id="20">LoKI-B_v2.1.0 (2022/03/04)</h2>
+<div>
+<ul>
+<li>NEW FEATURE: the DC reduced mobility is always evaluated and the (complex) HF
+mobility is only provided in the case of oscillating fields.</li>
+<li>NEW FEATURE: added the possibility of selecting lin/log scale for both axis on
+the graphs of the different swarm parameters. For the power graph only the xaxis
+can be toggled between lin/log scale.</li>
+<li>BUG FIX: solved important error in the e-e collision (<tt>mixingDirectSolutions</tt>
+scheme only) operator related with the units of the reduced field</li>
+<li>BUG FIX: now attachment collisions are not considered for the evaluation of a
+reduced field from power balance when using <tt>PrescribedEedf</tt>.</li>
+<li>BUG FIX: activated the renormalization of the eedf for the calculation of the
+eedf derivative.</li>
+<li>BUG FIX: solved an inconsistency in the evaluation of the reference power in
+<tt>PrescribedEedf</tt> with respect to Boltzmann class.</li>
+<li> Added the possibility of providing thresholds with scientic notation in
+LXCat files.</li>
+<li>A few minor changes to improve stability and performance of the code.</li>
+</ul>
+</div>
+
+<h2 id="19">LoKI-B_v2.0.1 (2021/09/20)</h2>
+<div>
+<ul>
+<li> BUG FIX: solved error in the clipping of negative values of an elastic cross
+section (when evaluated from an effective one) to zero.</li>
+</ul>
+</div>
+<h2 id="18">LoKI_v2.0.0 (2021/02/14)</h2>
+<div>
+<ul>
+<li>Second release of the code with newer versions of both the Boltzmann and chemistry
+modules (LoKI-B_v2.0.0 and LoKI-C_v2.0.0)</li>
+<li>BUG FIX: Solved an error in the evaluation of an elastic cross section from an
+effective one that occurs for some initialization conditions when both modules are
+activated.</li>
+<li>New system of property functions implemented LoKI-wide to accommodate necessities
+of the LoKI-C thermal module (see sections 5.2, 5.3 and 7.1).</li>
+<li>A few minor changes to improve stability and performance of the code.</li>
+</ul>
+</div>
+<h2 id="17">LoKI-C_v2.0.0 (2021/02/14)</h2>
+<div>
+<ul>
+<li>NEW FEATURE: First implementation of the thermal module (self-consistent calculation
+of the gas temperature, see section 1.6).</li>
+<li>NEW FEATURE: Added the possibility of saving the time-dependent densities of
+species.</li>
+<li>NEW FEATURE: First implementation of a post-discharge description.</li>
+<li>BUG FIX: Solved some errors related to the multicomponent transport rate
+coefficient functions.</li>
+<li>BUG FIX: Solved an error in the orientation of some matrices in the  <tt>multicomponentTransportChantry</tt> rate coefficient function.</li>
+<li>BUG FIX: Solved some errors in certain rate coefficient functions related with
+the dimensions of the discharge.</li>
+<li>A few minor changes to improve stability and performance of the code.</li>
+</ul>
+</div>
+<h2 id="16">LoKI-B_v2.0.0 (2021/02/14)</h2>
+<div>
+<ul>
+<li>NEW FEATURE: Added possibility to perform pulsed simulations (see sections 1.3
+and 5)</li>
+<li>NEW FEATURE: Added two new parameters calculated on output, the energy diffusion
+coefficient and the energy mobility.</li>
+<li>BUG FIX: Solved small error in the implementation of the CC-CAR operator (see
+section 1.2).</li>
+<li>BUG FIX: Solved an error in the evaluation of both the Townsend coeffcient and
+the attachment coefficient (the code now accounts for more than one of such collisions
+per gas).</li>
+<li>BUG FIX: Solved an inconsistency between the code and the documentation. The
+code now evaluates the real part of the HF mobility for HF simulations (see section
+3.1).</li>
+<li>BUG FIX: Solved some inconsistencies in the evaluation of the power from the
+field when non lineal operators where activated resulting in a wrong evaluation
+of the power balance in some cases.</li>
+<li>Removed deprecated class <tt>Maxwellian</tt>.</li>
+<li>A few minor changes to improve stability and performance of the code.</li>
+</ul>
+</div>
+<h2 id="15">LoKI_v1.0.0 (2019/03/20)</h2>
+<div>
+<ul>
+<li>First stable release of the code with newer versions of both the Boltzmann and
+chemistry modules (LoKI-B_v1.0.0 and LoKI-C_v1.0.0)</li>
+<li> BUG FIX: fixed an error in the output of the eedf (and first anisotropy) when
+the Boltzmann and chemistry modules are activated.</li>
+<li>BUG FIX: fixed a problem that may occur during the update of "non-standard" gas
+mixtures between the chemistry and Boltzmann calculations.</li>
+<li>A few minor changes to improve stability and performance of the code.</li>
+</ul>
+</div>
+<h2 id="14">LoKI-C_v1.0.0 (2019/03/19)</h2>
+<div>
+<ul>
+<li>NEW FEATURE: Added support for reaction enthalpies in the ".chem" files in preparation
+for the thermal module. For more information see section 6.3.</li>
+<li>NEW FEATURE: Added the first implementation of a generalised transport theory
+for neutral species. See section 7.2.</li>
+<li>NEW FEATURE: Added support for "gas stabilised reactions" in ".chem" files. For
+more information see section 6.4</li>
+<li>BUG FIX: fixed a problem that prevented in most cases the use of accelerated
+schemes for the convergence of parameters (in particular for the quasineutrality
+cycle). Now the convergence, and consequently the code, is much faster.</li>
+<li>BUG FIX: fixed an error that causes the final populations obtained in the chemistry
+not to be shown/saved properly in some cases.</li>
+<li>BUG FIX: fixed an error for which when the maximum number of iterations for the
+quasineutrality cycle are reached a new evaluation of the electron kinetics was
+performed. This error produced a mismatch in the output.</li>
+<li>BUG FIX: fixed error in the output of the EEDF when the chemistry were activated.</li>
+<li>BUG FIX: fixed several errors in the implementation of the detailed balance for
+heavy species reactions.</li>
+<li>A few minor changes to improve stability and performance of the code</li>
+</ul>
+</div>
+<h2 id="13">LoKI-B_v1.0.0 (2019/03/20)</h2>
+<div>
+<ul>
+<li>NEW FEATURE: The user can now use a time integration algorithm to solve the non-linear operators. For more information see section 5.2.</li>
+<li>NEW FEATURE: Added attachments collisions as non-conservative mechanisms.</li>
+<li>NEW FEATURE: Added power transfer plot to the GUI.</li>
+<li>NEW FEATURE: Added evaluation and output of the elastic/effective collision rate coeffcients.</li>
+<li>NEW FEATURE: Added attachment collisions as non-conservative mechanism (when they are present).</li>
+<li>NEW FEATURE: Added the possibility for the user to change the scale of the EEDF graph in the GUI (linear/log).</li>
+<li>NEW FEATURE: Added evaluation of the first anisotropy</li>
+<li>IMPORTANT CHANGE: The reference power is now considered as the total gained power from all possible sources.</li>
+<li>IMPORTANT CHANGE: The configuration of the electron kinetics on the setup file has been slightly modified in order to accommodate new features. For more information see section 5.2.</li>
+<li>IMPORTANT CHANGE: Changed the <tt>Maxwellian</tt> EEDF type by <tt>prescribedEedf</tt> (generalised expression with Maxwellian/Druyvesteyn as particular cases). For more information see section 5.2.</li>
+<li>BUG FIX: fixed a problem that caused the results of the first job of a simulation to be saved outside its subfolder.</li>
+<li>BUG FIX: fixed small error in the morse oscillator energy formula.</li>
+<li>A few minor changes to improve stability and performance of the code.</li>
+</ul>
+</div>
+<h2 id="12">LoKI_v0.1.0 (2018/03/26)</h2>
+<div>
+<ul>
+<li>First release of the code (beta) comprising LoKI-B_v0.6.3 and LoKI-C_v0.1.0</li>
+</ul>
+</div>
+<h2 id="11">LoKI-C_v0.1.0 (2018/03/26)</h2>
+<div>
+<ul>
+<li>First release of the code (beta)</li>
+</ul>
+</div>
+<h2 id="10">LoKI-B_v0.6.3 (2018/03/26)</h2>
+<div>
+<ul>
+<li>BUG FIXED: corrected a problem with the Klein-Rosseland expression in the evaluation
+of supere- lastic cross sections. The bug only affected the evaluation of an elastic
+cross section from an effective one, and not the actual Boltzmann calculations. However,
+results obtained with previous versions of the code may be greatly affected (when using
+"effective" cross sections and superelastic mechanisms) hence it is recommended to
+repeat calculations with this new version.</li>
+<li>BUG FIXED: fixed a problem with the detailed balance in the e-e collisions. This bug
+only introduced a small error that affected convergence of the non-linear algorithm.</li>
+</ul>
+</div>
+<h2 id="9">LoKI-B_v0.6.2 (2018/01/18)</h2>
+<div>
+<ul>
+<li>BUG FIXED: corrected some expressions used in the evaluation of the swarm parameters,
+for the cases when the electron density growth is activated.</li>
+<li>BUG FIXED: fixed a problem with the Maxwellian type of EEDF, for which the code
+used to crash when trying to output (GUI or file) the power losses due to the electron
+density growth.</li>
+</ul>
+</div>
+<h2 id="8">LoKI-B_v0.6.1 (2018/01/16)</h2>
+<div>
+<ul>
+<li>BUG FIXED: previously the Spitzer integrals (e-e collision operator) were updated
+inside the routines with the operators for the electron-density growth. Now the update is
+done outside these routines, and convergence on both operators is completely isolated.</li>
+<li>BUG FIXED: previously, different EEDFs were being used to evaluate different parts of
+the e-e collision operator. Now, the convergence of the algorithm has been improved.</li>
+<li>The global cycle for the non-linear operators of the Boltzmann equation is now testing
+the changes in the EEDF only as convergence criterion.</li>
+<li>Slight improvement in the warning messages, in the cases where the non-linear
+operators of the Boltzmann equation do not converge.</li>
+<li>A few minor changes to improve stability and performance of the code.</li>
+</ul>
+</div>
+<h2 id="7">LoKI-B_v0.6.0 (2018/01/13)</h2>
+<div>
+<ul>
+<li>NEW FEATURE: The user can now select non-conservative ionization operators (<tt>one
+takes all</tt>, <tt>equal sharing</tt> or <tt>using single differential cross section</tt>)
+for the Boltzmann equation as well as two types of growth models (<tt>spatial</tt> or
+<tt>temporal</tt>) for the electron number density. For more information, see sections 1
+and 5.2.</li>
+<li>NEW FEATURE: The user can now include the electron-electron collision operator
+in the Boltzmann calculations. For more information, see sections 1 and 5.2.</li>
+<li>IMPORTANT CHANGE: Changes in the way the power balance is evaluated. The evaluation
+of the <i>reference power</i> is now fairer. The power transferred to the elastic and
+the CAR channels is now separated into gains and losses, and the reference power is
+obtained as the channel from which the electrons gain more energy.</li>
+<li>BUG FIXED: fixed bug in the <tt>State.find</tt> static method, that caused errors
+when finding all the electronic states of a certain gas.</li>
+<li>BUG FIXED: fixed bug introduced in commit 813e38f (Nov 9, 2017), that prevented
+the user to deactivate the output of the code.</li>
+<li>A few minor changes to improve stability and performance of the code.</li>
+</ul>
+</div>
+<h2 id="6">LoKI-B_v0.5.0 (2017/12/14)</h2>
+<div>
+<ul>
+<li>NEW FEATURE: The electron drift velocity is now evaluated by the code. This
+information can be seen in the <i>Swarm parameters</i> and <i>Look-up-table</i>
+tabs of the GUI, as well as in the corresponding output files. (User Requested)</li>
+<li>NEW FEATURE: <i>Extra</i> electron-scattering cross sections, <i>i.e.</i> cross
+sections that are not taken into account when solving the electron Boltzmann equation,
+can now be added. The corresponding rate coefficients are obtained by integrating these
+cross sections over the calculated EEDF. For more information, see section 5.2.</li>
+<li>NEW FEATURE: The power balance is now detailed in a per-gas basis. (User Requested)</li>
+<li>BUG FIXED: The output of the electron <i>Ionization</i> and <i>Attachment</i> was
+not being done properly.</li>
+<li>IMPORTANT CHANGE: the only comment character allowed in the input files is now %,
+for perfor- mance reasons. The # character is NO LONGER RECOGNISED.</li>
+<li>IMPORTANT CHANGE: A few changes in the way the properties of the setup file are
+organised. For more information, see section 4.3.</li>
+<li>A few changes where introduced to improve the performance of the code: # Improved
+performance of the <i>Collision.find</i> static method, by avoiding implicit values in
+the loop. # Improved performance of the <i>output.saveEedf</i> method, by vectorizing
+a loop (almost 13x speedup)</li>
+<li>A lot of LoKI-C code has been introduced and several changes in the structure of the
+code has been made in order to accommodate and integrate the chemistry module. However,
+LoKI-C is still not available (Coming soon!)</li>
+<li>A few minor changes to improve stability and performance of the code.</li>
+</ul>
+</div>
+<h2 id="5">LoKI-B_v0.4.0 (2017/10/17)</h2>
+<div>
+<ul>
+<li>NEW FEATURE: The user can now prescribe a Maxwellian EEDF. For more information,
+see section 5.2.</li>
+<li>NEW FEATURE: The user can now specify the <i>refresh frequency</i> of the GUI,
+in order to speedup simulations. For more information, see section 5.3.</li>
+<li>Structural changes in the calculations and aesthetical changes in the GUI, in
+order to speedup calculations. A huge difference is observed, when compared with
+previous versions.</li>
+<li>BUG FIXED: the electron temperature was being calculated with the characteristic
+energy instead of the mean energy.</li>
+<li>BUG FIXED: solved bug causing the GUI to display the same rate coeffcient for
+direct and inverse processes.</li>
+<li>A few minor changes to improve stability and performance of the code.</li>
+</ul>
+</div>
+<h2 id="4">LoKI-B_v0.3.0 (2017/09/08)</h2>
+<div>
+<ul>
+<li>NEW FEATURE: The user can now specify the populations used for the evaluation
+of the elastic momentum-transfer cross section, from the effective. This feature must
+be used with care. For more information, see section 5.2.</li>
+<li>Added graphs in the GUI, for the reduced first Townsend and attachment coeffcients
+vs. <i>E/N</i>.</li>
+<li>Included the character "-" in the names of electronic states (important for some
+N2 states, and not supported before).</li>
+<li>BUG FIXED: fixed error in the evaluation of the elastic momentum-transfer cross
+section from the effective. The bug affected molecular gases only.</li>
+<li>BUG FIXED: fixed a completely harmless error related with the parsing of collisions.
+Electrons where not properly accounted for.</li>
+<li>A few minor changes to improve stability and performance of the code.</li>
+</ul>
+</div>
+<h2 id="3">LoKI-B_v0.2.0 (2017/06/09)</h2>
+<div>
+<ul>
+<li>NEW FEATURE: added support for the continuous approximation for rotations (CAR).
+For more information, see sections 1 and 5.2.</li>
+<li>BUG FIXED: the evaluation of the elastic momentum-transfer cross section from the
+effective is now properly done. Previously, there were some errors in the evaluation of
+the populations of rotational states, as well as with the inclusion of superelastic
+mechanisms. The problem was not affecting the simulations in which an elastic cross
+section was provided by the user.</li>
+<li>A few minor changes to improve stability and performance of the code.</li>
+</ul>
+</div>
+<h2 id="2">LoKI-B_v0.1.1 (2017/04/10)</h2>
+<div>
+<ul>
+<li>BUG FIXED: solved error in the calculation of the reduced first Townsend coeffcient.
+The reduced field was being used in Townsend instead of SI units, in the evaluation of
+the coefficient.</li>
+<li>A few minor changes to improve stability and performance of the code.</li>
+</ul>
+</div>
+<h2 id="1">LoKI-B_v0.1.0 (2017/04/05)</h2>
+<div>
+<ul>
+<li>First release of the code (beta).</li>
+</ul>
+</div>
+<p class="footer">
+<br>
+<a href="https://www.mathworks.com/products/matlab/">Published with MATLAB&reg; R2023b</a>
+<br>
+</p>
+</div>
+</body>
+</html>

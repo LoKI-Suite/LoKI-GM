@@ -1,0 +1,1348 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+  <head>
+  <META http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+  <title>The LisbOn KInetics Boltzmann solver</title>
+  <meta name="generator" content="MATLAB 23.2">
+  <link rel="schema.DC" href="http://purl.org/dc/elements/1.1/">
+  <meta name="DC.date" content="2025-03-01">
+  <link rel="stylesheet" type="text/css" href="loki.css">
+  </head>
+
+
+  <body>
+  <div class="content">
+  <h1>Auxiliary functions</h1>
+
+  <p>This section describes several auxiliary functions that can be used in the
+  simulations of LoKI.</p>
+  
+  <h2>Contents</h2>
+  <div>
+  <ul>
+  <li><a href="#1">Property functions</a></li>
+  <li><a href="#2">Rate coefficient functions</a></li>
+  <li><a href="#3">Other auxiliary functions</a></li>
+  </ul>
+  </div>
+  
+  <h2 id="1">Property functions</h2>
+  <p>Property functions are <tt>*.m</tt> functions that can be used to specify the
+  properties of gases and states used in the simulations. Some property functions
+  are distributed with LoKI-B, but in general these functions can be prepared by
+  the user, according to the needs for new functionalities. In this case, the user
+  is advised to mimic the structure of any property function already provided with
+  the code.</p>
+  <p>The following should be considered:
+  <ul>
+  <li>for organisation sake, all "property functions" specified in the setup file
+  should be located in the property functions folder (<tt>[repository folder]/LoKI-B_v2.2.0/Code/PropertyFunctions</tt>;
+  see section <a href="getting_started.html#3">Data organization</a>);</li>
+  <li>property functions receive the arguments (<tt>state</tt>, <tt>argumentArray</tt>,
+    <tt>workCond</tt>), where
+    <ul>
+    <li><tt>state</tt>: is a handle to the state-object to which the property is assigned.<br>
+    For example, when using <tt>N2(X,v=*)</tt> the property is assigned to all the
+    vibrational states with the electronic ground-state of N₂;</li>
+    <li><tt>argumentArray</tt>: is an array of arguments corresponding to the list
+    of parameters to be used in the setup file (see below);</li>
+    <li><tt>workCond</tt>: is a handle to the working-conditions-object of the simulation.</li>
+    </ul>
+  <li>property functions are called from the setup file (see section <a href="setup_file.html">
+    The setup file</a>) using the following structure:</br></br>
+    <math display="block" class="tml-display" style="display:block math;">
+      <mrow>
+        <mtext>&lt;function name&gt;</mtext>
+        <mrow>
+          <munder>
+            <munder>
+              <mtext>@[list of parameters]</mtext>
+              <mo stretchy="true" style="math-depth:0;">⏟</mo>
+            </munder>
+            <mtext>Optional</mtext>
+          </munder>
+        </mrow>
+      </mrow>
+    </math></br>
+  where the <tt>list of parameters</tt> is a list of comma-separated values with
+  all the parameters called by the particular property function. The parameters
+  sent to the property functions can be mapped to the values of the  different working
+  conditions previously defined in the setup file (see Code <a href="electron_kinetics.html">
+  Electron kinetics</a> for examples, and therein the implementation of property function 
+  <tt>boltzmannPopulation@gasTemperature</tt>) and
+  <tt>generalizedTemperatureDependentCoeff@5.0e20/sqrt(300),gasTemperature,0.5</tt>);</li>
+  <li>property functions <b>MUST</b> be set only for those gases and states used
+  in the simulations, <i>i.e.</i> those listed in the specified LXCat files.</li>
+  </ul>
+  </p>
+  <p>The following table lists the most relevant property functions distributed with
+  LoKI-B_v3.1.0, along with the required parameters and dependencies.</p>
+
+  <table id="4">
+    <caption>Table 1: List of property functions distributed with LoKI-B_v3.1.0</caption>
+    <thead>
+    <tr>
+      <th>Property</th>
+      <th>Function name</th>
+      <th>Parameters [units]</th>
+      <th>Dependencies</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr>
+      <td rowspan="3"><tt>energy</tt></td>
+      <td>harmonicOscillatorEnergy</td>
+      <td>n/a</td>
+      <td>harmonicFrequency</td>
+    </tr>
+    <tr>
+      <td>morseOscillatorEnergy</td>
+      <td>n/a</td>
+      <td>harmonicFrequency<br>anharmonicFrequency</td>
+    </tr>
+    <tr>
+      <td>rigidRotorEnergy</td>
+      <td>n/a</td>
+      <td>rotationalConstant</td>
+    </tr>
+    <tr>
+      <td rowspan="3"><tt>statisticalWeight</tt></td>
+      <td>rotationalDegeneracy</td>
+      <td>n/a</td>
+      <td>n/a</td>
+    </tr>
+    <tr>
+      <td>rotationalDegeneracy_N2</td>
+      <td>n/a</td>
+      <td>n/a</td>
+    </tr>
+    <tr>
+      <td>rotationalDegeneracy_H2</td>
+      <td>n/a</td>
+      <td>n/a</td>
+    </tr>
+    <tr>
+      <td rowspan="5"><tt>population</tt></td>
+      <td>boltzmannPopulation</td>
+      <td>Temperature [K]</td>
+      <td>energy<br>statisticalWeight</td>
+    </tr>
+    <tr>
+      <td>boltzmannPopulationRotationalCutoff</td>
+      <td>Temperature [K]<br>J_MAX</td>
+      <td>energy<br>statisticalWeight</td>
+    </tr>
+    <tr>
+      <td>boltzmannPopulationVibrationalCutoff</td>
+      <td>Temperature [K]<br>v_MAX</td>
+      <td>energy<br>statisticalWeight</td>
+    </tr>
+    <tr>
+      <td>treanorPopulation</td>
+      <td>Temperature0 [K]<br>Temperature1 [K]</td>
+      <td>energy<br>statisticalWeight</td>
+    </tr>
+    <tr>
+      <td>treanorGordietsPopulation</td>
+      <td>Temperature0 [K]<br>Temperature1 [K]</td>
+      <td>energy<br>statisticalWeight<br>anharmonicFrequency</td>
+    </tr>
+    <tr>
+      <td rowspan="2"><tt>reducedMobility</tt><br><tt>reducedDiffCoeff</tt><br>...</td>
+      <td>generalizedTemperatureDependentCoeff</td>
+      <td>Temperature [K]</td>
+      <td>n/a</td>
+    </tr>
+    <td>aT<sup>b</sup></td>
+    <td>a [S.I. (according to T)], b[ ]</td>
+    <td></td>
+    <tr>
+      <td><tt>reducedMobility</tt><br>...</td>
+      <td>mobilityHeliumAtomicIon<br>a/(bT<sup>0.5</sup>+c)</td>
+      <td>Temperature [K]<br>a, b, c [S.I. (according to T)]</td>
+      <td>n/a</td>
+    </tr>
+    <tr>
+      <td><tt>reducedDiffCoeff</tt><br>...</td>
+      <td>mobilityHeliumAtomicIon<br>a/(bT<sup>0.5</sup>+c)(k<sub>B</sub>T/e)</td>
+      <td>Temperature [K]<br>a, b, c [S.I. (according to T)]</td>
+      <td>n/a</td>
+    </tr>
+    </tbody>
+  </table>
+  <br>
+  
+  <p>The property functions in the table above correspond to the following physical models:
+  <dl>
+    <dt><tt>harmonicOscillatorEnergy</tt></dt>
+    <dd>It calculates the energy of (vibrational) state <i>j</i> of a diatomic molecule, adopting the harmonic 
+    oscillator model
+    <math xmlns="http://www.w3.org/1998/Math/MathML" display="block" class="tml-display" style="display:block math;">
+  <mrow>
+    <msub>
+      <mi>E</mi>
+      <mi>j</mi>
+    </msub>
+    <mo>=</mo>
+    <mfrac>
+      <mrow>
+        <mi>ℏ</mi>
+        <msub>
+          <mi>ω</mi>
+          <mpadded lspace="0">
+            <mi>vib</mi>
+          </mpadded>
+        </msub>
+      </mrow>
+      <mi>e</mi>
+    </mfrac>
+    <mrow>
+      <mo fence="true" form="prefix">(</mo>
+      <mi>j</mi>
+      <mo>+</mo>
+      <mfrac>
+        <mn>1</mn>
+        <mn>2</mn>
+      </mfrac>
+      <mo fence="true" form="postfix">)</mo>
+    </mrow>
+    <mspace width="0.2778em"></mspace>
+    <mo separator="true">,</mo>
+  </mrow>
+</math>
+where <math><msub><mi>ω</mi><mpadded lspace="0"><mi>vib</mi></mpadded></msub></math> is the harmonicFrequency (angular 
+frequency) of the molecule.</dd>
+    <dt><tt>morseOscillatorEnergy</tt></dt>
+    <dd>It calculates the energy of (vibrational) state <i>j</i> of a diatomic molecule, adopting the Morse oscillator 
+    model
+    <math xmlns="http://www.w3.org/1998/Math/MathML" display="block" class="tml-display" style="display:block math;">
+  <mrow>
+    <msub>
+      <mi>E</mi>
+      <mi>j</mi>
+    </msub>
+    <mo>=</mo>
+    <mfrac>
+      <mrow>
+        <mi>ℏ</mi>
+        <msub>
+          <mi>ω</mi>
+          <mrow>
+            <mi>v</mi>
+            <mi>i</mi>
+            <mi>b</mi>
+          </mrow>
+        </msub>
+      </mrow>
+      <mi>e</mi>
+    </mfrac>
+    <mrow>
+      <mo fence="true" form="prefix">(</mo>
+      <mi>j</mi>
+      <mo>+</mo>
+      <mfrac>
+        <mn>1</mn>
+        <mn>2</mn>
+      </mfrac>
+      <mo fence="true" form="postfix">)</mo>
+    </mrow>
+    <mo>−</mo>
+    <mfrac>
+      <mrow>
+        <mi>ℏ</mi>
+        <msub>
+          <mi>ω</mi>
+          <mpadded lspace="0">
+            <mi>vib</mi>
+          </mpadded>
+        </msub>
+        <mspace width="0.1667em"></mspace>
+        <msub>
+          <mi>χ</mi>
+          <mi>e</mi>
+        </msub>
+      </mrow>
+      <mi>e</mi>
+    </mfrac>
+    <msup>
+      <mrow>
+        <mo fence="true" form="prefix">(</mo>
+        <mi>j</mi>
+        <mo>+</mo>
+        <mfrac>
+          <mn>1</mn>
+          <mn>2</mn>
+        </mfrac>
+        <mo fence="true" form="postfix">)</mo>
+      </mrow>
+      <mn>2</mn>
+    </msup>
+    <mspace width="0.2778em"></mspace>
+    <mo separator="true">,</mo>
+  </mrow>
+</math>
+where <math><mrow><msub><mi>ω</mi><mpadded lspace="0"><mi>vib</mi></mpadded></msub><msub><mi>χ</mi><mi>e</mi></msub></mrow></math>
+is the first anharmonicFrequency of the molecule (with <math><msub><mi>χ</mi><mi>e</mi></msub></math> the anharmonicity constant).</dd>
+  <dt><tt>rigidRotorEnergy</tt></dt>
+  <dd>It calculates the energy of (rotational) state <i>J</i> of a diatomic molecule, adopting the rigid-rotor model
+  <math display="block" class="tml-display" style="display:block math;">
+  <mrow>
+    <msub>
+      <mi>E</mi>
+      <mi>J</mi>
+    </msub>
+    <mo>=</mo>
+    <mi>B</mi>
+    <mi>J</mi>
+    <mo form="prefix" stretchy="false">(</mo>
+    <mi>J</mi>
+    <mo>+</mo>
+    <mn>1</mn>
+    <mo form="postfix" stretchy="false">)</mo>
+    <mspace width="0.2778em"></mspace>
+    <mo separator="true">,</mo>
+  </mrow>
+</math>
+where <i>B</i> is the rotational constant of the molecule.</dd>
+  </dl>
+
+  <p> <b>These property functions should be called within the</b> <tt>energy</tt> <b>property of the setup file, for the 
+  corresponding vibrational and rotational states.</b></p>
+  <p>For example:
+  <pre class="codeinput">
+  N2(X,v=*) = harmonicOscillatorEnergy</pre>
+  to set the energies of all the vibrational states with the electronic ground-state of N₂.</p>
+  <p><pre class="codeinput">
+  N2(X,v=0,J=*) = rigidRotorEnergy</pre>
+  to set the energies of all the rotational states of the vibrational state v=0, with the electronic ground-state of N₂.</p>
+
+  <dl>
+  <dt><tt>rotationalDegeneracy</tt></dt>
+  <dd>It calculates the statistical weight of the <i>intrinsic</i> partition function of a (generic) rotational state <i>J</i>
+  [<a href="references.html#R11">11</a>]
+  <math display="block" class="tml-display" style="display:block math;"><mrow><msub><mi>g</mi><mi>J</mi></msub><mo>=</mo><mn>2</mn><mi>J</mi><mo>+</mo><mn>1.</mn></mrow></math>
+  </dd>
+  <dt><tt>rotationalDegeneracy_N2</tt></dt>
+  <dd>It calculates the statistical weight of the <i>intrinsic</i> partition function of a rotational state <i>J</i> of the N₂
+  molecule [<a href="references.html#R11">11</a>]
+  <math display="block" class="tml-display" style="display:block math;"><mrow><msub><mi>g</mi><mi>J</mi></msub><mo>=</mo><mn>3</mn><mrow>
+  <mo fence="true" form="prefix">[</mo><mn>1</mn><mo>+</mo><mfrac><mn>1</mn><mn>2</mn></mfrac><mrow><mo fence="true" form="prefix">(</mo><mn>1</mn><mo>+</mo><mo form="prefix" stretchy="false">(</mo><mo form="prefix" stretchy="false">−</mo><mn>1</mn><msup><mo form="postfix" stretchy="false">)</mo><mi>J</mi></msup><mo fence="true" form="postfix">)</mo></mrow><mo fence="true" form="postfix">]</mo></mrow><mo form="prefix" stretchy="false">(</mo><mn>2</mn><mi>J</mi><mo>+</mo><mn>1</mn><mo form="postfix" stretchy="false">)</mo><mi>.</mi></mrow></math>
+  </dd>
+  <dt><tt>rotationalDegeneracy_H2</tt></dt>
+  <dd>It calculates the statistical weight of the <i>intrinsic</i> partition function of a rotational state <i>J</i> of the H₂
+  molecule [<a href="references.html#R11">11</a>]
+  <math display="block" class="tml-display" style="display:block math;"><mrow><msub><mi>g</mi><mi>J</mi></msub><mo>=</mo><mrow><mo fence="true" form="prefix">[</mo><mn>2</mn><mo>−</mo><mo form="prefix" stretchy="false">(</mo><mo form="prefix" stretchy="false">−</mo><mn>1</mn><msup><mo form="postfix" stretchy="false">)</mo><mi>J</mi></msup><mo fence="true" form="postfix">]</mo></mrow><mo form="prefix" stretchy="false">(</mo><mn>2</mn><mi>J</mi><mo>+</mo><mn>1</mn><mo form="postfix" stretchy="false">)</mo><mi>.</mi></mrow></math></dd>
+  </dl>
+
+  <p><b>These property functions should be called within the</b> <tt>statisticalWeight</tt> <b>property of the setup file, for the
+  corresponding vibrational and rotational states.</b></p>
+  <p>For example:
+    <pre class="codeinput">
+    N2(X,v=0,J=*) = rotationalDegeneracy_N2</pre>
+    to set the statistical weights of all the rotational states of the vibrational state v=0, with the electronic ground-state of N₂.</p>
+
+  <dl>
+  <dt><tt>boltzmannPopulation</tt></dt>
+  <dd>It calculates the population of state <i>j</i>, adopting the Boltzmann distribution
+  <math display="block" class="tml-display" style="display:block math;">
+  <mrow>
+  <msub>
+  <mi>ξ</mi>
+  <mi>j</mi>
+  </msub>
+  <mo>=</mo>
+  <mfrac>
+  <mrow>
+  <msub>
+  <mi>g</mi>
+  <mi>j</mi>
+  </msub>
+  <mrow>
+  <mi>exp</mi>
+  <mo>⁡</mo>
+  <mspace width="0.1667em"></mspace>
+  </mrow>
+  <mrow>
+  <mo lspace="0em" rspace="0em">−</mo>
+  <mfrac>
+  <msub>
+  <mi>E</mi>
+  <mi>j</mi>
+  </msub>
+  <mrow>
+  <msub>
+  <mi>k</mi>
+  <mi>B</mi>
+  </msub>
+  <mi>T</mi>
+  </mrow>
+  </mfrac>
+  </mrow>
+  </mrow>
+  <mrow>
+  <msub>
+  <mo movablelimits="false">∑</mo>
+  <mrow>
+  <mi>i</mi>
+  <mo>∈</mo>
+  <mtext>siblings</mtext>
+  </mrow>
+  </msub>
+  <msub>
+  <mi>g</mi>
+  <mi>i</mi>
+  </msub>
+  <mrow>
+  <mi>exp</mi>
+  <mo>⁡</mo>
+  <mspace width="0.1667em"></mspace>
+  </mrow>
+  <mrow>
+  <mo lspace="0em" rspace="0em">−</mo>
+  <mfrac>
+  <msub>
+  <mi>E</mi>
+  <mi>i</mi>
+  </msub>
+  <mrow>
+  <msub>
+  <mi>k</mi>
+  <mi>B</mi>
+  </msub>
+  <mi>T</mi>
+  </mrow>
+  </mfrac>
+  </mrow>
+  </mrow>
+  </mfrac>
+  <mspace width="1em"></mspace>
+  <mo separator="true">,</mo>
+  </mrow>
+  </math>
+  where <i>T</i> is the characteristic temperature of the distribution.</p>
+  </dd>
+
+  <dt><tt>boltzmannPopulationRotationalCutoff</tt></dt>
+  <dd>It calculates the population of rotational state <i>J</i>, adopting a Boltzmann distribution
+  truncated at level <math><msub><mi>J</mi><mpadded lspace="0"><mi>MAX</mi></mpadded></msub></math>
+
+<math display="block" class="tml-display" style="display:block math;">
+<mrow>
+<msub>
+<mi>ξ</mi>
+<mi>J</mi>
+</msub>
+<mo>=</mo>
+<mfrac>
+<mrow>
+<msub>
+<mi>g</mi>
+<mi>J</mi>
+</msub>
+<mrow>
+<mi>exp</mi>
+<mo>⁡</mo>
+<mspace width="0.1667em"></mspace>
+</mrow>
+<mrow>
+<mo lspace="0em" rspace="0em">−</mo>
+<mfrac>
+<msub>
+<mi>E</mi>
+<mi>J</mi>
+</msub>
+<mrow>
+<msub>
+<mi>k</mi>
+<mi>B</mi>
+</msub>
+<mi>T</mi>
+</mrow>
+</mfrac>
+</mrow>
+</mrow>
+<mrow>
+<msubsup>
+<mo movablelimits="false">∑</mo>
+<mrow>
+<msup>
+<mi>J</mi>
+<mo class="tml-prime tml-lrg-pad">′</mo>
+</msup>
+<mo>=</mo>
+<mn>0</mn>
+</mrow>
+<msub>
+<mi>J</mi>
+<mpadded lspace="0">
+<mi>MAX</mi>
+</mpadded>
+</msub>
+</msubsup>
+<msub>
+<mi>g</mi>
+<msup>
+<mi>J</mi>
+<mo class="tml-prime tml-lrg-pad">′</mo>
+</msup>
+</msub>
+<mrow>
+<mi>exp</mi>
+<mo>⁡</mo>
+<mspace width="0.1667em"></mspace>
+</mrow>
+<mrow>
+<mo lspace="0em" rspace="0em">−</mo>
+<mfrac>
+<msub>
+<mi>E</mi>
+<msup>
+<mi>J</mi>
+<mo scriptlevel="2" class="tml-prime tml-lrg-pad">′</mo>
+</msup>
+</msub>
+<mrow>
+<msub>
+<mi>k</mi>
+<mi>B</mi>
+</msub>
+<mi>T</mi>
+</mrow>
+</mfrac>
+</mrow>
+</mrow>
+</mfrac>
+<mspace width="1em"></mspace>
+<mo separator="true">,</mo>
+</mrow>
+</math>
+where <i>T</i> is the characteristic temperature of the distribution.</br>
+This distribution allows defining the populations of rotational states to be considered in the solution
+to the electron Boltzmann calculation, irrespectively of the full list of states involved in electron
+collision events (for example, appearing also in extra cross section files).</p>
+</dd>
+<dt><tt>boltzmannPopulationVibrationallCutoff</tt></dt>
+<dd>It calculates the population of vibrational state $v$, adopting a Boltzmann distribution truncated at
+level <math><msub><mi>v</mi><mpadded lspace="0"><mi>MAX</mi></mpadded></msub></math>
+
+<math display="block" class="tml-display" style="display:block math;">
+<mrow>
+<msub>
+<mi>ξ</mi>
+<mi>v</mi>
+</msub>
+<mo>=</mo>
+<mfrac>
+<mrow>
+<msub>
+<mi>g</mi>
+<mi>v</mi>
+</msub>
+<mrow>
+<mi>exp</mi>
+<mo>⁡</mo>
+<mspace width="0.1667em"></mspace>
+</mrow>
+<mrow>
+<mo lspace="0em" rspace="0em">−</mo>
+<mfrac>
+<msub>
+<mi>E</mi>
+<mi>v</mi>
+</msub>
+<mrow>
+<msub>
+<mi>k</mi>
+<mi>B</mi>
+</msub>
+<mi>T</mi>
+</mrow>
+</mfrac>
+</mrow>
+</mrow>
+<mrow>
+<msubsup>
+<mo movablelimits="false">∑</mo>
+<mrow>
+<msup>
+<mi>v</mi>
+<mo class="tml-prime tml-sml-pad">′</mo>
+</msup>
+<mo>=</mo>
+<mn>0</mn>
+</mrow>
+<msub>
+<mi>v</mi>
+<mpadded lspace="0">
+<mi>MAX</mi>
+</mpadded>
+</msub>
+</msubsup>
+<msub>
+<mi>g</mi>
+<msup>
+<mi>v</mi>
+<mo class="tml-prime tml-sml-pad">′</mo>
+</msup>
+</msub>
+<mrow>
+<mi>exp</mi>
+<mo>⁡</mo>
+<mspace width="0.1667em"></mspace>
+</mrow>
+<mrow>
+<mo lspace="0em" rspace="0em">−</mo>
+<mfrac>
+<msub>
+<mi>E</mi>
+<msup>
+<mi>v</mi>
+<mo scriptlevel="2" class="tml-prime tml-sml-pad">′</mo>
+</msup>
+</msub>
+<mrow>
+<msub>
+<mi>k</mi>
+<mi>B</mi>
+</msub>
+<mi>T</mi>
+</mrow>
+</mfrac>
+</mrow>
+</mrow>
+</mfrac>
+<mspace width="1em"></mspace>
+<mo separator="true">,</mo>
+</mrow>
+</math>
+where <i>T</i> is the characteristic temperature of the distribution.</br>
+This distribution allows defining the populations of vibrational states to be considered in the
+solution to the electron Boltzmann calculation, irrespectively of the full list of states involved
+in electron collision events (for example, appearing also in extra cross section files).</p>
+</dd>
+<dt><tt>treanorPopulation</tt></dt>
+<dd>It calculates the population of state <i>j</i>, adopting the Treanor distribution
+[<a href="references.html#R18">18</a>,<a href="references.html#R19">19</a>]
+<math display="block" class="tml-display" style="display:block math;">
+<mrow>
+<msub>
+<mi>ξ</mi>
+<mi>j</mi>
+</msub>
+<mo>=</mo>
+</mrow>
+<mrow>
+<mfrac>
+<mrow>
+<msub>
+<mi>g</mi>
+<mi>j</mi>
+</msub>
+<mrow>
+<mi>exp</mi>
+<mo>⁡</mo>
+<mspace width="0.1667em"></mspace>
+</mrow>
+<mfrac>
+<mrow>
+<mi>j</mi>
+<mrow>
+<mo fence="true" form="prefix">(</mo>
+                                <msub>
+                                <mi>E</mi>
+                                <mn scriptlevel="2">1</mn>
+                                </msub>
+                                <mo>−</mo>
+                                <msub>
+                                <mi>E</mi>
+                                <mn scriptlevel="2">0</mn>
+                                </msub>
+                                <mo fence="true" form="postfix">)</mo>
+</mrow>
+<mo>−</mo>
+<mrow>
+<mo fence="true" form="prefix">(</mo>
+                                <msub>
+                                <mi>E</mi>
+                                <mi scriptlevel="2">j</mi>
+                                </msub>
+                                <mo>−</mo>
+                                <msub>
+                                <mi>E</mi>
+                                <mn scriptlevel="2">0</mn>
+                                </msub>
+                                <mo fence="true" form="postfix">)</mo>
+</mrow>
+</mrow>
+<mrow>
+<msub>
+<mi>k</mi>
+<mi scriptlevel="2">B</mi>
+</msub>
+<msub>
+<mi>T</mi>
+<mn scriptlevel="2">0</mn>
+</msub>
+</mrow>
+</mfrac>
+<mrow>
+<mspace width="0.1667em"></mspace>
+<mi>exp</mi>
+<mo>⁡</mo>
+<mspace width="0.1667em"></mspace>
+</mrow>
+<mrow>
+<mo lspace="0em" rspace="0em">−</mo>
+<mfrac>
+<mrow>
+<mi>j</mi>
+<mrow>
+<mo fence="true" form="prefix">(</mo>
+                                <msub>
+                                <mi>E</mi>
+                                <mn scriptlevel="2">1</mn>
+                                </msub>
+                                <mo>−</mo>
+                                <msub>
+                                <mi>E</mi>
+                                <mn scriptlevel="2">0</mn>
+                                </msub>
+                                <mo fence="true" form="postfix">)</mo>
+</mrow>
+</mrow>
+<mrow>
+<msub>
+<mi>k</mi>
+<mi scriptlevel="2">B</mi>
+</msub>
+<msub>
+<mi>T</mi>
+<mn scriptlevel="2">1</mn>
+</msub>
+</mrow>
+</mfrac>
+</mrow>
+</mrow>
+<mrow>
+<msub>
+<mo movablelimits="false">∑</mo>
+<mrow>
+<mi>i</mi>
+<mo>∈</mo>
+<mtext>siblings</mtext>
+</mrow>
+</msub>
+<msub>
+<mi>g</mi>
+<mi>i</mi>
+</msub>
+<mrow>
+<mi>exp</mi>
+<mo>⁡</mo>
+<mspace width="0.1667em"></mspace>
+</mrow>
+<mfrac>
+<mrow>
+<mi>i</mi>
+<mrow>
+<mo fence="true" form="prefix">(</mo>
+                                <msub>
+                                <mi>E</mi>
+                                <mn scriptlevel="2">1</mn>
+                                </msub>
+                                <mo>−</mo>
+                                <msub>
+                                <mi>E</mi>
+                                <mn scriptlevel="2">0</mn>
+                                </msub>
+                                <mo fence="true" form="postfix">)</mo>
+</mrow>
+<mo>−</mo>
+<mrow>
+<mo fence="true" form="prefix">(</mo>
+                                <msub>
+                                <mi>E</mi>
+                                <mi scriptlevel="2">i</mi>
+                                </msub>
+                                <mo>−</mo>
+                                <msub>
+                                <mi>E</mi>
+                                <mn scriptlevel="2">0</mn>
+                                </msub>
+                                <mo fence="true" form="postfix">)</mo>
+</mrow>
+</mrow>
+<mrow>
+<msub>
+<mi>k</mi>
+<mi scriptlevel="2">B</mi>
+</msub>
+<msub>
+<mi>T</mi>
+<mn scriptlevel="2">0</mn>
+</msub>
+</mrow>
+</mfrac>
+<mrow>
+<mspace width="0.1667em"></mspace>
+<mi>exp</mi>
+<mo>⁡</mo>
+<mspace width="0.1667em"></mspace>
+</mrow>
+<mrow>
+<mo lspace="0em" rspace="0em">−</mo>
+<mfrac>
+<mrow>
+<mi>i</mi>
+<mrow>
+<mo fence="true" form="prefix">(</mo>
+                                <msub>
+                                <mi>E</mi>
+                                <mn scriptlevel="2">1</mn>
+                                </msub>
+                                <mo>−</mo>
+                                <msub>
+                                <mi>E</mi>
+                                <mn scriptlevel="2">0</mn>
+                                </msub>
+                                <mo fence="true" form="postfix">)</mo>
+</mrow>
+</mrow>
+<mrow>
+<msub>
+<mi>k</mi>
+<mi scriptlevel="2">B</mi>
+</msub>
+<msub>
+<mi>T</mi>
+<mn scriptlevel="2">1</mn>
+</msub>
+</mrow>
+</mfrac>
+</mrow>
+</mrow>
+</mfrac>
+<mspace width="1em"></mspace>
+<mo separator="true">,</mo>
+</mrow>
+</math>
+where T₀ and T₁ are the characteristic temperatures of the distribution.</p>
+</dd>
+<dt><tt>treanorGordietsPopulation</tt></dt>
+<dd>It calculates the population of state $j$, adopting the Treanor-Gordiets distribution
+[<a href="references.html#R18">18</a>,<a href="references.html#R19">19</a>]
+<math display="block" class="tml-display" style="display:block math;">
+<mrow>
+<msub>
+<mi>ξ</mi>
+<mi>j</mi>
+</msub>
+<mo>=</mo>
+</mrow>
+<mrow>
+<mrow>
+<mo fence="true" form="prefix">{</mo>
+                                <mtable>
+                                <mtr>
+                                <mtd class="tml-left" style="padding-left:0pt;padding-right:0pt;">
+                                <mrow>
+                                <mfrac>
+                                <mrow>
+                                <msub>
+                                <mi>g</mi>
+                                <mi>j</mi>
+                                </msub>
+                                <mrow>
+                                <mi>exp</mi>
+                                <mo>⁡</mo>
+                                <mspace width="0.1667em"></mspace>
+                                </mrow>
+                                <mfrac>
+                                <mrow>
+                                <mi>j</mi>
+                                <mrow>
+                                <mo fence="true" form="prefix">(</mo>
+                                                                <msub>
+                                                                <mi>E</mi>
+                                                                <mn scriptlevel="2">1</mn>
+                                                                </msub>
+                                                                <mo>−</mo>
+                                                                <msub>
+                                                                <mi>E</mi>
+                                                                <mn scriptlevel="2">0</mn>
+                                                                </msub>
+                                                                <mo fence="true" form="postfix">)</mo>
+                                </mrow>
+                                <mo>−</mo>
+                                <mrow>
+                                <mo fence="true" form="prefix">(</mo>
+                                                                <msub>
+                                                                <mi>E</mi>
+                                                                <mi scriptlevel="2">j</mi>
+                                                                </msub>
+                                                                <mo>−</mo>
+                                                                <msub>
+                                                                <mi>E</mi>
+                                                                <mn scriptlevel="2">0</mn>
+                                                                </msub>
+                                                                <mo fence="true" form="postfix">)</mo>
+                                </mrow>
+                                </mrow>
+                                <mrow>
+                                <msub>
+                                <mi>k</mi>
+                                <mi scriptlevel="2">B</mi>
+                                </msub>
+                                <msub>
+                                <mi>T</mi>
+                                <mn scriptlevel="2">0</mn>
+                                </msub>
+                                </mrow>
+                                </mfrac>
+                                <mrow>
+                                <mspace width="0.1667em"></mspace>
+                                <mi>exp</mi>
+                                <mo>⁡</mo>
+                                <mspace width="0.1667em"></mspace>
+                                </mrow>
+                                <mrow>
+                                <mo lspace="0em" rspace="0em">−</mo>
+                                <mfrac>
+                                <mrow>
+                                <mi>j</mi>
+                                <mrow>
+                                <mo fence="true" form="prefix">(</mo>
+                                                                <msub>
+                                                                <mi>E</mi>
+                                                                <mn scriptlevel="2">1</mn>
+                                                                </msub>
+                                                                <mo>−</mo>
+                                                                <msub>
+                                                                <mi>E</mi>
+                                                                <mn scriptlevel="2">0</mn>
+                                                                </msub>
+                                                                <mo fence="true" form="postfix">)</mo>
+                                </mrow>
+                                </mrow>
+                                <mrow>
+                                <msub>
+                                <mi>k</mi>
+                                <mi scriptlevel="2">B</mi>
+                                </msub>
+                                <msub>
+                                <mi>T</mi>
+                                <mn scriptlevel="2">1</mn>
+                                </msub>
+                                </mrow>
+                                </mfrac>
+                                </mrow>
+                                </mrow>
+                                <mrow>
+                                <msub>
+                                <mo movablelimits="false">∑</mo>
+                                <mrow>
+                                <mi>i</mi>
+                                <mo>∈</mo>
+                                <mtext>siblings</mtext>
+                                </mrow>
+                                </msub>
+                                <msub>
+                                <mi>ξ</mi>
+                                <mi>i</mi>
+                                </msub>
+                                </mrow>
+                                </mfrac>
+                                <mspace width="0.1667em"></mspace>
+                                <mspace width="0.1667em"></mspace>
+                                <mspace width="0.1667em"></mspace>
+                                <mo separator="true">,</mo>
+                                <mi>j</mi>
+                                <mo>≤</mo>
+                                <msup>
+                                <mi>j</mi>
+                                <mo form="prefix" stretchy="false">⋆</mo>
+                                </msup>
+                                </mrow>
+                                </mtd>
+                                </mtr>
+                                <mtr>
+                                <mtd class="tml-left" style="padding-left:0pt;padding-right:0pt;">
+                                <mrow>
+                                <mfrac>
+                                <mrow>
+                                <msub>
+                                <mi>ξ</mi>
+                                <msup>
+                                <mi>j</mi>
+                                <mo scriptlevel="2">⋆</mo>
+                                </msup>
+                                </msub>
+                                <mfrac>
+                                <msup>
+                                <mi>j</mi>
+                                <mo scriptlevel="2">⋆</mo>
+                                </msup>
+                                <mi>j</mi>
+                                </mfrac>
+                                </mrow>
+                                <mrow>
+                                <msub>
+                                <mo movablelimits="false">∑</mo>
+                                <mrow>
+                                <mi>i</mi>
+                                <mo>∈</mo>
+                                <mtext>siblings</mtext>
+                                </mrow>
+                                </msub>
+                                <msub>
+                                <mi>ξ</mi>
+                                <mi>i</mi>
+                                </msub>
+                                </mrow>
+                                </mfrac>
+                                <mspace width="0.1667em"></mspace>
+                                <mspace width="0.1667em"></mspace>
+                                <mspace width="0.1667em"></mspace>
+                                <mo separator="true">,</mo>
+                                <mi>j</mi>
+                                <mo>&gt;</mo>
+                                <msup>
+                                <mi>j</mi>
+                                <mo form="prefix" stretchy="false">⋆</mo>
+                                </msup>
+                                </mrow>
+                                </mtd>
+                                </mtr>
+                                </mtable>
+                                <mo fence="true" form="postfix"></mo>
+                                </mrow>
+                                <mspace width="1em"></mspace>
+                                <mo separator="true">,</mo>
+                                </mrow>
+                                </math>
+where T₀ and T₁ are the characteristic temperatures of the distribution and
+<math display="block" class="tml-display" style="display:block math;"><mrow><msup><mi>j</mi><mo>⋆</mo></msup><mo>≡</mo></mrow><mrow><mfrac><mn>1</mn><mn>2</mn></mfrac><mrow><mo fence="true" form="prefix">[</mo><mn>1</mn><mo>+</mo><mfrac><mrow><msub><mi>E</mi><mn>1</mn></msub><mo>−</mo><msub><mi>E</mi><mn>0</mn></msub></mrow><mrow><mi>ℏ</mi><msub><mi>ω</mi><mpadded lspace="0"><mi>vib</mi></mpadded></msub><msub><mi>χ</mi><mi>e</mi></msub></mrow></mfrac><mfrac><msub><mi>T</mi><mn>0</mn></msub><msub><mi>T</mi><mn>1</mn></msub></mfrac><mo fence="true" form="postfix">]</mo></mrow></mrow></math>
+
+is the vibrational level corresponding to the minimum of the Treanor distribution (with <math><mrow><msub><mi>ω</mi><mpadded lspace="0"><mi>vib</mi></mpadded></msub><msub><mi>χ</mi><mi>e</mi></msub></mrow></math> the anharmonic frequency of the oscillator characterizing the distribution).</p>
+</dd>
+  </dl>
+<p><b>These property functions should be called within the</b> <tt>population</tt> <b>property of the setup file,
+for the corresponding states, using</b></br>
+<tt>boltzmannPopulation@&#12296;temperature&#12297;</tt> </br>
+<tt>boltzmannPopulationRotationalCutoff@&#12296;temperature&#12297;,&#12296;J<sub>MAX</sub>&#12297;</tt></br>
+<tt>treanorPopulation@&#12296;temperature0&#12297;,&#12296;temperature1&#12297;</tt></br>
+For example:
+<pre class="codeinput">
+N2(X,v=*) = treanorPopulation@gasTemperature,4000</pre>
+to set the population of all the vibrational states with the electronic ground-state of N<sub>2</sub>;
+<pre class="codeinput">
+N2(X,v=0,J=*) = boltzmannPopulation@gasTemperature</pre>
+to set the population of all the rotational states of the vibrational state v=0, with the electronic ground-state of N<sub>2</sub>.
+</p>
+
+  <h2 id="2">Rate coefficient functions</h2>
+  <p>Rate coefficient functions are <tt>'*.m'</tt> functions that evaluate the rate
+  coefficients of the reactions included in LoKI-C. Some of these functions are distributed
+  with LoKI, implementing the most common types of rate coefficients and useful models.
+  In general these functions can be prepared by the user, according to the needs for new
+  functionalities. In this case, the user is advised to mimic the structure of any rate
+  coefficient function already provided with the code. Future versions of the documentation
+  will include a more thorough description of the structure of these functions.</p>
+
+  <p>For organisation sake, all ``rate coefficient functions'' specified in the different
+  auxiliary input files should be located in the rate coefficient functions folder
+  <tt>[repository folder]/LoKI-B_v2.2.0/Code/RateCoeffFunctions</tt>, which is organized
+  into one-level subfolders with self-explanatory names (see section
+  <a href="getting_started.html#3">Data organization: How to find your way in the code</a>),
+  for example:
+    <ul>
+    <li> <tt>ElectronKinetics</tt></li>
+    <li> <tt>General</tt></li>
+    <li> specific folders with functions for gases (<tt>Nitrogen</tt>, <tt>Oxygen</tt>, ...)</li>
+    <li> <tt>SurfaceKinetics</tt></li>
+    <li> <tt>TransportIons</tt></li>
+    <li> <tt>TransportNeutrals</tt>.</li>
+    </ul>
+
+  The functions supplied with the code can be divided into two categories: those
+  corresponding to simple expressions (see <a href="#5">table 2</a>)
+  and those corresponding to more elaborated implementations based on specific models
+  (see <a href="#6">table 3</a>).</p>
+
+  <p>
+  <table id="5">
+  <caption>Table 2: List of rate coefficient functions distributed with LoKI v2.2.0, corresponding
+  to simple expressions.</caption>
+  <thead>
+  <tr>
+  <th>Function name</th>
+  <th>Expression</th>
+  <th>Parameters [units]</th>
+  </tr>
+  </thead>
+  <tbody>
+  <tr>
+  <td><tt>arrhenius</tt></td>
+  <td><math><mrow><mi>a</mi><mrow><mspace width="0.1667em"></mspace><mi>exp</mi><mo>⁡</mo><mspace width="0.1667em"></mspace></mrow><mrow><mo form="prefix" stretchy="false" lspace="0em" rspace="0em">(</mo><mi>b</mi><mi>/</mi><mi>T</mi><mo form="postfix" stretchy="false" lspace="0em" rspace="0em">)</mo></mrow></mrow></math></td>
+  <td><i>T</i> [as b], <i>a</i> [S.I.], <i>b</i> [as T]</td>
+  </tr>
+  <tr>
+  <td><tt>arrheniusElectronTemp</tt></td>
+  <td><math><mrow><mi>a</mi><mrow><mspace width="0.1667em"></mspace><mi>exp</mi><mo>⁡</mo><mspace width="0.1667em"></mspace></mrow><mrow><mo form="prefix" stretchy="false" lspace="0em" rspace="0em">(</mo><mi>b</mi><mi>/</mi><msub><mi>T</mi><mi>e</mi></msub><mo form="postfix" stretchy="false" lspace="0em" rspace="0em">)</mo></mrow></mrow></math></td>
+  <td><i>a</i> [S.I.], <i>b</i> [eV]</td>
+  </tr>
+  <tr>
+  <td><tt>arrheniusGasTemp</tt></td>
+  <td><math><mrow><mi>a</mi><mrow><mspace width="0.1667em"></mspace><mi>exp</mi><mo>⁡</mo><mspace width="0.1667em"></mspace></mrow><mrow><mo form="prefix" stretchy="false" lspace="0em" rspace="0em">(</mo><mi>b</mi><mi>/</mi><msub><mi>T</mi><mi>g</mi></msub><mo form="postfix" stretchy="false" lspace="0em" rspace="0em">)</mo></mrow></mrow></math></td>
+  <td><i>a</i> [S.I.], <i>b</i> [K]</td>
+  </tr>
+  <tr>
+  <td><tt>arrheniusSumGasTemp</tt></td>
+  <td><math><mrow><msub><mi>a</mi><mn>0</mn></msub><mo>+</mo></mrow><mrow><mi>a</mi><mrow><mspace width="0.1667em"></mspace><mi>exp</mi><mo>⁡</mo><mspace width="0.1667em"></mspace></mrow><mrow><mo form="prefix" stretchy="false" lspace="0em" rspace="0em">(</mo><mi>b</mi><mi>/</mi><msub><mi>T</mi><mi>g</mi></msub><mo form="postfix" stretchy="false" lspace="0em" rspace="0em">)</mo></mrow></mrow></math></td>
+  <td><i>a<sub>0</sub>, a</i> [S.I.], <i>b</i> [K]</td>
+  </tr>
+  <tr>
+  <td><tt>constantRateCoeff</tt></td>
+  <td><i>a</i></td>
+  <td><i>a</i> [S.I.]</td>
+  </tr>
+  <tr>
+  <td><tt>expElectronTemp</tt></td>
+  <td><math><mrow><mi>a</mi><mrow><mspace width="0.1667em"></mspace><mi>exp</mi><mo>⁡</mo><mspace width="0.1667em"></mspace></mrow><mrow><mo form="prefix" stretchy="false" lspace="0em" rspace="0em">(</mo><msub><mi>T</mi><mi>e</mi></msub><mi>/</mi><mi>b</mi><mo form="postfix" stretchy="false" lspace="0em" rspace="0em">)</mo></mrow></mrow></math></td>
+  <td><i>a</i> [S.I.], <i>b</i> [eV]</td>
+  </tr>
+  <tr>
+  <td><tt>expGasTemp</tt></td>
+  <td><math><mrow><mi>a</mi><mrow><mspace width="0.1667em"></mspace><mi>exp</mi><mo>⁡</mo><mspace width="0.1667em"></mspace></mrow><mrow><mo form="prefix" stretchy="false" lspace="0em" rspace="0em">(</mo><msub><mi>T</mi><mi>g</mi></msub><mi>/</mi><mi>b</mi><mo form="postfix" stretchy="false" lspace="0em" rspace="0em">)</mo></mrow></mrow></math></td>
+  <td><i>a</i> [S.I.], <i>b</i> [K]</td>
+  </tr>
+  <tr>
+  <td><tt>expTemp</tt></td>
+  <td><math><mrow><mi>a</mi><mrow><mspace width="0.1667em"></mspace><mi>exp</mi><mo>⁡</mo><mspace width="0.1667em"></mspace></mrow><mrow><mo form="prefix" stretchy="false" lspace="0em" rspace="0em">(</mo><mi>T</mi><mi>/</mi><mi>b</mi><mo form="postfix" stretchy="false" lspace="0em" rspace="0em">)</mo></mrow></mrow></math></td>
+  <td><i>T</i> [as b], <i>a</i> [S.I.], <i>b</i> [as T]</td>
+  </tr>
+  <tr>
+  <td><tt>modifiedArrhenius</tt></td>
+  <td><math><mrow><mi>a</mi><msup><mi>T</mi><mi class="tml-med-pad">b</mi></msup><mrow><mi>exp</mi><mo>⁡</mo><mspace width="0.1667em"></mspace></mrow><mrow><mo form="prefix" stretchy="false" lspace="0em" rspace="0em">(</mo><mi>c</mi><mi>/</mi><mi>T</mi><mo form="postfix" stretchy="false" lspace="0em" rspace="0em">)</mo></mrow></mrow></math></td>
+  <td><i>a</i> [S.I. (<i>T</i> in eV)], <i>b</i> [ ], <i>c</i> [eV]</td>
+  </tr>
+  <tr>
+  <td><tt>modifiedArrheniusElectronTemp</tt></td>
+  <td><math><mrow><mi>a</mi><msubsup><mi>T</mi><mi>e</mi><mi class="tml-med-pad">b</mi></msubsup><mrow><mi>exp</mi><mo>⁡</mo><mspace width="0.1667em"></mspace></mrow><mrow><mo form="prefix" stretchy="false" lspace="0em" rspace="0em">(</mo><mi>c</mi><mi>/</mi><msub><mi>T</mi><mi>e</mi></msub><mo form="postfix" stretchy="false" lspace="0em" rspace="0em">)</mo></mrow></mrow></math></td>
+  <td><i>a</i> [S.I. (<i>T<sub>e</sub></i> in eV)], <i>b</i> [ ], <i>c</i> [eV]</td>
+  </tr>
+  <tr>
+  <td><tt>modifiedArrheniusCharEnergyTemp</tt></td>
+  <td><math><mrow><mi>a</mi><msup><msub><mi>u</mi><mi>k</mi></msub><mi>b</mi></msup><mrow><mi>exp</mi><mo>⁡</mo><mspace width="0.1667em"></mspace></mrow><mrow><mo form="prefix" stretchy="false" lspace="0em" rspace="0em">(</mo><mi>c</mi><mi>/</mi><msub><mi>u</mi><mi>k</mi></msub><mo form="postfix" stretchy="false" lspace="0em" rspace="0em">)</mo></mrow></mrow></math></td>
+  <td><i>a</i> [S.I. (<i>u<sub>k</sub></i> in eV)], <i>b</i> [ ], <i>c</i> [eV]</td>
+  </tr>
+  <tr>
+  <td><tt>modifiedArrheniusGasTemp</tt></td>
+  <td><math><mrow><mi>a</mi><msubsup><mi>T</mi><mi>g</mi><mi class="tml-med-pad">b</mi></msubsup><mrow><mi>exp</mi><mo>⁡</mo><mspace width="0.1667em"></mspace></mrow><mrow><mo form="prefix" stretchy="false" lspace="0em" rspace="0em">(</mo><mi>c</mi><mi>/</mi><msub><mi>T</mi><mi>g</mi></msub><mo form="postfix" stretchy="false" lspace="0em" rspace="0em">)</mo></mrow></mrow></math></td>
+  <td><i>a</i> [S.I. (<i>T<sub>g</sub></i> in eV)], <i>b</i> [ ], <i>c</i> [eV]</td>
+  </tr>
+  <tr>
+  <td><tt>powerElectronTemp</tt></td>
+  <td><math><mrow><mi>a</mi><msubsup><mi>T</mi><mi>e</mi><mi class="tml-med-pad">b</mi></msubsup></mrow></math></td>
+  <td><i>a</i> [S.I. (<i>T<sub>e</sub></i> in eV)], <i>b</i> [ ]</td>
+  </tr>
+  <tr>
+  <td><tt>powerGasCharEnergyTemp</tt></td>
+  <td><math><mrow><mi>a</mi><msubsup><mi>T</mi><mi>g</mi><mi class="tml-med-pad">b</mi></msubsup><msubsup><mi>u</mi><mi>k</mi><mi class="tml-sml-pad">c</mi></msubsup></mrow></math></td>
+  <td><i>a</i> [S.I. (<i>u<sub>k</sub></i> in eV; <i>T<sub>e</sub></i> in eV)], <i>b</i> [ ], <i>c</i> [ ]</td>
+  </tr>
+  <tr>
+  <td><tt>powerGasElecTemp</tt></td>
+  <td><math><mrow><mi>a</mi><msubsup><mi>T</mi><mi>g</mi><mi class="tml-med-pad">b</mi></msubsup><msubsup><mi>T</mi><mi>e</mi><mi class="tml-sml-pad">c</mi></msubsup></mrow></math></td>
+  <td><i>a</i> [S.I. (<i>T<sub>e</sub></i> in eV; <i>T<sub>e</sub></i> in eV)], <i>b</i> [ ], <i>c</i> [ ]</td>
+  </tr>
+  <tr>
+  <td><tt>powerGasTemp</tt></td>
+  <td><math><mrow><mi>a</mi><msubsup><mi>T</mi><mi>g</mi><mi class="tml-med-pad">b</mi></msubsup></mrow></math></td>
+  <td><i>a</i> [S.I. (<i>T<sub>g</sub></i> in K)], <i>b</i> [ ]</td>
+  </tr>
+  <tr>
+  <td><tt>powerTemp</tt></td>
+  <td><math><mrow><mi>a</mi><msup><mi>T</mi><mi class="tml-med-pad">b</mi></msup></mrow></math></td>
+  <td><i>T</i> [any], <i>a</i> [S.I. (according to <i>T</i>)], <i>b</i> [ ]</td>
+  </tr>
+  </tbody>
+  </table>
+  </p>
+  
+  <p>
+  <table id="6">
+  <caption>Table 3: List of some model-based rate coefficient functions distributed with LoKI-B_v3.1.0</caption>
+  <thead>
+  <tr>
+    <th>Function name</th>
+    <th>Model</th>
+    <th>Comments</th>
+  </tr>
+  </thead>
+  <tbody>
+  <tr>
+    <td><tt>eedf</tt></td>
+    <td>Integrated electron-impact cross section (see section \ref{EMP})</td>
+    <td>The corresponding electron-impact cross section must be provided in the setup file.</td>
+  </tr>
+  <tr>
+    <td><tt>eedfCopyv0</tt></td>
+    <td>Evaluates the rate coefficient of a reaction involving vibrational states (either as reactants or products), by copying the rate coefficient of a similar reaction involving the corresponding parent state.</td>
+    <td></td>
+  </tr>
+  <tr>
+  <td><tt>classicalAmbipolarDiff</tt></td>
+  <td>Classical ambipolar diffusion for ions (see section \ref{Chem-model})</td>
+  <td>The corresponding reduced diffusion coefficient and reduced mobility must be provided in the setup file; includes parameter, between <i>0</i> and <i>1</i>, corresponding to the wall recombination probability.</td>
+  </tr>
+  <tr>
+  <td><tt>effectiveAmbipolarDiff</tt></td>
+  <td>Effective ambipolar diffusion for ions (see section \ref{Chem-model})</td>
+  <td>The corresponding reduced diffusion coefficient and reduced mobility must be provided in the setup file; includes parameter true/false to include/exclude the influence of the negative ion density.</td>
+  </tr>
+  <tr>
+  <td><tt>classicalAmbipolarDiffNegIon</tt></td>
+  <td>Classical ambipolar diffusion for positive ions, including the effect of several negative ions \cite{Guerra1999}</td>
+  <td>The corresponding reduced diffusion coefficient and reduced mobility must be provided in the setup file.</td>
+  </tr>
+  <tr>
+  <td><tt>LiebermanDiff</tt></td>
+  <td>Lieberman's model, implemented for low-pressure oxygen plasmas; see section \ref{Chem-model}.</td>
+  <td>This function will be generalized to other gases in future releases of LoKI.</td>
+  </tr>
+  <tr>
+  <td><tt>ionTransportQDB</tt></td>
+  <td>Transport rate coefficient of a particular positive ion for a plasma with multiple positive and negative ions (assumed singly-charged) with similar temperatures (T<sub>+</sub> &#8771; T<sub>-</sub>) and very low mobilities (µ<sub>+</sub> &#8771; µ<sub>-</sub> ≪ µ<sub>e</sub>). This transport model is described in \cite{Stoffels1995} and is adopted by the QDB platform (see section \ref{Chem-model}).</td>
+  <td>Includes parameter, between <i>0</i> and <i>1</i>, corresponding to the wall recombination probability; includes parameter true/false to include/exclude the influence of the ions (positive and negative) in the calculation of the multi-component diffusion coefficient.</td>
+  </tr>
+  <tr>
+  <td><tt>binaryDiff</tt></td>
+  <td>Binary diffusion for neutrals (neglecting the effects of the multi-component transport) with recombination at the wall given by a probability (see section \ref{Chem-model})</td>
+  <td>The corresponding reduced diffusion coefficients must be provided in the setup file; the wall recombination probability should be provided as parameter of the reaction in the chemistry file.</td>
+  </tr>
+  <tr>
+  <td><tt>binaryDiffusion</tt></td>
+  <td>Binary diffusion for neutrals (neglecting the effects of the multi-component transport and of the recombination at the wall (see section \ref{Chem-model}), assuming a density profile that is zero at the walls and equal probability for each destruction channel.</td>
+  <td>The corresponding reduced diffusion coefficients must be provided in the setup file.</td>
+  </tr>
+  <tr>
+  <td><tt>binaryTransport</tt></td>
+  <td>Binary transport for neutrals (including the effects of both, binary diffusion and recombination at the wall (see section \ref{Chem-model})</td>
+  <td>The corresponding reduced diffusion coefficients must be provided in the setup file; the wall recombination probability should be provided as parameter of the reaction in the chemistry file; all the wall reactions for the same species (if applicable) have to be consistent, ensuring a maximum total probability of 1 for the losses at the wall; the temperature <i>T</i> used to calculate the thermal velocity <i>⟨v⟩</i> (see \eqref{vthermal}) should be provided as parameter of the reaction in the chemistry file (<i>e.g.</i> <tt>wallTemperature</tt>, <tt>nearWallTemperature</tt>, <tt>gasTemperature</tt>, ...; see section \ref{Chem-model}).</td>
+  </tr>
+  <tr>
+  <td><tt>binaryTransportChantry</tt></td>
+  <td>Binary transport for neutrals (including the effects of both, binary diffusion and recombination at the wall) described using the Chantry approximation (see section \ref{Chem-model}).</td>
+  <td>The corresponding reduced diffusion coefficients must be provided in the setup file; the wall recombination probability should be provided as parameter of the reaction in the chemistry file; all the wall reactions for the same species (if applicable) have to be consistent, ensuring a maximum total probability of 1 for the losses at the wall; the temperature <i>T</i> used to calculate the thermal velocity <i>⟨v⟩</i> (see \eqref{vthermal}) should be provided as parameter of the reaction in the chemistry file (<i>e.g.</i> <tt>wallTemperature</tt>, <tt>nearWallTemperature</tt>, <tt>gasTemperature</tt>, ...; see section \ref{Chem-model}).</td>
+  </tr>
+  <tr>
+  <td><tt>binaryTransportSurface</tt></td>
+  <td>Similar to <tt>binaryTransport</tt>, with the rate coefficient converted to the equivalent of a volume binary-reaction for use in a surface chemistry model.</td>
+  <td>The corresponding reduced diffusion coefficients must be provided in the setup file; the <tt>surfaceSiteDensity</tt> must be provided in the <tt>workingConditions</tt>; the wall recombination probability should be provided as parameter of the reaction in the chemistry file; all the wall reactions for the same species (if applicable) have to be consistent, ensuring a maximum total probability of 1 for the losses at the wall; the temperature <i>T</i> used to calculate the thermal velocity <i>⟨v⟩</i> (see \eqref{vthermal}) should be provided as parameter of the reaction in the chemistry file (<i>e.g.</i> <tt>wallTemperature</tt>, <tt>nearWallTemperature</tt>, <tt>gasTemperature</tt>, ...; see section \ref{Chem-model}).</td>
+  </tr>
+  <tr>
+  <td><tt>binaryTransportChantrySurface</tt></td>
+  <td>Similar to <tt>binaryTransportChantry</tt>, with the rate coefficient converted to the equivalent of a volume binary-reaction for use in a surface chemistry model.</td>
+  <td>The corresponding reduced diffusion coefficients must be provided in the setup file; the <tt>surfaceSiteDensity</tt> must be provided in the <tt>workingConditions</tt>; the wall recombination probability should be provided as parameter of the reaction in the chemistry file; all the wall reactions for the same species (if applicable) have to be consistent, ensuring a maximum total probability of 1 for the losses at the wall; the temperature <i>T</i> used to calculate the thermal velocity <i>⟨v⟩</i> (see \eqref{vthermal}) should be provided as parameter of the reaction in the chemistry file (<i>e.g.</i> <tt>wallTemperature</tt>, <tt>nearWallTemperature</tt>, <tt>gasTemperature</tt>, ...; see section \ref{Chem-model}).</td>
+  </tr>
+  <tr>
+  <td><tt>multicomponentTransportSurface</tt></td>
+  <td>Similar to <tt>multicomponentTransport</tt>, with the rate coefficient converted to the equivalent of a volume binary-reaction for use in a surface chemistry model.</td>
+  <td>The corresponding Lennard-Jones parameters should be provided in the setup file; the <tt>surfaceSiteDensity</tt> must be provided in the <tt>workingConditions</tt>; the wall recombination probability should be provided as parameter of the reaction in the chemistry file; all the wall reactions for the same species (if applicable) have to be consistent, ensuring a maximum total probability of 1 for the losses at the wall; the temperature <i>T</i> used to calculate the thermal velocity <i>⟨v⟩</i> (see \eqref{vthermal}) should be provided as parameter of the reaction in the chemistry file (<i>e.g.</i> <tt>wallTemperature</tt>, <tt>nearWallTemperature</tt>, <tt>gasTemperature</tt>, ...; see section \ref{Chem-model}).</td>
+  </tr>
+  <tr>
+  <td><tt>multicomponentTransportChantrySurface</tt></td>
+  <td>Similar to <tt>multicomponentTransportChantry</tt>, with the rate coefficient converted to the equivalent of a volume binary-reaction for use in a surface chemistry model.</td>
+  <td>The corresponding Lennard-Jones parameters should be provided in the setup file; the <tt>surfaceSiteDensity</tt> must be provided in the <tt>workingConditions</tt>; the wall recombination probability should be provided as parameter of the reaction in the chemistry file; all the wall reactions for the same species (if applicable) have to be consistent, ensuring a maximum total probability of 1 for the losses at the wall; the temperature <i>T</i> used to calculate the thermal velocity <i>⟨v⟩</i> (see \eqref{vthermal}) should be provided as parameter of the reaction in the chemistry file (<i>e.g.</i> <tt>wallTemperature</tt>, <tt>nearWallTemperature</tt>, <tt>gasTemperature</tt>, ...; see section \ref{Chem-model}).</td>
+  </tr>
+  <tr>
+  <td><tt>wallReactionSurface</tt></td>
+  <td>Similar to <tt>wallReaction</tt>, with the rate coefficient converted to the equivalent of a volume binary-reaction for use in a surface chemistry model.</td>
+  <td>The <tt>surfaceSiteDensity</tt> must be provided in the <tt>workingConditions</tt>; the wall recombination probability should be provided as parameter of the reaction in the chemistry file; all the wall reactions for the same species (if applicable) have to be consistent, ensuring a maximum total probability of 1 for the losses at the wall; the temperature <i>T</i> used to calculate the thermal velocity <i>⟨v⟩</i> (see \eqref{vthermal}) should be provided as parameter of the reaction in the chemistry file (<i>e.g.</i> <tt>wallTemperature</tt>, <tt>nearWallTemperature</tt>, <tt>gasTemperature</tt>, ...; see section \ref{Chem-model}).</td>
+  </tr>
+  <tr>
+  <td><tt>multicomponentDiffusion</tt></td>
+  <td>Multi-component diffusion for neutrals (neglecting the effects on the transport of the recombination at the wall; see section \ref{Chem-model}).</td>
+  <td>The corresponding Lennard-Jones parameters should be provided in the setup file.</td>
+  </tr>
+  <tr>
+  <td><tt>multicomponentTransport</tt></td>
+  <td>Multi-component transport for neutrals (including the effects of both diffusion and recombination at the wall; see section \ref{Chem-model}).</td>
+  <td>The corresponding Lennard-Jones parameters should be provided in the setup file; the wall recombination probability should be provided as parameter of the reaction in the chemistry file; all the wall reactions for the same species (if applicable) have to be consistent, ensuring a maximum total probability of 1 for the losses at the wall; the temperature <i>T</i> used to calculate the thermal velocity <i>⟨v⟩</i> (see \eqref{vthermal}) should be provided as parameter of the reaction in the chemistry file (<i>e.g.</i> <tt>wallTemperature</tt>, <tt>nearWallTemperature</tt>, <tt>gasTemperature</tt>, ...; see section \ref{Chem-model}).</td>
+  </tr>
+  <tr>
+  <td><tt>multicomponentTransportChantry</tt></td>
+  <td>Multi-component transport for neutrals (including the effects of both diffusion and recombination at the wall) described using the Chantry approximation (see section \ref{Chem-model}).</td>
+  <td>The corresponding Lennard-Jones parameters should be provided in the setup file; the wall recombination probability should be provided as parameter of the reaction in the chemistry file; all the wall reactions for the same species (if applicable) have to be consistent, ensuring a maximum total probability of 1 for the losses at the wall; the temperature <i>T</i> used to calculate the thermal velocity <i>⟨v⟩</i> (see \eqref{vthermal}) should be provided as parameter of the reaction in the chemistry file (<i>e.g.</i> <tt>wallTemperature</tt>, <tt>nearWallTemperature</tt>, <tt>gasTemperature</tt>, ...; see section \ref{Chem-model}).</td>
+  </tr>
+  <tr>
+  <td><tt>wallReaction</tt></td>
+  <td>Recombination at the wall (neglecting the effects of multi-component diffusion transport; see section \ref{Chem-model}).</td>
+  <td>The wall recombination probability should be provided as parameter of the reaction in the chemistry file; all the wall reactions for the same species (if applicable) have to be consistent, ensuring a maximum total probability of 1 for the losses at the wall; the temperature <i>T</i> used to calculate the thermal velocity <i>⟨v⟩</i> (see \eqref{vthermal}) should be provided as parameter of the reaction in the chemistry file (<i>e.g.</i> <tt>wallTemperature</tt>, <tt>nearWallTemperature</tt>, <tt>gasTemperature</tt>, ...; see section \ref{Chem-model}).</td>
+  </tr>
+  <tr>
+  <td><tt>rateCoeffCopy</tt></td>
+  <td>Evaluates the rate coefficient of a reaction by copying the rate coefficient of another reaction identified in the chemistry scheme by the exact reaction's description.</td>
+  <td></td>
+  </tr>
+  <tr>
+  <td><tt>inFlow</tt></td>
+  <td>Simplified model for the inlet flow of species <i>j</i>.</td>
+  <td>The rate coefficient is calculated as
+  <math><mrow><msub><mi>ν</mi><msub><mrow><mpadded lspace="0"><mi mathvariant="normal">i</mi></mpadded><mpadded lspace="0"><mi mathvariant="normal">n</mi></mpadded><mo>−</mo><mpadded lspace="0"><mi mathvariant="normal">f</mi></mpadded><mpadded lspace="0"><mi mathvariant="normal">l</mi></mpadded><mpadded lspace="0"><mi mathvariant="normal">o</mi></mpadded><mpadded lspace="0"><mi mathvariant="normal">w</mi></mpadded></mrow><mi>j</mi></msub></msub><mo form="prefix" stretchy="false">(</mo><msup><mpadded lspace="0"><mi mathvariant="normal">s</mi></mpadded><mrow><mo lspace="0em" rspace="0em">−</mo><mn>1</mn></mrow></msup><mo form="postfix" stretchy="false">)</mo><mo>=</mo><mfrac><mrow><mo form="prefix" stretchy="false" lspace="0em" rspace="0em">(</mo><mi>d</mi><mi>V</mi><mi>/</mi><mi>d</mi><mi>t</mi><msub><mo form="postfix" stretchy="false">)</mo><mi>j</mi></msub></mrow><msub><mi>V</mi><mpadded lspace="0"><mi>plasma</mi></mpadded></msub></mfrac></mrow></math><br>
+  with<br>
+  <math><mrow><msub><mrow><mo fence="true" form="prefix">(</mo><mfrac><mrow><mi>d</mi><mi>V</mi></mrow><mrow><mi>d</mi><mi>t</mi></mrow></mfrac><mo fence="true" form="postfix">)</mo></mrow><mi>j</mi></msub><mo form="prefix" stretchy="false">(</mo><msup><mpadded lspace="0"><mi mathvariant="normal">m</mi></mpadded><mn>3</mn></msup><msup><mpadded lspace="0"><mi mathvariant="normal">s</mi></mpadded><mrow><mo lspace="0em" rspace="0em">−</mo><mn>1</mn></mrow></msup><mo form="postfix" stretchy="false">)</mo><mo>=</mo><mspace width="0.5cm"></mspace><mfrac><mrow><msub><mi>Q</mi><mi>j</mi></msub><mo form="prefix" stretchy="false">(</mo><mpadded lspace="0"><mi>sccm</mi></mpadded><mo form="postfix" stretchy="false">)</mo><msup><mn>10</mn><mrow><mo lspace="0em" rspace="0em">−</mo><mn>6</mn></mrow></msup></mrow><mn>60</mn></mfrac><mfrac><mrow><msub><mi>p</mi><mpadded lspace="0"><mi>PTN</mi></mpadded></msub><mo form="prefix" stretchy="false">(</mo><mpadded lspace="0"><mi>Pa</mi></mpadded><mo form="postfix" stretchy="false" lspace="0em" rspace="0em">)</mo></mrow><mrow><msub><mi>k</mi><mi>B</mi></msub><msub><mi>T</mi><mpadded lspace="0"><mi>PTN</mi></mpadded></msub><mo form="prefix" stretchy="false">(</mo><mpadded lspace="0"><mi mathvariant="normal">K</mi></mpadded><mo form="postfix" stretchy="false" lspace="0em" rspace="0em">)</mo></mrow></mfrac></mrow></math>
+  <br>
+    The function uses two parameters: the  inlet frequency in SI units (s<sup>-1</sup>) and the volume factor (plasma-volume to chamber-volume ratio) - see the function header for more details.
+    The current version of this function (to be improved in future releases), uses the electron species ("transparent" to LoKI, which does not solve the electron rate-balance equation) to write the inflow reaction of a general species X as <tt>X ⟶ e</tt>.</td>
+  </tr>
+  <tr>
+  <td><tt>outFlow</tt></td>
+  <td>Simplified model for the outlet flow of species <i>j</i>, assuming conservation of atoms in the gas/plasma mixture.</td>
+  <td>The rate coefficient is calculated as
+  <math><mrow><msub><mi>ν</mi><msub><mrow><mpadded lspace="0"><mi mathvariant="normal">o</mi></mpadded><mpadded lspace="0"><mi mathvariant="normal">u</mi></mpadded><mpadded lspace="0"><mi mathvariant="normal">t</mi></mpadded><mo>−</mo><mpadded lspace="0"><mi mathvariant="normal">f</mi></mpadded><mpadded lspace="0"><mi mathvariant="normal">l</mi></mpadded><mpadded lspace="0"><mi mathvariant="normal">o</mi></mpadded><mpadded lspace="0"><mi mathvariant="normal">w</mi></mpadded></mrow><mi>j</mi></msub></msub><mo form="prefix" stretchy="false">(</mo><msup><mpadded lspace="0"><mi mathvariant="normal">s</mi></mpadded><mrow><mo lspace="0em" rspace="0em">−</mo><mn>1</mn></mrow></msup><mo form="postfix" stretchy="false">)</mo><mo>=</mo><mfrac><mrow><msub><mo movablelimits="false">∑</mo><mi>i</mi></msub><msub><mi>ν</mi><msub><mrow><mpadded lspace="0"><mi mathvariant="normal">i</mi></mpadded><mpadded lspace="0"><mi mathvariant="normal">n</mi></mpadded><mo>−</mo><mpadded lspace="0"><mi mathvariant="normal">f</mi></mpadded><mpadded lspace="0"><mi mathvariant="normal">l</mi></mpadded><mpadded lspace="0"><mi mathvariant="normal">o</mi></mpadded><mpadded lspace="0"><mi mathvariant="normal">w</mi></mpadded></mrow><mi scriptlevel="2">i</mi></msub></msub></mrow><mrow><msub><mi>V</mi><mpadded lspace="0"><mi>plasma</mi></mpadded></msub><mo form="prefix" stretchy="false">(</mo><msub><mi>p</mi><mn>0</mn></msub><mi>/</mi><msub><mi>k</mi><mi>B</mi></msub><msub><mi>T</mi><msub><mi>g</mi><mn scriptlevel="2">0</mn></msub></msub><mo form="postfix" stretchy="false" lspace="0em" rspace="0em">)</mo></mrow></mfrac></mrow></math>,<br>
+  with <i>p_0</i> and <i>T<sub>g<sub>0</sub></sub></i> the initial gas pressure and temperature, respectively, for each run of LoKI-C.<br>
+  The current version of this function (to be improved in future releases), uses the electron species ("transparent" to LoKI, which does not solve the electron rate-balance equation) to write the outflow reaction of a general species X as <tt>e ⟶ X</tt>.</td>
+  </tr>
+  <tr>
+  <td><tt>thermalEffusionSurface</tt></td>
+  <td>Adsorption rate coefficient for use in a mesoscopic surface chemistry model.</td>
+  <td>The rate coefficient is calculated from \eqref{kr-surface} for <i>r=</i>adsorption, with <i>k<sup>0</sup><sub>r<sub>j</sub></sub></i> and <i>E<sub>r<sub>j</sub></sub></i> as input parameters. <br>
+    The current version of this function adopts the <i>wall recombination</i> model, with <i>τ<sub>r<sub>j</sub></sub> = τ</i><sub>wall<i><sub>j</sub></sub></i> (see section \ref{Thermal-model} for more details).</td>
+  </tr>
+  <tr>
+  <td><tt>surfaceTransport</tt></td>
+  <td>Surface-diffusion rate coefficient for use in a mesoscopic surface chemistry model.</td>
+  <td>The rate coefficient is calculated from~\eqref{kr-surface} for <i>r=</i>surface diffusion, taking as input parameters <i>ν<sub>D<sub>j</sub></sub></i>, <i>E<sub>D<sub>j</sub></sub></i>, <i>k<sup>0</sup><sub>r<sub>j</sub></sub></i>, <i>E<sub>r<sub>j</sub></sub></i> and a logic parameter to choose the back-diffusion correction (see section \ref{Thermal-model} for more details).</td>
+  </tr>
+  <tr>
+  <td><tt>thermalDesorption</tt></td>
+  <td>Desorption rate coefficient for use in a mesoscopic surface chemistry model.</td>
+  <td>The rate coefficient is calculated from \eqref{kr-surface} for <i>r=</i>desorption, with <i>ν<sub>dr<sub>j</sub></sub></i> and <i>E<sub>dr<sub>j</sub></sub></i> as input parameters (see section \ref{Thermal-model} for more details).</td>
+  </tr>
+  </tbody>
+  </table>
+  </p>
+
+  <p>The distribution of the LoKI suite may further include other rate coefficient functions, eventually implemented for specific gases, for example addressing the calculation of VV and VT rate coefficients, of escape factors for radiation imprisonment, etc. Future versions of the documentation will probably include general descriptions of the models adopted in those functions.</p>
+
+  <h2 id="3">Other auxiliary functions</h2>
+
+In OtherAuxFunctions the user can find <tt>*.m</tt> functions
+<ul>
+<li> for interactively assist the modification of LXCat files, for compliance with the LoKI-B parser. In the current distribution of LoKI, this function is <tt>LXCat2LoKI.m</tt>;</li>
+<li> for plotting two different EEDFs in the same MATLAB graph. In the current distribution of LoKI-B, this function is <tt>compareEEDFs.m</tt>;</li>
+<li> for calculating working conditions that can evolve during the simulations. In the current distribution of LoKI, this functionality is for calculating the <tt>reducedField</tt> in the case of LoKI-B calculations for step electric fields (function <tt>reducedFieldRamp.m</tt>) or electric field pulses (function <tt>reducedFieldPulse.m</tt>).</li>
+</ul>
+In general these functions can be prepared by the user, according to the needs for new functionalities. In this case, the user is advised to mimic the structure of any auxiliary function already provided with the code.
+
+  <p class="footer">
+  <br>
+  <a href="https://www.mathworks.com/products/matlab/">Published with MATLAB&reg; R2024b</a>
+  <br>
+  </p>
+  </div> 
+  </body>
+</html>
