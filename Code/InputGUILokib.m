@@ -5019,7 +5019,7 @@ classdef InputGUILokib < handle
         end
 
         function openSetupFileHelp(~, ~, ~)
-            web("../Documentation/html/The_setup_file.html");
+            web("../Documentation/html/Index.html");
         end
 
         function runSimulation(gui, ~, ~)
