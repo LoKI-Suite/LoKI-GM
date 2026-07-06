@@ -1,21 +1,53 @@
-% LoKI-B solves a time and space independent form of the two-term
-% electron Boltzmann equation (EBE), for non-magnetised non-equilibrium
-% low-temperature plasmas excited by DC/HF electric fields from
-% different gases or gas mixtures.
-% Copyright (C) 2018 A. Tejero-del-Caz, V. Guerra, D. Goncalves,
+% LoKI-GM comprises two modules, that can run self-consistently coupled 
+% or as standalone tools.
+% 
+% LoKI-B, which solves the space independent form of the two-term 
+% electron Boltzmann equation (EBE) to calculate the isotropic and the 
+% anisotropic parts of the electron distribution function, 
+% and the associated electron macroscopic parameters. 
+% LoKI-B applies to non-magnetised non-equilibrium LTPs, excited by 
+% DC/HF electric fields or time-dependent (non-oscillatory) electric fields 
+% from different gases or gas mixtures. 
+% The tool uses a stationary description for DC fields, 
+% a Fourier time-expansion description for HF fields, 
+% and a time-dependent description for time-varying fields.
+% 
+% LoKI-C, which solves the system of zero-dimensional (volume average) 
+% rate balance equations for the most relevant 
+% charged and neutral species in the plasma. 
+% LoKI-C receives as input data the kinetic schemes for the gas/plasma/
+% surface system under study, via an intuitive csv-like input file, 
+% and gives as output the particle densities of the different gas/plasma/
+% surface species, the corresponding creation/destruction reaction rates, 
+% and the reduced electric field (and any related quantity, such as 
+% the discharge current or the discharge power-density).
+% The tool uses several modules to describe the mechanisms 
+% (collisional, radiative and transport) controlling the
+% creation/destruction of species, namely various transport models 
+% for the charged particles and for the neutral particles. 
+% LoKI-C includes also a gas/plasma thermal model, for the self-consistent 
+% calculation of the gas temperature, and supports multicomponent 
+% mean-field microkinetic mesoscopic models to handle surface kinetics 
+% in a fully coupled way with volume kinetics.
+%
+% Copyright (C) 2018 A. Tejero-del-Caz, V. Guerra, D. Goncalves, 
 % M. Lino da Silva, L. Marques, N. Pinhao, C. D. Pintassilgo and
 % L. L. Alves
+% 
+% Copyright (C) 2026 L. L. Alves, A. Tejero-del-Caz, T. C. Dias, 
+% A. Gonçalves, L. Marques, P. Pereira, N. Pinhão, C. D. Pintassilgo, 
+% T. Silva, P. Viegas and V. Guerra
 %
 % This program is free software: you can redistribute it and/or modify
 % it under the terms of the GNU General Public License as published by
 % the Free Software Foundation, either version 3 of the License, or
 % any later version.
-%
+% 
 % This program is distributed in the hope that it will be useful,
 % but WITHOUT ANY WARRANTY; without even the implied warranty of
 % MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 % GNU General Public License for more details.
-%
+% 
 % You should have received a copy of the GNU General Public License
 % along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
@@ -32,11 +64,12 @@ classdef Setup < handle
     enableGui = false;              % determines if the gui must be activated (default value false)
     enableOutput = false;           % determines if the output must be activated (default value false)
     enableElectronKinetics = false; % determines if the electron kinetics module must be activated (default value false)
+    enableChemistry = false;        % determines if the chemistry module must be activated (default value false)
     pulsedSimulation = false;       % determines if the simulation must be run in steady-state or pulsed configuration
     pulseInfo;                      % information about the pulse to be simulated
     
     batches = struct.empty;         % information about the different jobs to be run
-    numberOfBatches = 1;            % total number of batches of jobs to be run (one by default)
+    numberOfBatchTypes = 0;         % total number of batches of jobs to be run (zero by default, meaning a single job)
     jobMatrixSize = [];             % dimensions of the matrix of jobs to be run
     numberOfJobs = 1;               % total number of jobs to be run (one by default)
     currentJobID = 1;               % ID of the job currently running (one by default, initial value)
@@ -44,7 +77,7 @@ classdef Setup < handle
     % ---- objects of the simulation ----
     
     workCond;                       %
-    cli;                            % -> general objectes of the simulation
+    cli;                            % -> general objects of the simulation
     gui;                            %
     output;                         %
     
@@ -54,6 +87,11 @@ classdef Setup < handle
     electronKineticsCollisionArray;       %
     energyGrid;                           %
     
+    chemistry;                      %
+    chemistryGasArray;              % -> objects related with the chemistry (heavy species kinetics) module
+    chemistryStateArray;            %
+    chemistryReactionArray;         %
+
     % ---- time counters ----
     simulationStartTime;
     
@@ -75,47 +113,47 @@ classdef Setup < handle
       
       % parse setup file
       setup.fileName = fileName;
-      notify(setup, 'genericStatusMessage', StatusEventData('Parsing setup file ...\n', 'status'));
+      str = sprintf('Parsing setup file %s ...\n', fileName);
+      notify(setup, 'genericStatusMessage', StatusEventData(str, 'status'));
       start = tic;
 
       if endsWith(fileName, '.json')
-
         [setupStruct, setupCell] = Parse.setupFileJson(fileName);
-        str = sprintf('  Finished (%f seconds).\\n', toc(start));
-        notify(setup, 'genericStatusMessage', StatusEventData(str, 'status'));
-        % save unstructured setup info for output and GUI
-        setup.unparsedInfo = setupCell;
-        % save structured info to set up the different components of the simulation
-        setup.info = setupStruct;
-
       else
-
         [setupStruct, setupCell] = Parse.setupFile(fileName);
-        str = sprintf('  Finished (%f seconds).\\n', toc(start));
-        notify(setup, 'genericStatusMessage', StatusEventData(str, 'status'));
-        % save unstructured setup info for output and GUI
-        setup.unparsedInfo = setupCell;
-        % save structured info to set up the different components of the simulation
-        setup.info = setupStruct;
-      
       end
+
+      str = sprintf('  Finished (%f seconds).\\n', toc(start));
+      notify(setup, 'genericStatusMessage', StatusEventData(str, 'status'));
+      % save unstructured setup info for output and GUI
+      setup.unparsedInfo = setupCell;
+      % save structured info to set up the different components of the simulation
+      setup.info = setupStruct;
 
       % Perform a diagnostic of the correctness of the configuration provided by the user
       notify(setup, 'genericStatusMessage', StatusEventData('Performing selfdiagnostic of the setup file ...\n', 'status'));
+      start = tic;
       setup.selfDiagnostic();
       str = sprintf('  Finished (%f seconds).\\n', toc(start));
       notify(setup, 'genericStatusMessage', StatusEventData(str, 'status'));
       
     end
     
-    function electronKinetics = initializeSimulation(setup)
-    % initializeSimulation creates the objects necessary to run the simulation specified in a particular setup.
+    function [electronKinetics, chemistry] = initializeSimulation(setup)
+      % simulation creates the objects necessary to run the simulation specified in a particular setup.
       
       % ----- INITIAL MESSAGE -----
       initializationStartTime = tic;
       notify(setup, 'genericStatusMessage', StatusEventData('Initializing simulation:\n', 'status'));
       
       % ----- SET SIMULATION PATH -----
+      path(path, [pwd filesep 'RateCoeffFunctions']);
+      dirContent = dir('RateCoeffFunctions');
+      for idx = find([dirContent.isdir]==1)
+        if ~any(strcmp(dirContent(idx).name, {'.' '..'}))
+          path(path, [dirContent(idx).folder filesep dirContent(idx).name]);
+        end
+      end
       path(path, [pwd filesep 'PropertyFunctions']);
       dirContent = dir('PropertyFunctions');
       for idx = find([dirContent.isdir]==1)
@@ -154,12 +192,27 @@ classdef Setup < handle
         electronKinetics = [];
       end
       
+      % ----- SETTING UP THE HEAVY SPECIES KINETICS (LoKI-C) -----
+      if isfield(setup.info, 'chemistry') && setup.info.chemistry.isOn
+        setup.enableChemistry = true;
+        start = tic;
+        notify(setup, 'genericStatusMessage', StatusEventData('\t- Setting up heavy-species kinetics ...\n', 'status'));
+        % setting up the gas mixture that is going to be used to solve the heavy species kinetics
+        setup.createChemistryGasMixture();
+        % setting up (and linking) the chemistry solver
+        chemistry = setup.createChemistry();
+        str = sprintf('\\t    Finished (%f seconds).\\n', toc(start));
+        notify(setup, 'genericStatusMessage', StatusEventData(str, 'status'));
+      else
+        chemistry = [];
+      end
+
       % ----- SETTING UP JOBS INFORMATION -----
       start = tic;
       notify(setup, 'genericStatusMessage', StatusEventData('\t- Setting up other components ...\n', 'status'));
       % (partially implemented if electron kinetics is enabled and chemistry is disabled)
-      if setup.enableElectronKinetics
-        % select working conditions eligeble for jobs
+      if setup.enableElectronKinetics && ~setup.enableChemistry
+        % select working conditions eligible for jobs
         if strcmpi(setup.info.electronKinetics.eedfType, 'boltzmann')
           auxWorkingConditions.reducedField = setup.info.workingConditions.reducedField;
         elseif strcmpi(setup.info.electronKinetics.eedfType, 'prescribedEedf')
@@ -167,21 +220,64 @@ classdef Setup < handle
         else
           auxWorkingConditions = struct();
         end
+        if ~isscalar(setup.info.workingConditions.gasTemperature)
+            auxWorkingConditions.gasTemperature = setup.info.workingConditions.gasTemperature;
+        end    
+        if isfield(setup.info.workingConditions, 'gasPressure') && ...
+                ~isscalar(setup.info.workingConditions.gasPressure)
+            auxWorkingConditions.gasPressure = setup.info.workingConditions.gasPressure;
+        end    
+        if isfield(setup.info.workingConditions, 'electronDensity') && ...
+                ~isscalar(setup.info.workingConditions.electronDensity)
+            auxWorkingConditions.electronDensity = setup.info.workingConditions.electronDensity;
+        end    
+        if ~isscalar(setup.info.workingConditions.excitationFrequency)
+            auxWorkingConditions.excitationFrequency = setup.info.workingConditions.excitationFrequency;
+        end    
+
         % evaluate jobs
         for field = fieldnames(auxWorkingConditions)'
           jobs = length(auxWorkingConditions.(field{1}));
-          if jobs > 1
-            setup.batches(end+1).jobs = jobs;
-            setup.batches(end).property = field{1};
-            setup.batches(end).value = auxWorkingConditions.(field{1});
+          setup.batches(end+1).jobs = jobs;
+          setup.batches(end).property = field{1};
+          setup.batches(end).value = auxWorkingConditions.(field{1});
+          switch field{1}
+            case 'reducedField'
+              setup.batches(end).units = 'Td';
+            case 'electronTemperature'
+              setup.batches(end).units = 'eV';
+            case 'gasTemperature'
+              setup.batches(end).units = 'K';
+            case 'gasPressure'
+              setup.batches(end).units = 'Pa';
+            case 'electronDensity'
+              setup.batches(end).units = 'm-3';
+            case 'excitationFrequency'
+              setup.batches(end).units = 'Hz';
+            otherwise
+              setup.batches(end).units = '';
           end
         end
         % initialize jobs related variables
-        setup.numberOfBatches = length(setup.batches);
+        setup.numberOfBatchTypes = length(setup.batches);
         for batch = setup.batches
           setup.jobMatrixSize(end+1) = batch.jobs;
           setup.numberOfJobs = setup.numberOfJobs*setup.jobMatrixSize(end);
         end
+      else      % cases: enableElectronKinetics || setup.enableChemistry
+        % Set the electric field batches
+        setup.numberOfBatchTypes = 1;
+        setup.batches(end+1).jobs = 1;
+        if setup.enableElectronKinetics && ...
+            strcmpi(setup.info.electronKinetics.eedfType, 'prescribedEedf')
+            setup.batches(end).property = 'electronTemperature';
+            setup.batches(end).value = setup.info.workingConditions.electronTemperature;
+            setup.batches(end).units = 'eV';
+        else        
+            setup.batches(end).property = 'reducedField';
+            setup.batches(end).value = setup.info.workingConditions.reducedField;
+            setup.batches(end).units = 'Td';
+        end   
       end
       str = sprintf('\\t    Finished (%f seconds).\\n', toc(start));
       notify(setup, 'genericStatusMessage', StatusEventData(str, 'status'));
@@ -219,7 +315,7 @@ classdef Setup < handle
       str = sprintf('  Finished (%f seconds).\\n', toc(initializationStartTime));
       notify(setup, 'genericStatusMessage', StatusEventData(str, 'status'));
       notify(setup, 'genericStatusMessage', StatusEventData('Starting calculations: ...\n', 'status'));
-      
+
     end
     
     function nextJob(setup)
@@ -234,38 +330,77 @@ classdef Setup < handle
           oldJobIndeces{1} = setup.currentJobID-1;
           newJobIndeces{1} = setup.currentJobID;
         else % multiple batch case (not allowed for now, runs over different values of multiple working conditions)
-          [oldJobIndeces{1:setup.numberOfBatches}] = ind2sub(setup.jobMatrixSize, setup.currentJobID-1);
-          [newJobIndeces{1:setup.numberOfBatches}] = ind2sub(setup.jobMatrixSize, setup.currentJobID);
+          [oldJobIndeces{1:setup.numberOfBatchTypes}] = ind2sub(setup.jobMatrixSize, setup.currentJobID-1);
+          [newJobIndeces{1:setup.numberOfBatchTypes}] = ind2sub(setup.jobMatrixSize, setup.currentJobID);
         end
         
         % obtain properties that needs to be updated and the updated values
         propertiesToUpdate = cell.empty;
         newValues = [];
-        for batchID = 1:setup.numberOfBatches
-          if oldJobIndeces{batchID}~=newJobIndeces{batchID}
+        for batchID = 1:setup.numberOfBatchTypes
+          if oldJobIndeces{batchID} ~= newJobIndeces{batchID}
             propertiesToUpdate{end+1} = setup.batches(batchID).property;
             newValues(end+1) = setup.batches(batchID).value(newJobIndeces{batchID});
           end
         end
         % set properties for the next job
         setup.workCond.update(propertiesToUpdate, newValues);
-        
+        % set indeces for output of results
+        setup.output.currentJobIndeces = cell2mat(newJobIndeces);
+
+        % *** DEBUG: This next section should be moved to Output.m ***
         % obtain subFolder of the new run
+        if setup.enableElectronKinetics && strcmpi(setup.info.electronKinetics.eedfType, 'prescribedEedf')
+            isBoltzmann = false;
+        else
+            isBoltzmann = true;
+        end    
         outputSubFolder = '';
-        for i = setup.numberOfBatches:-1:1
+        for i = setup.numberOfBatchTypes:-1:1
           outputSubFolder = sprintf('%s%s%s_%g', outputSubFolder, filesep, setup.batches(i).property, ...
             setup.batches(i).value(newJobIndeces{i}));
         end
+        % locate the output subfolder at next level, 
+        % in case multiple jobs refer to a parameter different from 'reduced field' 
+        outputSubFolderBatches = '';        
+        iBatches = setup.numberOfBatchTypes;
+        if ~strcmp(setup.batches(iBatches).property, 'reducedField') || ...
+            ~strcmp(setup.batches(iBatches).property, 'electronTemperature')
+           % set higher-order folder for a single job or a single 'reduced field' / 'electron temperature' value
+            if setup.numberOfBatchTypes == 1 || ...
+              (isBoltzmann && isscalar(setup.info.workingConditions.reducedField)) || ...
+              (~isBoltzmann && isscalar(setup.info.workingConditions.electronTemperature))
+                firstFolder = 1;
+            % set higher-order folder in other cases
+            else
+             firstFolder = 2;
+            end
+          for i = setup.numberOfBatchTypes:-1:firstFolder
+              outputSubFolderBatches = sprintf('%s%s%s_%g', outputSubFolderBatches, filesep, ...
+                  setup.batches(i).property, setup.batches(i).value(newJobIndeces{i}));
+          end     
+        end
+
         % set subFolder for the output of the next job
         setup.output.subFolder = outputSubFolder;
-        
+        if ~strcmp(setup.batches(iBatches).property, 'reducedField') && ...
+          ~strcmp(setup.batches(iBatches).property, 'electronTemperature')
+          setup.output.subFolderBatches = outputSubFolderBatches;
+        end
       end
-      
+
     end
     
     function finishSimulation(setup)
       
       % ----- RESTORE SEARCH PATH -----
+      rmpath([pwd filesep 'RateCoeffFunctions']);
+      dirContent = dir('RateCoeffFunctions');
+      for idx = find([dirContent.isdir]==1)
+        if ~any(strcmp(dirContent(idx).name, {'.' '..'}))
+          rmpath([dirContent(idx).folder filesep dirContent(idx).name]);
+        end
+      end
       rmpath([pwd filesep 'PropertyFunctions']);
       dirContent = dir('PropertyFunctions');
       for idx = find([dirContent.isdir]==1)
@@ -290,7 +425,7 @@ classdef Setup < handle
   end
   
   methods (Access = private)
-    
+
     function LXCatEntryArray = parseLXCatFiles(~, fileList) 
       % parseLXCatFiles parses LXCat files (both .txt and .json) from a file list
       % Input: fileList - cell array of file paths (or single file)
@@ -324,7 +459,7 @@ classdef Setup < handle
         LXCatEntryArray = [LXCatEntryArray, Parse.LXCatFilesJson(jsonFiles)];
       end
     end
-    
+
     function [gasArray, stateArray, collisionArray] = LXCatData(setup)
       % LXCatData parses the LXCat files (regular or extra) included in the 
       % setup and create the corresponding arrays of gases, states and 
@@ -369,17 +504,18 @@ classdef Setup < handle
           false);
       end
       
-      % create "extra" collisions (and correspponding gases/states) in case they are specified in the setup file
+      % create "extra" collisions (and corresponding gases/states) in case they are specified in the setup file
       if isfield(setup.info.electronKinetics, 'LXCatFilesExtra')
+
         % if it's not empty and is not a cell array, turn into cell array
         if ~isempty(setup.info.electronKinetics.LXCatFilesExtra) & ...
             ~iscell(setup.info.electronKinetics.LXCatFilesExtra)
           setup.info.electronKinetics.LXCatFilesExtra = {setup.info.electronKinetics.LXCatFilesExtra};
         end
+
         % Parse LXCat extra files using the helper function
         LXCatEntryArrayExtra = setup.parseLXCatFiles(setup.info.electronKinetics.LXCatFilesExtra);
-
-                
+        
         % create gases, states and collisions from the LXCat parsed info
         for LXCatEntry = LXCatEntryArrayExtra
           [gasArray, gasID] = Gas.add(LXCatEntry.target.gasName, gasArray);
@@ -406,14 +542,127 @@ classdef Setup < handle
       
     end
     
+    function [gasArray, stateArray, reactionArray] = chemData(setup)
+      % chemData parses the ".chem" files included in the setup and create the
+      % corresponding arrays of gases, states and reactions. Those objects
+      % are created only with the information available in the ".chem" files,
+      % so their properties (like, mases, populations, etc.) must be filled
+      % later on with the information available in the setup file.
+      
+      % parse ".chem" files
+      entryArray = Parse.chemFiles(setup.info.chemistry.chemFiles);
+      
+      % preprocess parsed data
+      gasNames = cell.empty;
+      stateGasID = [];
+      stateIonLevel = cell.empty;
+      stateEleLevel = cell.empty;
+      stateVibLevel = cell.empty;
+      stateRotLevel = cell.empty;
+      reactionType = cell.empty;
+      reactionReactantElectrons = [];
+      reactionProductElectrons = [];
+      reactionReactantIDs = cell.empty;
+      reactionReactantStoiCoeff = cell.empty;
+      reactionCatalystIDs = cell.empty;
+      reactionCatalystStoiCoeff = cell.empty;
+      reactionProductIDs = cell.empty;
+      reactionProductStoiCoeff = cell.empty;
+      reactionIsReverse = logical.empty;
+      reactionIsTransport = logical.empty;
+      reactionIsGasStabilised = logical.empty;
+      reactionRateCoeffParams = cell.empty;
+      reactionEnthalpy = cell.empty;
+      
+      % create gases, states and reactions from the ".chem" files parsed info
+      for entry = entryArray
+        reactantIDs = [];
+        reactantStoiCoeff = [];
+        for reactant = entry.reactantArray
+          [gasNames, gasID] = addGas(reactant.gasName, gasNames);
+          [stateGasID, stateIonLevel, stateEleLevel, stateVibLevel, stateRotLevel, reactantID] = ...
+            addState(gasID, reactant.ionCharg, reactant.eleLevel, reactant.vibLevel, reactant.rotLevel, ...
+            stateGasID, stateIonLevel, stateEleLevel, stateVibLevel, stateRotLevel);
+          reactantIDs(end+1) = reactantID;
+          reactantStoiCoeff(end+1) = reactant.quantity;
+        end
+        catalystIDs = [];
+        catalystStoiCoeff = [];
+        for catalyst = entry.catalystArray
+          [gasNames, gasID] = addGas(catalyst.gasName, gasNames);
+          [stateGasID, stateIonLevel, stateEleLevel, stateVibLevel, stateRotLevel, catalystID] = ...
+            addState(gasID, catalyst.ionCharg, catalyst.eleLevel, catalyst.vibLevel, catalyst.rotLevel, ...
+            stateGasID, stateIonLevel, stateEleLevel, stateVibLevel, stateRotLevel);
+          catalystIDs(end+1) = catalystID;
+          catalystStoiCoeff(end+1) = catalyst.quantity;
+        end
+        productIDs = [];
+        productStoiCoeff = [];
+        for product = entry.productArray
+          [gasNames, gasID] = addGas(product.gasName, gasNames);
+          [stateGasID, stateIonLevel, stateEleLevel, stateVibLevel, stateRotLevel, productID] = ...
+            addState(gasID, product.ionCharg, product.eleLevel, product.vibLevel, product.rotLevel, ...
+            stateGasID, stateIonLevel, stateEleLevel, stateVibLevel, stateRotLevel);
+          productIDs(end+1) = productID;
+          productStoiCoeff(end+1) = product.quantity;
+        end
+        [reactionType, reactionReactantElectrons, reactionProductElectrons, reactionReactantIDs, ...
+          reactionReactantStoiCoeff, reactionCatalystIDs, reactionCatalystStoiCoeff, reactionProductIDs, ...
+          reactionProductStoiCoeff, reactionIsReverse, reactionIsTransport, reactionIsGasStabilised, ...
+          reactionRateCoeffParams, reactionEnthalpy, ~] = addReaction(entry.type, entry.reactantElectrons, ...
+          entry.productElectrons, reactantIDs, reactantStoiCoeff, catalystIDs, catalystStoiCoeff, productIDs, ...
+          productStoiCoeff, entry.isReverse, entry.isTransport, entry.isGasStabilised, entry.rateCoeffParams, ...
+          entry.enthalpy, reactionType, reactionReactantElectrons, reactionProductElectrons, reactionReactantIDs, ...
+          reactionReactantStoiCoeff, reactionCatalystIDs, reactionCatalystStoiCoeff, reactionProductIDs, ...
+          reactionProductStoiCoeff, reactionIsReverse, reactionIsTransport, reactionIsGasStabilised, ...
+          reactionRateCoeffParams, reactionEnthalpy);
+      end
+      
+      % create arrays of objects (gases, states and reactions)
+      gasArray = ChemGas.empty;
+      for i = 1:length(gasNames)
+        gasArray(i) = ChemGas(gasNames{i});
+      end
+      stateArray = ChemState.empty;
+      for i = 1:length(stateGasID)
+        stateArray(i) = ChemState(gasArray(stateGasID(i)), stateIonLevel{i}, stateEleLevel{i}, stateVibLevel{i}, ...
+          stateRotLevel{i});
+      end
+      reactionArray = Reaction.empty;
+      for i = 1:length(reactionReactantElectrons)
+        reactionArray(i) = Reaction(reactionType{i}, reactionReactantElectrons(i), reactionProductElectrons(i), ...
+          stateArray(reactionReactantIDs{i}), reactionReactantStoiCoeff{i}, stateArray(reactionCatalystIDs{i}), ...
+          reactionCatalystStoiCoeff{i}, stateArray(reactionProductIDs{i}), reactionProductStoiCoeff{i}, ...
+          reactionIsReverse(i), reactionIsTransport(i), reactionIsGasStabilised(i), reactionRateCoeffParams{i}, ...
+          reactionEnthalpy{i});
+      end
+
+      % check stoichiometry of reactions if needed
+      if isfield(setup.info.chemistry, 'checkChemFilesStoichiometry') && setup.info.chemistry.checkChemFilesStoichiometry
+        start = tic;
+        notify(setup, 'genericStatusMessage', StatusEventData('\t\t- Checking chem files stoichiometry...\n', 'status'));
+        for reaction = reactionArray
+          reaction.checkStechiometry();
+        end
+        str = sprintf('\\t\\t    Finished (%f seconds).\\n', toc(start));
+        notify(setup, 'genericStatusMessage', StatusEventData(str, 'status'));
+      end
+      
+      % create states needed to fix orphan states
+      stateArray = State.fixOrphanStates(stateArray);
+      
+    end
+    
     function gasProperties(setup, gasArray)
     % gasProperties fill the properties of the gases that are going to be used for solving either the electron kinetics 
     % or the heavy species kinetics
       
-      % seletect type of gas (electronKinetics)
+      % select type of gas (electronKinetics or chemistry)
       switch class(gasArray)
         case 'EedfGas'
           gasType = 'electronKinetics';
+        case 'ChemGas'
+          gasType = 'chemistry';
       end
       
       % obtain properties from the setup file
@@ -453,18 +702,25 @@ classdef Setup < handle
       end
       
       % check for the proper normalisation of the gas fractions
-      Gas.checkFractionNorm(gasArray)
+      Gas.checkFractionNorm(gasArray);
+
+      % if there is flow, check for the proper normalization of the gas fractions
+      if strcmp(gasType,'chemistry') && setup.workCond.totalSccmInFlow ~= 0
+        ChemGas.checkInFlowFractionNorm(gasArray);
+      end       
       
     end
     
     function stateProperties(setup, stateArray)
-      % stateProperties fill the properties of the states that are necesary
+      % stateProperties fill the properties of the states that are necessary
       % for solving the Boltzmann equation. In particular their populations.
       
-      % seletect type of state (electronKinetics)
+      % select type of state (electronKinetics or chemistry)
       switch class(stateArray)
         case 'EedfState'
           stateType = 'electronKinetics';
+        case 'ChemState'
+          stateType = 'chemistry';
       end
       
       % obtain properties from the setup file
@@ -515,6 +771,13 @@ classdef Setup < handle
         state.evaluateDensity;
       end
       
+      % if there is flow, evaluate inflow relDensities
+      if strcmp(stateType,'chemistry') && setup.workCond.totalSccmInFlow ~= 0
+        for state = stateArray
+          state.evaluateInFlowRelDensity;
+        end
+      end
+
     end
     
     function createElectronKineticsGasMixture(setup)
@@ -533,7 +796,7 @@ classdef Setup < handle
       % fill properties of states with the information of the input file
       setup.stateProperties(stateArray);
       
-      % check for gases for which CAR is activated to meet the appropiate conditions
+      % check for gases for which CAR is activated to meet the appropriate conditions
       if isfield(setup.info.electronKinetics, 'CARgases')
         if ischar(setup.info.electronKinetics.CARgases)
           setup.info.electronKinetics.CARgases = {setup.info.electronKinetics.CARgases};
@@ -627,6 +890,195 @@ classdef Setup < handle
       
     end
     
+    function createChemistryGasMixture(setup)
+      % createChemistryGasMixture creates the gas mixture that is going to be considered to solve the heavy-species
+      % kinetics. This includes: a gasArray with all the information related to the gas mixture, a stateArray with all
+      % the states of the different gases and a reactionArray with all the reactions of the chemistry model.
+      %
+      % This is done for a particular setup specified in the input file.
+      
+      % create arrays of gases, states and reactions with the information of the ".chem" files
+      [gasArray, stateArray, reactionArray] = setup.chemData();
+      
+      % linking chemistry gas mixture to electron kinetics gas mixture (in case it is enabled)
+      if setup.enableElectronKinetics
+        setup.linkingChemistryWithElectronKinetics(gasArray, stateArray, reactionArray);
+      end
+      
+      % fill properties of gases with the information of the input file
+      if setup.enableElectronKinetics
+        if isfield(setup.info.chemistry, 'gasProperties')
+          setup.gasProperties(gasArray);
+        end
+      else
+        setup.gasProperties(gasArray);
+      end
+      
+      % fill properties of states with the information of the input file
+      if setup.enableElectronKinetics
+        if isfield(setup.info.chemistry, 'stateProperties')
+          setup.stateProperties(stateArray);
+        end
+      else
+        setup.stateProperties(stateArray);
+      end
+      
+      % different checks for each gas in gasArray
+      includeSurfaceKinetics = false;
+      inFlowIsOn = (setup.workCond.totalSccmInFlow ~= 0);
+      totalSccmOutFlow = setup.info.workingConditions.totalSccmOutFlow;
+      outFlowIsOn = (isnumeric(totalSccmOutFlow) && totalSccmOutFlow ~= 0) || ~isnumeric(totalSccmOutFlow); 
+      for gas = gasArray
+        % check for the distribution of states to be properly normalised
+        gas.checkPopulationNorms();
+        if inFlowIsOn
+          % check for the inFlow distribution of states to be properly normalised
+          gas.checkInFlowPopulationNorms();    
+        end        
+        % check for data needed by the thermal model (in case it is activated and gas is in volume phase)
+        if setup.info.chemistry.thermalModel.isOn && gas.isVolumeSpecies
+          gas.checkThermalModelData();
+        end
+        % check if there exist any surface species (for later checking of data needed to implement surface kinetics)
+        if gas.isSurfaceSpecies
+          includeSurfaceKinetics = true;
+        end
+      end
+
+      % check for data needed by the surface kinetics
+      if includeSurfaceKinetics
+        if isempty(setup.workCond.surfaceSiteDensity)
+          error(['Error found in the configuration of the setup file.\nSurface species detected in ''.chem'' files ' ...
+            'while a\nsurface site density has not been specified in the\nworking conditions.\nEither, remove ' ...
+            'all surface species from ''.chem'' files\nor provide a surface site density in the setup file:\n' ...
+            '''workingConditions>surfaceSiteDensity: [any positive value]''\nPlease, fix the problem and run the code again.'],1);
+        end
+        if isempty(setup.workCond.areaOverVolume)
+          error(['Error found in the configuration of the setup file.\nSurface species detected in ''.chem'' files ' ...
+            'while \nchamber dimensions have not been specified in the\nworking conditions.\nEither, remove ' ...
+            'all surface species from ''.chem'' files\nor provide chamber dimensions in the setup file:\n' ...
+            '''workingConditions>chamberLenght: [any positive value]''\n''workingConditions>chamberRadius: ' ...
+            '[any positive value]''\nPlease, fix the problem and run the code again.'],1);
+        end
+      end
+      
+      for reaction = reactionArray
+        % evaluate reaction enthalpies by energy difference of involved states ('level' reaction enthalpies)  
+        if ~isnumeric(reaction.enthalpy)
+          if strcmp('level', reaction.enthalpy)
+            reaction.evaluateEnthalpy;
+          else
+            error(['Error found when evaluating the enthalpy of reaction:\n%s\n''%s'' enthalpy not supported.\n' ...
+              'Please, fix the problem and run the code again.'], reaction.description, reaction.enthalpy);
+          end
+        end
+        % verify if there are any flow reactions in the chemistry
+        if any(strcmp(reaction.type,{'inFlow','outFlow'}))
+          error('Reaction "%s" found in the chemistry files.\n%s\nPlease remove it, as "inFlow" and "outFlow" processes are automatically handled by the code.',...
+            reaction.type, reaction.description);
+        end  
+      end
+      
+      % create the inflow processes if necessary
+      if inFlowIsOn
+        % inFlow processes
+        for state = stateArray
+          if state.inFlowRelDensity ~= 0 && isempty(state.childArray)
+            reactionArray(end+1) = Reaction('inFlow', 0, 0, ChemState.empty, [], ChemState.empty, [], state, 1, false, false, false, {}, 0);
+          end  
+        end
+      end 
+      % create the outflow processes if necessary
+      if outFlowIsOn
+        % outFlow processes
+        for state = stateArray
+          if isempty(state.childArray) && state.isVolumeSpecies
+            rateCoeffParams = {totalSccmOutFlow,state.flowBarrier};
+            reactionArray(end+1) = Reaction('outFlow', 0, 0, state, 1, ChemState.empty, [], ChemState.empty, [], false, false, false, rateCoeffParams, 0);
+          end  
+        end         
+      end
+    
+      % save handles for later use
+      setup.chemistryGasArray = gasArray;
+      setup.chemistryStateArray = stateArray;
+      setup.chemistryReactionArray = reactionArray;
+      
+    end
+    
+    function chemistry = createChemistry(setup)
+      % createChemistry is in charge of the creation of the heavy-species kinetics solver specified by the user in
+      % the setup file, using the gas mixture and working conditions previously configured.
+      
+      chemistry = Chemistry(setup);
+      
+      setup.chemistry = chemistry;
+      
+    end
+    
+    function linkingChemistryWithElectronKinetics(setup, chemistryGases, chemistryStates, chemistryReactions)
+      
+      % local copies of the variables
+      electronKineticsGases = setup.electronKineticsGasArray;
+      electronKineticsStates = setup.electronKineticsStateArray;
+      
+      % link gas arrays (avoiding suface species)
+      for i = 1:length(chemistryGases)
+        chemGas = chemistryGases(i);
+        if chemGas.isSurfaceSpecies
+          continue;
+        end
+        gasID = Gas.find(chemGas.name, electronKineticsGases);
+        if gasID ~= -1
+          chemGas.linkWithElectronKineticsGas(electronKineticsGases(gasID));
+        end
+      end
+      
+      % link state arrays
+      for i = 1:length(chemistryStates)
+        chemState = chemistryStates(i);
+        if chemState.isSurfaceSpecies
+          continue;
+        end
+        stateID = State.find(chemState.gas.name, chemState.ionCharg, chemState.eleLevel, chemState.vibLevel, ...
+          chemState.rotLevel, electronKineticsStates);
+        if stateID ~= -1
+          chemState.linkWithElectronKineticsState(electronKineticsStates(stateID));
+        end
+      end
+      
+      % link electron impact collisions with eedf reactions
+      for i = 1:length(chemistryReactions)
+        reaction = chemistryReactions(i);
+        if strcmp(reaction.type, 'eedf')
+          if isempty(reaction.reactantArray.eedfEquivalent)
+            error(['Could not find reaction:\n%s\nin the electron kinetics module (LXCatFiles or LXCatFilesExtra).'...
+              '\nPlease change the type of reaction or provide the corresponding cross section'], ...
+              reaction.descriptionExtended);
+          end
+          reactantEquiv = reaction.reactantArray.eedfEquivalent;
+          productArrayEquiv = EedfState.empty;
+          for state = reaction.productArray
+            if isempty(state.eedfEquivalent)
+              error(['Could not find reaction:\n%s\nin the electron kinetics module (LXCatFiles or LXCatFilesExtra).'...
+                '\nPlease change the type of reaction or provide the corresponding cross section'], ...
+                reaction.descriptionExtended);
+            end
+            productArrayEquiv(end+1) = state.eedfEquivalent;
+          end
+          [collisionID, equivColl] = Collision.findEquivalent(reactantEquiv, productArrayEquiv, ...
+            reaction.productStoiCoeff, reaction.isReverse);
+          if collisionID == -1
+            error(['Could not find reaction:\n%s\nin the electron kinetics module (LXCatFiles or LXCatFilesExtra).'...
+              '\nPlease change the type of reaction or provide the corresponding cross section'], ...
+              reaction.descriptionExtended);
+          end
+          reaction.linkWithElectronKineticsCollision(equivColl);
+        end
+      end
+      
+    end
+    
     function selfDiagnostic(setup)
       % selfDiagnostic is a function that performs a diagnostic of the values provided by the user in the setup file,
       % checking for the correctness of the configuration of the simulation.
@@ -711,6 +1163,61 @@ classdef Setup < handle
         end
       end
 
+      % check if multiple jobs are for LoKI-B code and working conditions parameters
+      %  (other than reduced field and electron temperature)
+      if isfield(setup.info.workingConditions,'excitationFrequency') && ... 
+              ~isscalar(setup.info.workingConditions.excitationFrequency) && ...
+              isfield(setup.info,'chemistry') && setup.info.chemistry.isOn
+            error([str1 'Multiple jobs are supported only for LoKI-B.' str2],1);
+      elseif isfield(setup.info.workingConditions,'gasPressure') && ... 
+              ~isscalar(setup.info.workingConditions.gasPressure) && ...
+              isfield(setup.info,'chemistry') && setup.info.chemistry.isOn
+            error([str1 'Multiple jobs are supported only for LoKI-B.' str2],1);            
+      elseif isfield(setup.info.workingConditions,'gasTemperature') && ... 
+              ~isscalar(setup.info.workingConditions.gasTemperature) && ...
+              isfield(setup.info,'chemistry') && setup.info.chemistry.isOn
+            error([str1 'Multiple jobs are supported only for LoKI-B.' str2],1);
+      elseif isfield(setup.info.workingConditions,'electronDensity') && ... 
+              ~isscalar(setup.info.workingConditions.electronDensity) && ...
+              isfield(setup.info,'chemistry') && setup.info.chemistry.isOn
+            error([str1 'Multiple jobs are supported only for LoKI-B.' str2],1);            
+      elseif isfield(setup.info.workingConditions,'wallTemperature') && ... 
+              ~isscalar(setup.info.workingConditions.wallTemperature)
+            error([str1 ['Multiple jobs are supported only for LoKI-B code and ' ...
+                'working conditions parameters.'] str2],1);
+      elseif isfield(setup.info.workingConditions,'nearWallTemperature') && ... 
+              ~isscalar(setup.info.workingConditions.nearWallTemperature)
+            error([str1 ['Multiple jobs are supported only for LoKI-B code and ' ...
+                'working conditions parameters.'] str2],1);            
+      elseif isfield(setup.info.workingConditions,'extTemperature') && ... 
+              ~isscalar(setup.info.workingConditions.extTemperature)
+            error([str1 ['Multiple jobs are supported only for LoKI-B code and ' ...
+                'working conditions parameters.'] str2],1);
+      elseif isfield(setup.info.workingConditions,'surfaceSiteDensity') && ... 
+              ~isscalar(setup.info.workingConditions.surfaceSiteDensity)
+            error([str1 ['Multiple jobs are supported only for LoKI-B code and ' ...
+                'working conditions parameters.'] str2],1);
+      elseif isfield(setup.info.workingConditions,'chamberLength') && ... 
+              ~isscalar(setup.info.workingConditions.chamberLength)
+            error([str1 ['Multiple jobs are supported only for LoKI-B code and ' ...
+                'working conditions parameters.'] str2],1);
+      elseif isfield(setup.info.workingConditions,'chamberRadius') && ... 
+              ~isscalar(setup.info.workingConditions.chamberRadius)
+            error([str1 ['Multiple jobs are supported only for LoKI-B code and ' ...
+                'working conditions parameters.'] str2],1);
+      elseif isfield(setup.info.workingConditions,'dischargeCurrent') && ... 
+              ~isscalar(setup.info.workingConditions.dischargeCurrent)
+            error([str1 ['Multiple jobs are supported only for LoKI-B code and ' ...
+                'working conditions parameters.'] str2],1);
+      elseif isfield(setup.info.workingConditions,'dischargePowerDensity') && ... 
+              ~isscalar(setup.info.workingConditions.dischargePowerDensity)
+            error([str1 ['Multiple jobs are supported only for LoKI-B code and ' ...
+                'working conditions parameters.'] str2],1);
+      elseif isfield(setup.info.workingConditions,'totalSccmInFlow') && ... 
+              ~isscalar(setup.info.workingConditions.totalSccmInFlow)
+            error([str1 ['Multiple jobs are supported only for LoKI-B code and ' ...
+                'working conditions parameters.'] str2],1);
+      end      
       
       % check configuration of the electron kinetic module (in case it is present in the setup file)
       if isfield(setupInfo, 'electronKinetics')
@@ -729,9 +1236,14 @@ classdef Setup < handle
             error([str1 '''eedfType'' field not found in the ' ...
               '''electronKinetics'' section of the setup file.' str2],1);
           elseif ~any(strcmp({'boltzmann' 'prescribedEedf'}, setupInfo.electronKinetics.eedfType))
-            error(['Error found in the configuration of the setup file.\nWrong value for the field ' ...
-              '''electronKinetics>eedfType''.\nValue should be either: ''boltzmann'' or ''prescribedEedf''.\n' ...
-              'Please, fix the problem and run the code again.'],1);
+            error([str1 'Wrong value for the field ' ...
+              '''electronKinetics>eedfType''.\nValue should be either: ''boltzmann'' or ''prescribedEedf''.' str2],1);
+          elseif strcmp(setupInfo.electronKinetics.eedfType, 'boltzmann') && ~isfield(workCondStruct, 'reducedField') 
+            error([str1 '''reducedField'' (mandatory field for ''electronKinetics.eedfType=boltzmann'')\n' ...
+              'not found in the ''workingConditions'' section of the setup file.' str2],1);
+          elseif strcmp(setupInfo.electronKinetics.eedfType, 'prescribedEedf') && ~isfield(workCondStruct, 'electronTemperature') 
+            error([str1 '''electronTemperature'' (mandatory field for ''electronKinetics.eedfType=prescribedEedf'')\n' ...
+              'not found in the ''workingConditions'' section of the setup file.' str2],1);            
           elseif strcmp(setupInfo.electronKinetics.eedfType, 'prescribedEedf')
             % check whether the shapeParameter field is present and the value is correct (double between 1 and 2)
             if ~isfield(setupInfo.electronKinetics, 'shapeParameter')
@@ -777,8 +1289,8 @@ classdef Setup < handle
                 'not found in the ''workingConditions'' section of the setup file.' str2],1);
             elseif ~isfield(workCondStruct, 'gasPressure')
               error([str1 '''gasPressure'' (mandatory field for ''electronKinetics.includeEECollisions=true'')\n' ...
-                'not found in the ''workingConditions'' section of the setup file.' str2],1);              
-            end
+                'not found in the ''workingConditions'' section of the setup file.' str2],1);
+            end  
           end
           % --- 'LXCatFiles' field
           if ~isfield(setupInfo.electronKinetics, 'LXCatFiles')
@@ -952,9 +1464,183 @@ classdef Setup < handle
         end
       end
       
+      % check configuration of the chemistry module (in case it is present in the setup file)
+      if isfield(setupInfo, 'chemistry')
+        % check whether the isOn field is present and logical. Then in case it is true the checking continues
+        if ~isfield(setupInfo.chemistry, 'isOn')
+          error([str1 '''isOn'' field not found in the ' ...
+            '''chemistry'' section of the setup file.' str2],1);
+        elseif ~islogical(setupInfo.chemistry.isOn)
+          error([str1 'Wrong value for the field ' ...
+            '''chemistry>isOn''.\nValue should be logical (''true'' or ''false'').' str2],1);
+        elseif setupInfo.chemistry.isOn
+          if isfield(setupInfo, 'electronKinetics') && setupInfo.electronKinetics.isOn && ...
+              ~isfield(workCondStruct, 'electronDensity')
+              error([str1 'When the chemistry is activated, the field ''workingConditions>electronDensity'' '...
+                 'must be defined.' str2],1);
+          % check whether the mandatory fields of the working conditions are present when the chemistry module is activated
+          elseif ~isfield(workCondStruct, 'gasPressure')
+            error([str1 'When the chemistry is activated, the field ''workingConditions>gasPressure'' must be defined.' str2],1);          
+          elseif ~isfield(workCondStruct, 'totalSccmInFlow')
+            error([str1 'When the chemistry is activated, the field ''workingConditions>totalSccmInFlow'' must be defined.' str2],1);
+          elseif ~isfield(workCondStruct, 'totalSccmOutFlow')
+            error([str1 'When the chemistry is activated, the field ''workingConditions>totalSccmOutFlow'' must be defined.' str2],1);
+          elseif workCondStruct.totalSccmInFlow ~= 0 || ... 
+               (isnumeric(workCondStruct.totalSccmOutFlow) && workCondStruct.totalSccmOutFlow ~= 0) || ...
+               (~isnumeric(workCondStruct.totalSccmOutFlow) && strcmp(workCondStruct.totalSccmOutFlow, 'totalSccmInFlow') && workCondStruct.totalSccmInFlow ~= 0) || ...
+               (~isnumeric(workCondStruct.totalSccmOutFlow) && strcmp(workCondStruct.totalSccmOutFlow, 'ensureIsobaric'))
+            if ~isfield(workCondStruct, 'chamberRadius') ||  workCondStruct.chamberRadius == 0 || ...
+              ~isfield(workCondStruct, 'chamberLength') || workCondStruct.chamberLength == 0
+              error([str1 'For simulations with flow,\n' ...
+                ' the chamber dimensions ''workingConditions>chamberLenght'' and ''workingConditions>chamberRadius''\n' ...
+                ' must be defined as positive numbers in the ''workingConditions''.' str2],1);
+            end
+          elseif ~isnumeric(workCondStruct.totalSccmOutFlow) && ~any(strcmp({'totalSccmInFlow' 'ensureIsobaric'}, workCondStruct.totalSccmOutFlow))
+            error([str1 'Wrong value for the field ' ...
+              '''workingConditions>totalSccmOutFlow''.\nValue should be either: a number (in sccm) or a model: ''totalSccmInFlow'' ''ensureIsobaric''.' str2],1);
+          elseif isnumeric(workCondStruct.totalSccmOutFlow) && workCondStruct.totalSccmOutFlow ~= workCondStruct.totalSccmInFlow
+            warning([str1w 'The fields ''workingConditions>totalSccmOutFlow'' and ''workingConditions>totalSccmInFlow'' ' ...
+                'have different values.\nCheck that this is right before continuing the simulations (press any key to continue).'],1);
+            pause
+          end 
+          % --- 'convergenceParameter' field (controls the parameter to iterate in the quasineutrality cycle)
+          if ~isfield(setupInfo.chemistry, 'convergenceParameter')
+            error([str1 '''convergenceParameter'' field not found in the ' ...
+                '''chemistry'' section of the setup file.' str2],1);
+          elseif ~any(strcmp({'electronDensity' 'dischargeCurrent' 'dischargePowerDensity'}, setupInfo.chemistry.convergenceParameter))
+            error([str1 'Wrong value for the field ''chemistry>convergenceParameter''.\n' ...
+                'Value should be either: ''electronDensity'' ''dischargeCurrent'' ''dischargePowerDensity''.' str2],1);
+          elseif ~isfield(workCondStruct, 'dischargeCurrent') && ...
+                strcmp(setupInfo.chemistry.convergenceParameter, 'dischargeCurrent')
+            error([str1 'When the discharge current cycle is activated, the parameter ''dischargeCurrent'' ' ...
+                'must be defined in the ''workingConditions''.' str2],1);
+          elseif ~isfield(workCondStruct, 'dischargePowerDensity') && ...
+                strcmp(setupInfo.chemistry.convergenceParameter, 'dischargePowerDensity')
+            error([str1 'When the discharge power density cycle is activated, the parameter ''dischargePowerDensity'' ' ...
+                'must be defined in the ''workingConditions''.' str2],1);
+          elseif (~isfield(workCondStruct, 'chamberRadius') || workCondStruct.chamberRadius == 0) && ...
+                strcmp(setupInfo.chemistry.convergenceParameter, 'dischargeCurrent')
+            error([str1 'When the discharge current cycle is activated, the chamber radius ''workingConditions>chamberRadius''\n' ...
+                'must be defined as positive number in the ''workingConditions''.' str2],1);
+          elseif any(workCondStruct.excitationFrequency~=0) && ...              
+                strcmp(setupInfo.chemistry.convergenceParameter, 'dischargeCurrent')
+            error([str1 'When the discharge current cycle is activated, the excitation frequency ''workingConditions>excitationFrequency''\n' ...
+                'must be set to zero (DC case) in the ''workingConditions''.' str2],1);
+          end
+          % --- 'includeThermalModel' field  
+          if ~isfield(setupInfo.chemistry, 'thermalModel')
+            error([str1 '''thermalModel'' field not ' ...
+              'found in the ''chemistry'' section of the setup file.' str2],1);
+          elseif ~isfield(setupInfo.chemistry.thermalModel, 'isOn')
+            error([str1 '''isOn'' field not ' ...
+              'found in the ''chemistry>thermalModel'' section of the setup file.' str2],1);
+          elseif ~islogical(setupInfo.chemistry.thermalModel.isOn)
+            error([str1 'Wrong value for the field ' ...
+              '''chemistry>thermalModel>isOn''.\nValue should be logical (''true'' or ''false'').' str2],1);
+          elseif setupInfo.chemistry.thermalModel.isOn
+            if ~isfield(workCondStruct, 'chamberRadius') 
+              error([str1 'Chamber radius not specified in the working conditions.\n' ...
+                'Either, deactivate thermal model:\n'...
+                '''chemistry>thermalModel>isOn: false''\nor define the chamber dimensions properly:\n' ...
+                '''workingConditions>chamberRadius: [any value different than zero]''' str2],1);
+            elseif workCondStruct.chamberRadius == 0 
+              error([str1 'Chamber dimensions specified in the ' ...
+                'working conditions are not compatible with the thermal model.\nEither, deactivate thermal model:\n'...
+                '''chemistry>thermalModel>isOn: false''\nor set chamber dimensions properly:\n' ...
+                '''workingConditions>chamberRadius: [any value different than zero]''' str2],1);
+            elseif ~isfield(setupInfo, 'electronKinetics') || ~setupInfo.electronKinetics.isOn
+            % The thermal model can probably be activated for a 'combustion type' kinetics
+              warning([str1w 'Thermal model activated without activating the electronKinetics module.\n' ...
+                  'Check that this is right before continuing the simulations (press any key to continue).'],1);
+              pause
+            elseif ~isfield(setupInfo.chemistry.thermalModel, 'boundary')
+              error([str1 '''boundary'' field not ' ...
+                'found in the ''chemistry>thermalModel'' section of the setup file.' str2],1);
+            elseif ~any(strcmp({'wall' 'external'}, setupInfo.chemistry.thermalModel.boundary))
+              error([str1 'Wrong value for the field ' ...
+                '''chemistry>thermalModel>boundary''.\nValue should be either: ''wall'' or ''external''.' str2],1);
+            elseif strcmp(setupInfo.chemistry.thermalModel.boundary, 'wall') && ...
+                ~isfield(setupInfo.chemistry.thermalModel, 'wallFraction')
+              error([str1 '''wallFraction'' field not ' ...
+                'found in the ''chemistry>thermalModel'' section of the setup file.' str2],1);
+            elseif ~isnumeric(setupInfo.chemistry.thermalModel.wallFraction) || ...
+                length(setupInfo.chemistry.thermalModel.wallFraction)~=1 || ...
+                setupInfo.chemistry.thermalModel.wallFraction < 0
+              error([str1 'Wrong value for the field ''chemistry>thermalModel>wallFraction''.\n' ...
+                'Value should be a single positive number between 0 and 1.' str2],1);
+            elseif strcmp(setupInfo.chemistry.thermalModel.boundary, 'wall') && ...
+                ~isfield(workCondStruct, 'wallTemperature')
+              error([str1 'Thermal model is activated with ''wall'' as boundary \ncondition and ''wallTemperature'' ' ...
+                'is not set in the \n''workingConditions'' section of the setup file.\nEither, deactivate ' ...
+                'the thermal model:\n''chemistry>thermalModel>isOn: false''\nor set the wall temperature:\n' ...
+                '''workingConditions>wallTemperature: [any positive value]''' str2],1);
+            elseif strcmp(setupInfo.chemistry.thermalModel.boundary, 'external') && ...
+                ~isfield(workCondStruct, 'extTemperature')
+              error([str1 'Thermal model is activated with ''external'' as boundary \ncondition and ''extTemperature'' ' ...
+                'is not set in the \n''workingConditions'' section of the setup file.\nEither, deactivate ' ...
+                'the thermal model:\n''chemistry>thermalModel>isOn: false''\nor set the external temperature:\n' ...
+                ['''workingConditions>extTemperature: [any positive value]'''] str2],1);
+            elseif ~isfield(setupInfo.chemistry.thermalModel, 'intConvCoeff')
+              error([str1 '''intConvCoeff'' field not found in the ''chemistry>thermalModel'' section of the setup ' ...
+                'file.' str2],1);
+            elseif ~isnumeric(setupInfo.chemistry.thermalModel.intConvCoeff) || ...
+                length(setupInfo.chemistry.thermalModel.intConvCoeff)~=1 || ...
+                setupInfo.chemistry.thermalModel.intConvCoeff <= 0
+              error([str1 'Wrong value for the field ''chemistry>thermalModel>intConvCoeff''.\nValue should be a ' ...
+                'single positive number greater than 0.' str2],1);
+            elseif strcmp(setupInfo.chemistry.thermalModel.boundary, 'external') && ...
+                ~isfield(setupInfo.chemistry.thermalModel, 'extConvCoeff')
+              error([str1 '''extConvCoeff'' field not found in the ''chemistry>thermalModel'' section of the setup ' ...
+                'file.' str2],1);
+            elseif strcmp(setupInfo.chemistry.thermalModel.boundary, 'external') && ...
+                (~isnumeric(setupInfo.chemistry.thermalModel.extConvCoeff) || ...
+                length(setupInfo.chemistry.thermalModel.extConvCoeff)~=1 || ...
+                setupInfo.chemistry.thermalModel.extConvCoeff <= 0)
+              error([str1 'Wrong value for the field ''chemistry>thermalModel>extConvCoeff''.\nValue should be a ' ...
+                'single positive number greater than 0.' str2],1);
+            elseif ~isfield(setupInfo.chemistry.gasProperties, 'heatCapacity')
+              error([str1 '''heatCapacity'' field not found in the ''chemistry>gasProperties'' section of the setup ' ...
+                'file.' str2],1);
+            elseif ~isfield(setupInfo.chemistry.gasProperties, 'thermalConductivity')
+              error([str1 '''thermalConductivity'' field not found in the ''chemistry>gasProperties'' section of ' ...
+                'the setup file.' str2],1);
+            end
+          end
+          % --- 'iterationSchemes' field
+          % (check whether the mandatory fields of iterationSchemes are present when the chemistry module is activated)
+          if ~setup.pulsedSimulation 
+            if ~isfield(setupInfo.chemistry, 'iterationSchemes')
+              error([str1 'When the chemistry is activated (not pulsed), the field ''iterationSchemes'' must be defined.' str2],1);
+            elseif ~isfield(setupInfo.chemistry.iterationSchemes, 'pressureMaxIterations')
+              error([str1 'When the chemistry is activated (not pulsed), the field ''iterationSchemes>pressureMaxIterations'' must be defined.' str2],1);
+            elseif ~isfield(setupInfo.chemistry.iterationSchemes, 'neutralityMaxIterations')
+              error([str1 'When the chemistry is activated (not pulsed), the field ''iterationSchemes>neutralityMaxIterations'' must be defined.' str2],1);
+            elseif ~isfield(setupInfo.chemistry.iterationSchemes, 'globalMaxIterations')
+              error([str1 'When the chemistry is activated (not pulsed), the field ''iterationSchemes>globalMaxIterations'' must be defined.' str2],1);
+            end
+          end
+          % --- 'timeIntegrationConf' field
+          % (check whether the mandatory fields of timeIntegrationConf are present when the chemistry module is activated)  
+          if ~isfield(setupInfo.chemistry, 'timeIntegrationConf')
+            error([str1 'When the chemistry is activated, the field ''timeIntegrationConf'' must be defined.' str2],1);
+          else
+            if ~isfield(setupInfo.chemistry.timeIntegrationConf, 'odeSolver')
+              error([str1 'When the chemistry is activated, the field ''timeIntegrationConf>odeSolver'' must be defined.' str2],1);
+            elseif ~setup.pulsedSimulation
+              if ~isfield(setupInfo.chemistry.timeIntegrationConf, 'dischargeTime')
+                error([str1 'When the chemistry is activated (not pulsed), the field ''timeIntegrationConf>dischargeTime'' must be defined.' str2],1);
+              elseif ~isfield(setupInfo.chemistry.timeIntegrationConf, 'postDischargeTime')
+                error([str1 'When the chemistry is activated (not pulsed), the field ''timeIntegrationConf>postDischargeTime'' must be defined.' str2],1);
+              end
+            end
+          end
+        end
+      end
+      
       % check for 'empty' simulations (simulations with no module activated)
-      if (~isfield(setupInfo, 'electronKinetics') || ~setupInfo.electronKinetics.isOn) 
-        error([str1 'Module ''electronKinetics'' is not activated.' str2],1);
+      if (~isfield(setupInfo, 'electronKinetics') || ~setupInfo.electronKinetics.isOn) && ...
+          (~isfield(setupInfo, 'chemistry') || ~setupInfo.chemistry.isOn)
+        error([str1 'Neither module, ''electronKinetics'' nor ''chemistry'', is activated.' str2],1);
       end
       
       % check configuration of the graphical user interface (in case it is present in the setup file)
@@ -972,6 +1658,15 @@ classdef Setup < handle
               setupInfo.gui.refreshFrequency <= 0 || mod(setupInfo.gui.refreshFrequency,1) ~= 0
             error([str1 'Wrong value for the field ''gui>refreshFrequency''.\nValue should be a single positive ' ...
               'integer.' str2],1);
+          end
+          % check that multiple jobs refer only to reduced field and gas temperature when isOn field is true          
+          if (isfield(setup.info.workingConditions, 'gasPressure') && ...
+            ~isscalar(setup.info.workingConditions.gasPressure) ) || ...
+            (isfield(setup.info.workingConditions, 'electronDensity') && ...
+            ~isscalar(setup.info.workingConditions.electronDensity) ) || ...
+            ~isscalar(setup.info.workingConditions.excitationFrequency)
+                error([str1 ['When ''gui>isOn = true'', multiple jobs are supported only for ''reducedField'', ' ...
+                    '''electronTemperature'' and ''gasTemperature''.'] str2],1);
           end
         end
       end
@@ -998,9 +1693,24 @@ classdef Setup < handle
               dataSets = {dataSets};
             end
             possibleDataSets = {'none' 'inputs' 'log'};
-            if isfield(setupInfo, 'electronKinetics') && setupInfo.electronKinetics.isOn
+            if isfield(setupInfo, 'electronKinetics') && setupInfo.electronKinetics.isOn && ...
+                isfield(setupInfo, 'chemistry') && setupInfo.chemistry.isOn
+              possibleDataSets = [possibleDataSets 'eedf' 'swarmParameters' 'rateCoefficients' 'powerBalance' ...
+                'finalDensities' 'finalTemperatures' 'finalParticleBalance'];
+              if setupInfo.chemistry.thermalModel.isOn
+                possibleDataSets = [possibleDataSets 'finalThermalBalance'];
+              end
+              possibleDataSets = [possibleDataSets 'chemSolutionTime' 'chemParameters'];              
+            elseif isfield(setupInfo, 'electronKinetics') && setupInfo.electronKinetics.isOn
               possibleDataSets = [possibleDataSets 'eedf' 'swarmParameters' 'rateCoefficients' 'powerBalance' ...
                 'lookUpTables'];
+            elseif isfield(setupInfo, 'chemistry') && setupInfo.chemistry.isOn
+              possibleDataSets = [possibleDataSets 'rateCoefficients' 'finalDensities' 'finalTemperatures' ...
+                'finalParticleBalance'];
+              if setupInfo.chemistry.thermalModel.isOn
+                possibleDataSets = [possibleDataSets 'finalThermalBalance'];
+              end
+              possibleDataSets = [possibleDataSets 'chemSolutionTime' 'chemParameters'];              
             end
             possibleDataSetsStr = possibleDataSets{1};
             for idx = 2:length(possibleDataSets)-1
@@ -1073,5 +1783,160 @@ else
     end
   end
 end
+
+end
+
+function [reactionType, reactionReactantElectrons, reactionProductElectrons, reactionReactantIDs, ...
+  reactionReactantStoiCoeff, reactionCatalystIDs, reactionCatalystStoiCoeff, reactionProductIDs, ...
+  reactionProductStoiCoeff, reactionIsReverse, reactionIsTransport, reactionIsGasStabilised, ...
+  reactionRateCoeffParams, reactionEnthalpy, reactionID] = addReaction(type, reactantElectrons, productElectrons, ...
+  reactantIDs, reactantStoiCoeff, catalystIDs, catalystStoiCoeff, productIDs, productStoiCoeff, isReverse, ...
+  isTransport, isGasStabilised, rateCoeffParams, enthalpy, reactionType, reactionReactantElectrons, ...
+  reactionProductElectrons, reactionReactantIDs, reactionReactantStoiCoeff, reactionCatalystIDs, ...
+  reactionCatalystStoiCoeff, reactionProductIDs, reactionProductStoiCoeff, reactionIsReverse, reactionIsTransport, ...
+  reactionIsGasStabilised, reactionRateCoeffParams, reactionEnthalpy)
+
+  % if this is the first reaction is created straightaway
+  if isempty(reactionType)
+    reactionType = {type};
+    reactionReactantElectrons = reactantElectrons;
+    reactionProductElectrons = productElectrons;
+    reactionReactantIDs = {reactantIDs};
+    reactionReactantStoiCoeff = {reactantStoiCoeff};
+    reactionCatalystIDs = {catalystIDs};
+    reactionCatalystStoiCoeff = {catalystStoiCoeff};
+    reactionProductIDs = {productIDs};
+    reactionProductStoiCoeff = {productStoiCoeff};
+    reactionIsReverse = isReverse;
+    reactionIsTransport = isTransport;
+    reactionIsGasStabilised = isGasStabilised;
+    reactionRateCoeffParams = {rateCoeffParams};
+    reactionEnthalpy = {enthalpy};
+    reactionID = 1;
+    return;
+  end
+
+  % check if the reaction is equal to any previosly defined reactions (error), otherwise created
+  for i = 1:length(reactionType)
+    numElements = length(reactionReactantIDs{i});
+    if numElements ~= length(reactantIDs)
+      equalReactants = false;
+    else
+      equalReactants = true;
+      for j = 1:numElements
+        for k = 1:numElements
+          if reactionReactantIDs{i}(j) == reactantIDs(k) && reactionReactantStoiCoeff{i}(j) == reactantStoiCoeff(k)
+            break;
+          elseif k == numElements
+            equalReactants = false;
+          end
+        end
+        if ~equalReactants
+          break;
+        end
+      end
+    end
+    if equalReactants
+      numElements = length(reactionCatalystIDs{i});
+      if numElements ~= length(catalystIDs)
+        equalCatalysts = false;
+      else
+        equalCatalysts = true;
+        for j = 1:numElements
+          for k = 1:numElements
+            if reactionCatalystIDs{i}(j) == catalystIDs(k) && reactionCatalystStoiCoeff{i}(j) == catalystStoiCoeff(k)
+              break;
+            elseif k == numElements
+              equalCatalysts = false;
+            end
+          end
+          if ~equalCatalysts
+            break;
+          end
+        end
+      end
+      if equalCatalysts
+        numElements = length(reactionProductIDs{i});
+        if numElements ~= length(productIDs)
+          equalProducts = false;
+        else
+          equalProducts = true;
+          for j = 1:numElements
+            for k = 1:numElements
+              if reactionProductIDs{i}(j) == productIDs(k) && reactionProductStoiCoeff{i}(j) == productStoiCoeff(k)
+                break;
+              elseif k == numElements
+                equalProducts = false;
+              end
+            end
+            if ~equalProducts
+              break;
+            end
+          end
+        end
+        if equalProducts && ...
+            reactionReactantElectrons(i) == reactantElectrons && ...
+            reactionProductElectrons(i) == productElectrons && ...
+            reactionIsTransport(i) == isTransport && ...
+            reactionIsGasStabilised(i) == isGasStabilised && ...
+            reactionIsReverse(i) == isReverse
+          reactionID = i;
+          warning('Avoiding duplicated reactions (reactionID = %d)\n', reactionID)
+          break;
+        elseif i == length(reactionType)
+          reactionType{end+1} = type;
+          reactionReactantElectrons(end+1) = reactantElectrons;
+          reactionProductElectrons(end+1) = productElectrons;
+          reactionReactantIDs{end+1} = reactantIDs;
+          reactionReactantStoiCoeff{end+1} = reactantStoiCoeff;
+          reactionCatalystIDs{end+1} = catalystIDs;
+          reactionCatalystStoiCoeff{end+1} = catalystStoiCoeff;
+          reactionProductIDs{end+1} = productIDs;
+          reactionProductStoiCoeff{end+1} = productStoiCoeff;
+          reactionIsReverse(end+1) = isReverse;
+          reactionIsTransport(end+1) = isTransport;
+          reactionIsGasStabilised(end+1) = isGasStabilised;
+          reactionRateCoeffParams{end+1} = rateCoeffParams;
+          reactionEnthalpy{end+1} = enthalpy;
+          reactionID = i+1;
+          break;
+        end
+      elseif i == length(reactionType)
+        reactionType{end+1} = type;
+        reactionReactantElectrons(end+1) = reactantElectrons;
+        reactionProductElectrons(end+1) = productElectrons;
+        reactionReactantIDs{end+1} = reactantIDs;
+        reactionReactantStoiCoeff{end+1} = reactantStoiCoeff;
+        reactionCatalystIDs{end+1} = catalystIDs;
+        reactionCatalystStoiCoeff{end+1} = catalystStoiCoeff;
+        reactionProductIDs{end+1} = productIDs;
+        reactionProductStoiCoeff{end+1} = productStoiCoeff;
+        reactionIsReverse(end+1) = isReverse;
+        reactionIsTransport(end+1) = isTransport;
+        reactionIsGasStabilised(end+1) = isGasStabilised;
+        reactionRateCoeffParams{end+1} = rateCoeffParams;
+        reactionEnthalpy{end+1} = enthalpy;
+        reactionID = i+1;
+        break;
+      end
+    elseif i == length(reactionType)
+      reactionType{end+1} = type;
+      reactionReactantElectrons(end+1) = reactantElectrons;
+      reactionProductElectrons(end+1) = productElectrons;
+      reactionReactantIDs{end+1} = reactantIDs;
+      reactionReactantStoiCoeff{end+1} = reactantStoiCoeff;
+      reactionCatalystIDs{end+1} = catalystIDs;
+      reactionCatalystStoiCoeff{end+1} = catalystStoiCoeff;
+      reactionProductIDs{end+1} = productIDs;
+      reactionProductStoiCoeff{end+1} = productStoiCoeff;
+      reactionIsReverse(end+1) = isReverse;
+      reactionIsTransport(end+1) = isTransport;
+      reactionIsGasStabilised(end+1) = isGasStabilised;
+      reactionRateCoeffParams{end+1} = rateCoeffParams;
+      reactionEnthalpy{end+1} = enthalpy;
+      reactionID = i+1;
+      break;
+    end
+  end
 
 end

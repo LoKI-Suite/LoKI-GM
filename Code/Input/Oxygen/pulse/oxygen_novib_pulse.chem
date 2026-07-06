@@ -1,0 +1,105 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Reference oxygen chemistry scheme for IST WITHOUT vibrations
+% (including O2(X), O2(a), O2(b), O2(A3Su+_C3Du_c1Su-), O(3P), O(1D), O3(X), O3(exc), O2+, O+, O-)
+%
+% For more details, see Tiago C Dias et al 2023 Plasma Sources Sci. Technol. 32 084003
+%
+% This chemistry scheme uses the following datafiles to calculate the 'eedf' rate coefficients
+%  O2_LXCat.txt and O_LXCat.txt (in LoKI-B)
+%  O2_LXCat_extra.txt, O_LXCat_extra.txt and O3_LXCat_extra.txt (in the chemistry scheme)
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%---- electron impact excitation ----
+e + O2(X) <-> e + O2(a1Dg)                          | eedfFromLookUpTable                          |                                  |  % Phelps 1985
+e + O2(X) <-> e + O2(b1Sg+)                         | eedfFromLookUpTable                          |                                  |  % Phelps 1985
+e + O2(a1Dg) <-> e + O2(b1Sg+)                      | eedfFromLookUpTable                          |                                  |  % Tashiro 2006
+e + O(3P) <-> e + O(1D)                             | eedfFromLookUpTable                          |                                  |  % Laher 1990
+e + O2(X) <-> e + O2(A3Su+_C3Du_c1Su-)              | eedfFromLookUpTable                          |                                  |  % Phelps 1985
+
+%---- electron impact dissociation ----
+e + O2(X) -> e + 2O(3P)                             | eedfFromLookUpTable                          |                                  | 6-2*2.58       % Phelps 1985
+e + O2(X) -> e + O(3P) + O(1D)                      | eedfFromLookUpTable                          |                                  | 8.4-2.58-4.55  % Phelps 1985
+e + O2(a1Dg) -> e + 2O(3P)                          | eedfFromLookUpTable                          |                                  | 6-2*2.58       % Tashiro 2006
+e + O2(a1Dg) -> e + O(3P) + O(1D)                   | eedfFromLookUpTable                          |                                  | 8.4-2.58-4.55  % Phelps 1985 (threshold-shift)
+e + O2(b1Sg+) -> e + 2O(3P)                         | eedfFromLookUpTable                          |                                  | 6-2*2.58       % Tashiro 2006
+e + O2(b1Sg+) -> e + O(3P) + O(1D)                  | eedfFromLookUpTable                          |                                  | 8.4-2.58-4.55  % Phelps 1985 (threshold-shift)
+e + O3(X) -> e + O(3P) + O2(X)                      | eedfFromLookUpTable                          |                                  | 1.48+6-2.58    % Gousset 1991
+
+%---- electron impact ionisation ----
+e + O2(X) -> 2e + O2(+,X)                           | eedfFromLookUpTable                          |                                  |  % Phelps 1985
+e + O2(a1Dg) -> 2e + O2(+,X)                        | eedfFromLookUpTable                          |                                  |  % Gousset 1991
+e + O(3P) -> 2e + O(+,gnd)                          | eedfFromLookUpTable                          |                                  |  % Laher 1990
+e + O(-,gnd) -> 2e + O(3P)                          | eedfFromLookUpTable                          |                                  |  % Vejby-Christensen 1996
+
+%---- electron impact dissociative ionisation ----
+e + O2(X) ->  2e + O(3P) + O(+,gnd)                 | eedfFromLookUpTable                          |                                  |  % Gousset 1991
+e + O2(a1Dg) ->  2e + O(3P) + O(+,gnd)              | eedfFromLookUpTable                          |                                  |  % Gousset 1991
+ 
+%---- electron attachment ----
+e + O2(X) -> O(-,gnd) + O(3P)                       | eedfFromLookUpTable                          |                                  | 4.9-1.05-2.58  % Phelps 1985
+e + O2(a1Dg) -> O(-,gnd) + O(3P)                    | eedfFromLookUpTable                          |                                  | 4.9-1.05-2.58  % Burrow 1973
+
+%---- electron dissociative recombination ----
+e + O2(+,X) -> 2O(3P)                                   | powerElectronTemp             | 0.36*2.2E-14,-0.5                | level  % Gudmundsson 2004, Petrigani 2005, Gudmundsson 2007 
+e + O2(+,X) -> O(3P) + O(1D)                            | powerElectronTemp             | 0.64*2.2E-14,-0.5                | level  % Gudmundsson 2004, Petrigani 2005, Gudmundsson 2007 
+
+%---- neutral species collisions ----
+O2(a1Dg) + O(3P) -> O2(X) + O(3P)                       | constantRateCoeff         | 7e-22                            | level  % Kossyi 1992
+O2(a1Dg) + O(3P) + O2(X) -> O2(X) + O(3P) + O2(X)       | constantRateCoeff         | 3E-44                            | level  % Braginskiy 2005, rateCoeff: 1-3E-44
+2O2(a1Dg) -> O2(b1Sg+) + O2(X)                          | modifiedArrheniusGasTemp  | 1.81e-24*300^(-3.8), 3.8, 700    | level  % Heidner 1981
+O2(a1Dg) + O2(X) -> O2(X) + O2(X)                       | powerGasTemp              | 2.20E-24*300^-0.8, 0.8           | level  % Kossyi 1992
+O2(b1Sg+) + O(3P) -> O2(a1Dg) + O(3P)                   | constantRateCoeff         | 4e-20                            | level  % Ionin 2007
+O2(b1Sg+) + O(3P) -> O2(X) + O(3P)                      | offsetArrheniusGasTemp    | 4e-20, 1e-16, -3700              | level  % Ionin 2007 + Booth 2022    
+O2(b1Sg+) + O(3P) -> O2(X) + O(1D)                      | modifiedArrheniusGasTemp  | 3.39E-17*300^0.1, -0.1, -4201    | level  % Zinn 1982
+O2(A3Su+_C3Du_c1Su-) + O(3P) -> O(3P) + O2(X)           | constantRateCoeff         | 4.95e-18                         | level  % Vasiljeva 2004
+O2(A3Su+_C3Du_c1Su-) + O(3P) -> O(1D) + O2(a1Dg)        | constantRateCoeff         | 2.7e-18                          | level  % Vasiljeva 2004
+O2(A3Su+_C3Du_c1Su-) + O(3P) -> O(1D) + O2(b1Sg+)       | constantRateCoeff         | 1.35e-18                         | level  % Vasiljeva 2004
+O2(A3Su+_C3Du_c1Su-) + O2(X) -> O2(X) + O2(X)           | constantRateCoeff         | 0.23e-19                         | level  % Vasiljeva 2004
+O2(A3Su+_C3Du_c1Su-) + O2(X) -> O2(a1Dg) + O2(X)        | constantRateCoeff         | 1.86e-19                         | level  % Vasiljeva 2004
+O2(A3Su+_C3Du_c1Su-) + O2(X) -> O2(b1Sg+) + O2(X)       | constantRateCoeff         | 0.21e-19                         | level  % Vasiljeva 2004 (Braginskiy 2005 considers 0.81E-19, which is not consistent with older works. Typo?) 
+O(3P) + O(1D) -> O(3P) + O(3P)                          | constantRateCoeff         | 8e-18                            | level  % Eliasson 1986
+2O(3P) + O2(X) -> O2(X) + O2(X)                         | modifiedArrheniusGasTemp  | 0.5*3.81e-42, -1, -170           | level  % Eliasson 1986, Feoktistov 1995
+2O(3P) + O2(X) -> O2(a1Dg) + O2(X)                      | modifiedArrheniusGasTemp  | 0.33*3.81e-42, -1, -170          | level  % Eliasson 1986, Feoktistov 1995
+2O(3P) + O2(X) -> O2(b1Sg+) + O2(X)                     | modifiedArrheniusGasTemp  | 0.17*3.81e-42, -1, -170          | level  % Eliasson 1986, Feoktistov 1995
+3O(3P) -> O2(X) + O(3P)                                 | powerGasTemp              | 2.5E-43, -0.63                   | level  % Gordiets 1995
+O(1D) + O2(X) -> O(3P) + O2(X)                          | arrheniusGasTemp          | 7.00E-18, 67                     | level  % Eliasson 1986
+O(1D) + O2(X) -> O(3P) + O2(a1Dg)                       | arrheniusGasTemp          | 8.00E-19, 67                     | level  % Niles 1974, Atkinson 2004
+O(1D) + O2(X) -> O(3P) + O2(b1Sg+)                      | arrheniusGasTemp          | 2.56E-17, 67                     | level  % Eliasson 1986     
+O2(b1Sg+) + O3(X) -> 2O2(X) + O(3P)                     | constantRateCoeff         | 1.50E-17                         | level  % Eliasson 1986  
+O(1D) + O3(X) -> 2O2(X)                                 | constantRateCoeff         | 1.20E-16                         | level  % Eliasson 1986
+O(1D) + O3(X) -> O2(X) + 2O(3P)                         | constantRateCoeff         | 1.20E-16                         | level  % Eliasson 1986
+O2(a1Dg) + O3(X) -> 2O2(X) + O(3P)                      | arrheniusGasTemp          | 5.20E-17, -2840                  | level  % Eliasson 1986
+O(3P) + O3(X) -> 2O2(X)                                 | arrheniusGasTemp          | 0.5*1.8e-17, -2300               | level  % Eliasson 1986, Feoktistov 1995
+O(3P) + O3(X) -> O2(a1Dg) + O2(X)                       | arrheniusGasTemp          | 0.33*1.8e-17, -2300              | level  % Eliasson 1986, Feoktistov 1995
+O(3P) + O3(X) -> O2(b1Sg+) + O2(X)                      | arrheniusGasTemp          | 0.17*1.8e-17, -2300              | level  % Eliasson 1986, Feoktistov 1995
+O3(exc) + O(3P) -> O3(X) + O(3P)                        | constantRateCoeff         | 2.00E-19                         | level  % Lopaev 2010
+O3(exc) + O2(X) -> O3(X) + O2(X)                        | constantRateCoeff         | 3.00E-21                         | level  % Lopaev 2010
+O2(a1Dg) + O3(exc) -> 2O2(X) + O(3P)                    | arrheniusGasTemp          | 5*5.2e-17, -1287                 | level  % Marinov 2013
+O(3P) + O3(exc) -> 2O2(X)                               | arrheniusGasTemp          | 8.00E-18, -507                   | level  % Lopaev 2010
+2O(3P) + O2(X) -> O3(X) + O(3P)                         | arrheniusGasTemp          | 2.10E-46, 345                    | level  % Eliasson 1986
+O(3P) + O2(X) + O2(X) -> O3(X) + O2(X)                  | arrheniusGasTemp          | 0.33*6.4E-47, 663                | level  % Eliasson 1986, Lopaev 2010
+O(3P) + O2(X) + O2(X) -> O3(exc) + O2(X)                | arrheniusGasTemp          | 0.67*6.4E-47, 663                | level  % Eliasson 1986, Lopaev 2010 
+O(3P) + O2(X) + O3(X) -> 2O3(X)                         | expGasTemp                | 1.66e-46, 300                    | level  % Belmonte 1997
+
+%---- Ion collisions ----
+O(-,gnd) + O2(X) -> O3(X) + e                           | constantRateCoeff         | 1.00E-18                         |  % Fridman 2008
+O(-,gnd) + O2(a1Dg) -> O3(X) + e                        | constantRateCoeff         | 0.75*1.9e-16                     |  % Eliasson 1986
+O(-,gnd) + O(3P) -> O2(X) + e                           | constantRateCoeff         | 1.3E-15                          |  % Fridman 2008      
+O(-,gnd) + O2(b1Sg+) -> O(3P) + O2(X) + e               | constantRateCoeff         | 6.90E-16                         |  % Eliasson 1986
+O(+,gnd) + O(-,gnd) -> 2O(3P)                           | constantRateCoeff         | 2.8e-13                          | level  % Olson 1970
+O(+,gnd) + O3(X) -> O2(+,X) + O2(X)                     | constantRateCoeff         | 1.00E-16                         | level  % Kossyi 1992
+O(+,gnd) + O2(X) -> O2(+,X) + O(3P)                     | powerGasTemp              | 2e-17*300^0.5, -0.5              | level  % Eliasson 1986
+O(+,gnd) + O2(a1Dg) -> O2(+,X) + O(3P)                  | powerGasTemp              | 2e-17*300^0.5, -0.5              | level  % Eliasson 1986, Annusova 2018
+O2(+,X) + O(-,gnd) -> O2(X) + O(3P)                     | powerGasTemp              | 9.6e-14*300^0.5, -0.5            | level  % Eliasson 1986
+
+%---- Ion transport ----
+O2(+,X) + wall -> O2(X)                              | classicalAmbipolarDiffNegIon     |                                  | level
+O(+,gnd) + wall -> O(3P)                             | classicalAmbipolarDiffNegIon     |                                  | level
+ 
+%---- Neutral transport --
+O2(a1Dg) + wall -> O2(X)                             | multicomponentTransportChantry   | 2.2e-4, nearWallTemperature      | level  % Booth 2020
+O2(b1Sg+) + wall -> O2(X)                            | multicomponentTransportChantry   | 0.135, nearWallTemperature       | level  % Booth 2022
+O2(A3Su+_C3Du_c1Su-) + wall -> O2(X)                 | multicomponentTransportChantry   | 1, nearWallTemperature           | level  % Vasiljeva 2004
+O(3P) + wall -> 0.5O2(X)                             | multicomponentTransportChantry   | 1.608795e-3, nearWallTemperature | level  % Condition dependent, see figure 2 of Dias 2023
+O(1D) + wall -> O(3P)                                | multicomponentTransportChantry   | 1, nearWallTemperature           | level  % Gordiets 1995
+O3(exc) + wall -> O3(X)                              | multicomponentTransportChantry   | 0.1, nearWallTemperature         | level  % Marinov 2013, Lopaev 2010

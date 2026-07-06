@@ -1,6 +1,6 @@
 {
   "workingConditions": {
-    "reducedField": "logspace(-3,3,100)",
+    "reducedField": "logspace(-3,2.7,100)",
     "electronTemperature": "linspace(0.03, 5, 100)",
     "excitationFrequency": 0,
     "gasPressure": 133.32,

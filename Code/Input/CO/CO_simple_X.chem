@@ -1,0 +1,39 @@
+% Modified by VG 5/5/2020
+% CO(a) updated to CO(a3P)
+
+%---- electron impact attachment ----
+
+e + CO(X) -> C(X) + O(-,gnd)               	| eedf                       | |
+
+%---- vibrational excitation ---
+
+%e + CO(X) <-> e + CO(X,v=1,J=0)                | eedf                       | |
+%e + CO(X) <-> e + CO(X,v=2,J=0)                | eedf                       | |
+%e + CO(X) <-> e + CO(X,v=3,J=0)                | eedf                       | |
+%e + CO(X) <-> e + CO(X,v=4,J=0)                | eedf                       | |
+%e + CO(X) <-> e + CO(X,v=5,J=0)                | eedf                       | |
+%e + CO(X) <-> e + CO(X,v=6,J=0)                | eedf                       | |
+%e + CO(X) <-> e + CO(X,v=7,J=0)                | eedf                       | |
+%e + CO(X) <-> e + CO(X,v=8,J=0)                | eedf                       | |
+%e + CO(X) <-> e + CO(X,v=9,J=0)                | eedf                       | |
+%e + CO(X) <-> e + CO(X,v=10,J=0)               | eedf                       | |
+
+%----- electronic excitation -----
+
+e + CO(X) <-> e + CO(a3P)                    	| eedf                       | |
+%e + CO(X) <-> e + CO(e2)                   	| eedf                       | |
+%e + CO(X) <-> e + CO(e3)                   	| eedf                       | |
+%e + CO(X) <-> e + CO(e4)                   	| eedf                       | |
+%e + CO(X) <-> e + CO(e5)                   	| eedf                       | |
+
+%---- dissociation ----
+
+e + CO(X) -> e + C(X) + O(3P)              	| eedf                       | |
+
+%---- Ionization ----
+
+e + CO(X) -> e + e + CO(+,X)               	| eedf                       | |
+%e + CO(X) -> e + e + C(+,X) + O(X)         	| eedf                       | |
+%e + CO(X) -> e + e + C(X) + O(+,gnd)       	| eedf                       | |
+
+%CO(+,X) + wall -> CO(X)                         | classicalAmbipolarDiff     | 1 | % Included in the CO2 .chem file

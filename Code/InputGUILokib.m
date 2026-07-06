@@ -258,7 +258,7 @@ classdef InputGUILokib < handle
             % Numerics
             gui.Setup.electronKinetics.numerics.energyGrid.maxEnergy = 1; % (use 18-20 for time-dependent simulations)
             gui.Setup.electronKinetics.numerics.energyGrid.cellNumber = 1000; % (use 1800-2000 for time-dependent simulations)
-            gui.Setup.electronKinetics.numerics.energyGrid.smartGrid.isOn = false;
+            gui.Setup.electronKinetics.numerics.energyGrid.smartGrid.isOn = true;
             gui.Setup.electronKinetics.numerics.energyGrid.smartGrid.minEedfDecay = 20;
             gui.Setup.electronKinetics.numerics.energyGrid.smartGrid.maxEedfDecay = 25;
             gui.Setup.electronKinetics.numerics.energyGrid.smartGrid.updateFactor = 0.05;
@@ -275,7 +275,7 @@ classdef InputGUILokib < handle
             gui.Setup.gui.refreshFrequency = 1;
 
             % Output [cite: 14]
-            gui.Setup.output.isOn = false;
+            gui.Setup.output.isOn = true;
             gui.Setup.output.dataFormat = 'hdf5+txt'; % 'txt', 'hdf5', 'hdf5+txt'
             gui.Setup.output.folder = 'simulation_1';
             gui.Setup.output.dataSets = {'log', 'eedf', 'swarmParameters', 'rateCoefficients', 'powerBalance', 'lookUpTables'}; % Cell array
@@ -2145,7 +2145,7 @@ classdef InputGUILokib < handle
                 if isfield(s, parts{i})
                     s = s.(parts{i});
                 else
-                    % If a field doesnt exist, maybe create it (careful!)
+                    % If a field doesn't exist, maybe create it (careful!)
                     error('Field "%s" not found in path "%s"', parts{i}, fieldPath);
                     % Alternatively, create nested structs if needed:
                     % s.(parts{i}) = struct();
@@ -2160,7 +2160,7 @@ classdef InputGUILokib < handle
             % Alternative (safer if possible):
             % s.(parts{end}) = value; % This only works if 's' points to the correct sub-struct
             % To make the alternative work, you need to pass sub-structs by reference,
-            % which MATLAB doesnt do directly for structs. Handle classes would work.
+            % which MATLAB doesn't do directly for structs. Handle classes would work.
             % Or reconstruct the assignment.
         end
 
@@ -2183,6 +2183,13 @@ classdef InputGUILokib < handle
 
         function toggleSmartGridEnable(gui, shouldEnable)
             % Function to enable/disable smart grid related controls
+            shouldEnable = logical(shouldEnable);
+
+            if isfield(gui.UIControls.electronKinetics.numerics.energyGrid.smartGrid, 'isOn') && ...
+                    isvalid(gui.UIControls.electronKinetics.numerics.energyGrid.smartGrid.isOn)
+                gui.UIControls.electronKinetics.numerics.energyGrid.smartGrid.isOn.Value = shouldEnable;
+            end
+
             controls = {
                 gui.UIControls.electronKinetics.numerics.energyGrid.smartGrid.minEedfDecay,
                 gui.UIControls.electronKinetics.numerics.energyGrid.smartGrid.maxEedfDecay,
@@ -3782,6 +3789,7 @@ classdef InputGUILokib < handle
 
             setup = gui.Setup;
             foundFields = containers.Map('KeyType', 'char', 'ValueType', 'logical'); % Track found fields
+            initializedListFields = containers.Map('KeyType', 'char', 'ValueType', 'logical');
 
             keyStack = {};
             indentStack = [-1];
@@ -3836,17 +3844,18 @@ classdef InputGUILokib < handle
                         continue;
                     end
                     pathParts = keyStack;
+                    fieldPath = strjoin(pathParts, '.');
                     % Get current list (should be empty or already started from "key:" line)
                     currentList = getByPath(setup, pathParts);
-                    if isempty(currentList) || ~iscell(currentList)
+                    if ~initializedListFields.isKey(fieldPath) || isempty(currentList) || ~iscell(currentList)
                         currentList = {};
                     end
                     % Append item to list (completely replacing, not adding to defaults)
                     currentList{end+1} = item;
                     setup = setByPath(setup, pathParts, currentList);
                     % Mark this list field as found
-                    fieldPath = strjoin(pathParts, '.');
                     foundFields(fieldPath) = true;
+                    initializedListFields(fieldPath) = true;
                     i = i + 1;
                     continue;
                 end
@@ -3863,12 +3872,38 @@ classdef InputGUILokib < handle
                 if isempty(valStr)
                     % Lookahead to decide struct vs list
                     j = i + 1;
-                    while j <= numel(lines) && isempty(strtrim(lines{j}))
+                    while j <= numel(lines)
+                        lookaheadRaw = lines{j};
+                        lookaheadTrimmed = strtrim(lookaheadRaw);
+                        if isempty(lookaheadTrimmed) || startsWith(lookaheadTrimmed, '%') || startsWith(lookaheadTrimmed, '#')
+                            j = j + 1;
+                            continue;
+                        end
+
+                        lookaheadPctIdx = strfind(lookaheadRaw, '%');
+                        if ~isempty(lookaheadPctIdx)
+                            lookaheadRaw = lookaheadRaw(1:lookaheadPctIdx(1)-1);
+                        end
+                        lookaheadHashIdx = strfind(lookaheadRaw, '#');
+                        if ~isempty(lookaheadHashIdx)
+                            lookaheadRaw = lookaheadRaw(1:lookaheadHashIdx(1)-1);
+                        end
+                        if ~isempty(strtrim(lookaheadRaw))
+                            break;
+                        end
                         j = j + 1;
                     end
                     isList = false;
                     if j <= numel(lines)
                         nxtRaw = lines{j};
+                        pctIdx = strfind(nxtRaw, '%');
+                        if ~isempty(pctIdx)
+                            nxtRaw = nxtRaw(1:pctIdx(1)-1);
+                        end
+                        hashIdx = strfind(nxtRaw, '#');
+                        if ~isempty(hashIdx)
+                            nxtRaw = nxtRaw(1:hashIdx(1)-1);
+                        end
                         nxtIndent = numel(regexp(nxtRaw, '^\s*', 'match', 'once'));
                         nxtLine = strtrim(nxtRaw);
                         if nxtIndent > indent && startsWith(nxtLine, '-')
@@ -3883,6 +3918,7 @@ classdef InputGUILokib < handle
                         % Mark this list field as found
                         fieldPath = strjoin(pathParts, '.');
                         foundFields(fieldPath) = true;
+                        initializedListFields(fieldPath) = true;
                         % Push key so "- " lines append to it
                         keyStack = pathParts;
                         indentStack(end+1) = indent; %#ok<AGROW>
@@ -4275,9 +4311,18 @@ classdef InputGUILokib < handle
             % This ensures that fields not present in the file appear blocked/unselected
             % Also activate fields that WERE found in the file
             
-            % Helper function to check if a field was found
+            % Helper function to check if a field was found (or any of its subfields)
             function wasFound = isFieldFound(fieldPath)
                 wasFound = foundFields.isKey(fieldPath) && foundFields(fieldPath);
+                if ~wasFound
+                    keys = foundFields.keys();
+                    for k = 1:length(keys)
+                        if startsWith(keys{k}, [fieldPath, '.'])
+                            wasFound = true;
+                            break;
+                        end
+                    end
+                end
             end
             
             % Working Conditions optional fields - ACTIVATE if found
@@ -4390,6 +4435,13 @@ classdef InputGUILokib < handle
                     if isfield(gui.UIControls.electronKinetics, 'CARcheckbox')
                         gui.UIControls.electronKinetics.CARcheckbox.Value = false;
                     end
+                catch
+                end
+            end
+
+            if ~isFieldFound('electronKinetics.numerics.energyGrid.smartGrid')
+                try
+                    gui.toggleSmartGridEnable(false);
                 catch
                 end
             end
@@ -4967,7 +5019,7 @@ classdef InputGUILokib < handle
         end
 
         function openSetupFileHelp(~, ~, ~)
-            web("../Documentation/html/The_setup_file.html");
+            web("../Documentation/html/Index.html");
         end
 
         function runSimulation(gui, ~, ~)
@@ -5003,7 +5055,7 @@ classdef InputGUILokib < handle
                 % --- Replace this with the actual call to your solver ---
                 % Example: status = run_loki_solver(tempInputFile);
                 % Launch simulation tool
-                lokibcl(tempInputFile(7:end));
+                loki(tempInputFile(7:end));
                 % Run the simulation
                 
             % catch ME

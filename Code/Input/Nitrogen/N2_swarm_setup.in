@@ -74,6 +74,10 @@ electronKinetics:
 %         RelTol: 1e-6
 %         MaxStep: 1e-7
           
+% --- configuration for the heavy species kinetics ---
+chemistry:
+  isOn: false
+  
 % --- configuration of the graphical user interface ---
 gui: 
   isOn: true

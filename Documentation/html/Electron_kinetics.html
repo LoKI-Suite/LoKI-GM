@@ -1,0 +1,544 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<META http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<!--
+This HTML was auto-generated from MATLAB code.
+To make changes, update the MATLAB code and republish this document.
+      -->
+<title>Electron kinetics</title>
+<link rel="schema.DC" href="http://purl.org/dc/elements/1.1/">
+<meta name="DC.date" content="2025-03-19">
+<link rel="stylesheet" type="text/css" href="loki.css">
+</head>
+<body>
+<div class="content">
+<h2 id="2">3.2 Electron kinetics</h2>
+<p>In this field of the setup file the user can define all the details related to
+the electron kinetics, <i>i.e.</i> with the specific configuration of LoKI-B. The
+code below shows the section of the <tt>'default_lokibc_setup.in'</tt> file that
+handles this configuration. Note that in <em>quasi-stationary simulations</em> this
+field is either absent or deactivated.</p>
+<pre class="codeinput">
+<span class="comment">% --- configuration of the electron kinetics ---</span>
+electronKinetics:
+  isOn: true                           <span class="comment">% true or false (to activate or deactivate the electron kinetics)</span>
+  eedfType: boltzmann                  <span class="comment">% boltzmann or prescribedEedf (generalized expression Maxwellian/Druyvesteyn)</span>
+<span class="comment">%   shapeParameter: 1                  % prescribedEedf shape parameter from 1 (Maxwellian) to 2 (Druyvesteyn)</span>
+  ionizationOperatorType: usingSDCS    <span class="comment">% conservative, oneTakesAll, equalSharing or usingSDCS</span>
+  growthModelType: temporal            <span class="comment">% temporal or spatial</span>
+  includeEECollisions: false           <span class="comment">% true or false (to include / remove e-e collisions)</span>
+  LXCatFiles:                          <span class="comment">% cross section files</span>
+    - Nitrogen/N2_LXCat.txt
+    - Nitrogen/N2_vib_LXCat.txt
+<span class="comment">%    - Nitrogen/N2_rot_LXCat.txt</span>
+    - Nitrogen/N_LXCat.txt
+  LXCatFilesExtra:                     <span class="comment">% extra cross section files</span>
+    - Nitrogen/N2_LXCat_extra.txt
+    - Nitrogen/N_LXCat_extra.txt
+<span class="comment">%  effectiveCrossSectionPopulations:   % see doc</span>
+<span class="comment">%    - Nitrogen/N2_effectivePop.txt</span>
+  CARgases:                            <span class="comment">% gases for which CAR is activated</span>
+    - N2
+  gasProperties:                       <span class="comment">% properties of the gases (S.I. Units)</span>
+    mass: Databases/masses.txt
+    fraction:
+      - N2 = 1
+      - N = 0
+    harmonicFrequency: Databases/harmonicFrequencies.txt
+    anharmonicFrequency: Databases/anharmonicFrequencies.txt
+    rotationalConstant: Databases/rotationalConstants.txt
+    electricQuadrupoleMoment: Databases/quadrupoleMoment.txt
+    OPBParameter: Databases/OPBParameter.txt
+  stateProperties:                     <span class="comment">% properties of the states (S.I. Units except [eV] for the energy)</span>
+    energy:
+      - N2(X,v=*) = harmonicOscillatorEnergy
+<span class="comment">%      - N2(X,v=0,J=*) = rigidRotorEnergy</span>
+    statisticalWeight:
+      - N2(X,v=*) = 1.0
+<span class="comment">%      - N2(X,v=0,J=*) = rotationalDegeneracy_N2</span>
+      - N2(A3Su+) = 3.0
+      - N2(B3Pg) = 6.0
+      - N2(C3Pu) = 6.0
+      - N2(w1Du) = 1.0
+      - N2(a1Pg)  = 1.0
+      - N2(a'1Su-) = 1.0
+      - N2(+,X) = 2.0
+      - N2(+,B2Su+) = 2.0
+      - N2(4S) = 4.0
+      - N2(2D) = 10.0
+      - N2(2P) = 6.0
+    population:
+      - N2(X) = 1.0
+      - Nitrogen/N2_vibpop.txt
+<span class="comment">%      - N2(X,v=0,J=*) = boltzmannPopulation@gasTemperature</span>
+      - N(4S) = 1.0
+  numerics:                            <span class="comment">% configuration of numerical details of the simulation</span>
+    energyGrid:                        <span class="comment">% properties of the energy grid (in eV)</span>
+      maxEnergy: 100                   <span class="comment">% (use 18-20 for time-dependent simulations)</span>
+      cellNumber: 1500                 <span class="comment">% (use 1800-2000 for time-dependent simulations)</span>
+      smartGrid:                       <span class="comment">% configuration of the smart grid</span>
+        minEedfDecay: 20               <span class="comment">% minimum number of decade-fall for the EEDF</span>
+        maxEedfDecay: 25               <span class="comment">% maximum number of decade-fall for the EEDF</span>
+        updateFactor: 0.05             <span class="comment">% factor used to increase or decrease the maximum value of the energy grid</span>
+    maxPowerBalanceRelError: 1e-8
+    <span class="comment">% threshold for the relative power balance warning message (use at least 100 for time-dependent simulations)</span>
+    nonLinearRoutines:
+      algorithm: mixingDirectSolutions <span class="comment">% mixingDirectSolutions or temporalIntegration</span>
+      mixingParameter: 0.7             <span class="comment">% mixingDirectSolutions mixing parameter from 0 to 1</span>
+      maxEedfRelError: 1e-9            <span class="comment">% maximum rel. variation for EEDF between two iterations (stop criterion)</span>
+<span class="comment">%  odeSetParameters:                   % optional parameters for ode solver of "temporalIntegration" algorithm</span>
+<span class="comment">%    AbsTol: 1e-300</span>
+<span class="comment">%    RelTol: 1e-6</span>
+<span class="comment">%    MaxStep: 1e-7</span>
+</pre>
+<p>
+<b>IMPORTANT NOTES:</b>
+</p>
+<div>
+<ul><li>The <tt>isOn</tt> allows the user to activate (<tv>true</tv>) or deactivate
+(<tv>false</tv>) the simulations of LoKI-B.</li>
+<li>The <tt>eedfType</tt> allows the user to specify the type of simulation for
+the EEDF:
+  <ul>
+  <li><tv>boltzmann</tv>, corresponding to the solution of the EBE under the
+  classical two-term approximation;</li>
+  <li><tv>prescribedEedf</tv>, corresponding to a prescribed generalised Maxwellian
+  EEDF at given electron temperature <math><msub><mi>T</mi><mi>e</mi></msub></math>
+  (see section <a href="Working_conditions.html">3.1</a> and Reference Manual [<a href="References.html#R11">11</a>]))</li>
+  </ul>
+</li>
+<li>The <tt>shapeParameter</tt> allows the user to specify the shape parameter
+<i>s</i>, when a <tv>prescribedEedf</tv> is selected (see Reference Manual [<a href="References.html#R11">11</a>]).</li>
+<li>The <tt>ionizationOperatorType</tt> allows the user to choose the type of
+ionisation operator with the EBE. The possible configurations are (see Reference Manual [<a href="References.html#R11">11</a>]):
+  <ul>
+  <li><tv>conservative:</tv> the ionisation is treated as an excitation process;</li>
+  <li><tv>oneTakesAll:</tv> the ionisation is treated as a non-conservative mechanism,
+  with the new-born secondary electron introduced at zero kinetic-energy and the
+  scattered electron taking the remaining energy after an ionisation event.</li>
+  <li><tv>equalSharing:</tv> the ionisation is treated as a non-conservative mechanism,
+  with the remaining energy after the event being equally shared between the scattered
+  and the secondary electrons.</li>
+  <li><tv>usingSDCS:</tv> the ionisation is treated as a non-conservative mechanism,
+  described by considering a Single Differential Cross Section (SDCS) that depends
+  on the energies of the primary and the secondary electrons.<br>
+  In general, the available experimental data for SDCS is scarce and often measured
+  for only a few energy values of the primary electron. Here, we have adopted the
+  comprehensive set of measurements of Opal <i>et al</i> [<a href="References.html#R15">15</a>],
+  for the double differential cross section of different gases, resolved on both the
+  energy and the angle of the secondary electron. This pioneering work proposes
+  differential ionization cross sections with a very reliable shape
+  [<a href="References.html#R16">16</a>], which can be normalized from available
+  experimental data for the corresponding integral cross sections (see Reference Manual [<a href="References.html#R11">11</a>]).
+  Indeed, after integration over the angles, and by comparing the energy distributions
+  of the secondary electrons for different energies of the primary electrons, these
+  authors proposed a fitting expression for the SDCS
+  <p>
+  <math display="block" class="tml-display" style="width:100%;display:block math;"><mtable displaystyle="true" columnalign="left center right" style="width:100%;"><mtr id="SDCS"><mtd class="tml-right" style="padding:0;width:50%;padding-left:0em;padding-right:0em;"></mtd><mtd class="tml-left" style="padding-left:1em;padding-right:0em;"><mrow><msubsup><mi>σ</mi><mrow><mi>i</mi><mo separator="true">,</mo><mrow><mtext></mtext><mi>ion</mi></mrow></mrow><mrow><mtext></mtext><mi>sec</mi></mrow></msubsup><mo form="prefix" stretchy="false">(</mo><msup><mi>u</mi><mo lspace="0em" rspace="0em" class="tml-prime">′</mo></msup><mo separator="true">,</mo><mi>u</mi><mo form="postfix" stretchy="false">)</mo><mo>=</mo><mfrac><mrow><msub><mi>σ</mi><mrow><mi>i</mi><mo separator="true">,</mo><mrow><mtext></mtext><mi>ion</mi></mrow></mrow></msub><mo form="prefix" stretchy="false">(</mo><msup><mi>u</mi><mo lspace="0em" rspace="0em" class="tml-prime">′</mo></msup><mo form="postfix" stretchy="false" lspace="0em" rspace="0em">)</mo></mrow><mrow><mi>w</mi><mrow><mspace width="0.1667em"></mspace><mi>arctan</mi><mo>⁡</mo></mrow><mrow><mo fence="true" form="prefix">[</mo><mrow><mo fence="true" form="prefix">(</mo><msup><mi>u</mi><mo lspace="0em" rspace="0em" class="tml-prime">′</mo></msup><mo>−</mo><msub><mi>V</mi><mrow><mi>i</mi><mo separator="true">,</mo><mrow><mtext></mtext><mi>ion</mi></mrow></mrow></msub><mo fence="true" form="postfix">)</mo></mrow><mi>/</mi><mo form="prefix" stretchy="false">(</mo><mn>2</mn><mi>w</mi><mo form="postfix" stretchy="false">)</mo><mo fence="true" form="postfix">]</mo></mrow></mrow></mfrac><mfrac><mn>1</mn><mrow><mn>1</mn><mo>+</mo><msup><mrow><mo fence="true" form="prefix">(</mo><mi>u</mi><mi>/</mi><mi>w</mi><mo fence="true" form="postfix">)</mo></mrow><mi>β</mi></msup></mrow></mfrac><mspace width="0.2778em"></mspace><mo separator="true">,</mo><mrow class="tml-label"></mrow></mrow></mtd><mtd class="tml-right" style="padding:0;width:50%;padding-left:0em;padding-right:0em;"><mtext><span class="tml-eqn"></span></mtext></mtd></mtr></mtable></math>
+  </p>
+  <p>where <i>&#946 &#8773 2</i> and <i>w</i> is a parameter close to the ionisation threshold
+  <math><msub><mi>V</mi><mrow><mi>i</mi><mo separator="true">,</mo><mi>ion</mi></mrow></msub></math>,
+  which is set for each gas according to the original estimates
+  [<a href="References.html#R15">15</a>]. Note that the above equation satisfies exactly
+  the expression for the integral cross section
+  <math><msub><mi>σ</mi><mrow><mi>i</mi><mo separator="true">,</mo><mrow><mtext></mtext><mi>ion</mi></mrow></mrow></msub></math>,
+  (see Reference Manual [<a href="References.html#R11">11</a>]),
+  and therefore it is used in LoKI-B to describe the energy distribution of the
+  electrons involved in ionisation events, using available data and mitigating
+  possible normalisation errors.</p>
+  <p>The value of <i>w</i> is introduced via the <tt>OPBParameter</tt>, in the
+  <tt>gasProperties</tt> section (see below), and should be provided by the user if
+  the choice of the <tt>ionizationOperatorType</tt> is <tv>usingSDCS</tv>. If no
+  value is provided for this parameter, the code will take <i>w</i> for each state
+  equal to the corresponding ionisation potential.</p>
+  </li>
+  </ul>
+</li>
+<li>The <tt>growthModelType</tt> allows the user to specify the configuration of
+the growth model, <tv>spatial</tv> or <tv>temporal</tv>, for the electron density
+(see Reference Manual [<a href="References.html#R11">11</a>]);<br>
+<p>The parameter <tt>growthModelType</tt> is <b>mandatory</b>, being used if the
+choice of the <tt>ionizationOperatorType</tt> is different than <tv>conservative</tv>,
+and/or in the case of electronegative gases (with non-conservative attachment mechanisms).<br>
+Recall that, when choosing <tv>prescribedEedf</tv>, the electron power density transferred
+in collisional events is calculated assuming conservative mechanisms only, <i>i.e.</i>
+treating ionisation as an excitation mechanism and setting to zero the power-transfer
+due to attachment (see Reference Manual [<a href="References.html#R11">11</a>]). For
+this reason, <b>selecting a prescribed EEDF for studying electronegative gases is not
+recommended</b>.</p>
+<p>When choosing <tt>growthModelType</tt> equal to <tv>spatial</tv> the user
+<b>MUST</b> adopt a DC applied electric field (see Reference Manual [<a href="References.html#R11">11</a>]),
+hence <tt>excitationFrequency</tt> must be set equal to <tv>0</tv> in this case.</p>
+<p>Note that all non-conservative modes (<tv>oneTakesAll</tv>, <tv>equalSharing</tv>,
+<tv>usingSDCS</tv> and the presence of attachment collisions) activate non-linear
+operators for the creation / destruction of electrons, hence code performance is
+expected to decrease in these cases.</p>
+</li>
+<li>The <tt>includeEECollisions</tt> allows the user to activate (<tv>true</tv>)
+or deactivate (<tv>false</tv>) the electron-electron collision operator in LoKI-B.</p>
+<p>The parameter <tt>includeEECollisions</tt> is <b>mandatory</b>.</p>
+<p>Note that the inclusion of electron-electron collisions activates a non-linear
+operator, hence code performance is expected to decrease in this case.</p>
+When performing time-dependent simulations with LoKI-B as a standalone tool, it is
+possible to handle electron-electron collisions considering a time-dependent electron-density
+<math><mrow><msub><mi>n</mi><mi>e</mi></msub><mo form="prefix" stretchy="false">
+(</mo><mi>t</mi><mo form="postfix" stretchy="false">)</mo></mrow></math>,
+calculated according to the solution of
+<math xmlns="http://www.w3.org/1998/Math/MathML"><mrow><mi>d</mi><msub><mi>n</mi><mi>e</mi></msub><mrow><mo fence="true" form="prefix" stretchy="false">(</mo><mi>t</mi><mo fence="true" form="postfix" stretchy="false">)</mo></mrow><mi>/</mi><mi>d</mi><mi>t</mi><mo>=</mo><mrow><mo fence="true" form="prefix" stretchy="true">⟨</mo><msub><mi>ν</mi><mpadded lspace="0"><mi>eff</mi></mpadded></msub><mo fence="true" form="postfix" stretchy="true">⟩</mo></mrow><mrow><mo fence="true" form="prefix" stretchy="false">(</mo><mi>t</mi><mo fence="true" form="postfix" stretchy="false">)</mo></mrow><msub><mi>n</mi><mi>e</mi></msub><mrow><mo fence="true" form="prefix" stretchy="false">(</mo><mi>t</mi><mo fence="true" form="postfix" stretchy="false">)</mo></mrow></mrow></math>
+(see Reference Manual [<a href="References.html#R11">11</a>]), for an initial value
+<math><msub><mi>n</mi><mn>0</mn></msub></math> defined by the parameter <tt>electronDensity</tt>
+in the <tt>workingConditions</tt>.<br>
+The calculation of <math><mrow><msub><mi>n</mi><mi>e</mi></msub>
+<mo form="prefix" stretchy="false">(</mo><mi>t</mi><mo form="postfix" stretchy="false">)</mo></mrow></math>
+is activated through the expression <tt>boltzmann.eDensIsTimeDependent</tt><tv> = true</tv>
+in function <tt>obtainTimeDependentSolution(boltzmann)</tt> with the
+<tt>Boltzmann.m</tt> class. To deactivate this calculation the user should select
+the logical parameter <tv>false</tv>, instead.<br>
+Note that the previous expression only activates the calculation of
+<math><mrow><msub><mi>n</mi><mi>e</mi></msub><mo form="prefix" stretchy="false">(</mo><mi>t</mi><mo form="postfix" stretchy="false">)</mo></mrow></math>.
+To use the time-evolution of the electron density in the electron-electron collisions
+operator, the user must further activate electron-electron collisions by setting
+<tt>includeEECollisions:</tt> <tv>true</tv> in the setup file.</p>
+</li>
+<li>In <tt>LXCatFiles</tt> the user can specify the text files (along with the
+corresponding path) containing the electron-scattering cross sections for the
+different gases used in the simulations, usually obtained from the open-access
+website <a href="http://www.lxcat.net/">LXCat</a>. From these files, the code
+obtains also information about all the gases and all the states that are targets
+and/or products in the electron collisions.<br><br>
+<p><b>Note that not every cross section datafile obtained from LXCat is accepted,
+since it must comply with certain format requirements for LoKI-B to retrieve the
+relevant data; see section</b> <a href="Auxiliary_input_files.html#1">4.1</a>
+<b>for more information.</b></p>
+</li>
+<li>When <tt>LXCatFilesExtra</tt> is activated, the user can specify the text files
+(along with the corresponding path) containing information on "extra"
+electron-scattering cross sections. The "extra" refers to <b>cross sections that are
+not used in the solution to the EBE</b>, but only in the evaluation of the
+corresponding rate coeffcients by integration over the EEDF.<br>
+<br>
+<p><b>Usually, the "extra" files are obtained from the open-access website LXCat
+<a href="references.html#R12">[12]</a>, provided they comply with certain format
+requirements for LoKI-B to retrieve the relevant data; see section
+<a href="Auxiliary_input_files.html#1">4.1</a> for more information.</b></p></li>
+<li>The <tt>effectiveCrossSectionPopulations</tt> allows the user to specify some
+particular populations to evaluate an "elastic" momentum-transfer cross section
+from an "effective" one. The populations can be provided through one or more
+"property files", located in the input folder or in any subfolder within it (see
+section <a href="Auxiliary_input_files.html#2">4.2</a>).<br>
+<br>
+<p>For a gas <i>k</i>, the electron-neutral momentum-transfer cross section
+<math><mrow><msub><mi>σ</mi><mrow><mi>k</mi><mo separator="true">,</mo><mi>c</mi></mrow></msub><mo form="prefix" stretchy="false">(</mo><mi>u</mi><mo form="postfix" stretchy="false">)</mo></mrow></math>
+is constructed by weighting the contributions of the different types of collisional
+mechanisms to give</p>
+<math display="block" class="tml-display" style="display:block math;"><mrow><msub><mi>σ</mi><mrow><mi>k</mi><mo separator="true">,</mo><mi>c</mi></mrow></msub><mo form="prefix" stretchy="false">(</mo><mi>u</mi><mo form="postfix" stretchy="false">)</mo><mo>=</mo><mrow><munder><mo movablelimits="false">∑</mo><mi>i</mi></munder></mrow><msub><mi>ξ</mi><msub><mi>k</mi><mi>i</mi></msub></msub><msubsup><mi>σ</mi><mrow><msub><mi>k</mi><mi>i</mi></msub><mo separator="true">,</mo><mi>c</mi></mrow><mrow><mtext></mtext><mi>el</mi></mrow></msubsup><mo form="prefix" stretchy="false">(</mo><mi>u</mi><mo form="postfix" stretchy="false">)</mo><mo>+</mo><mrow><munder><mo movablelimits="false">∑</mo><mrow><mi>i</mi><mo separator="true">,</mo><mi>j</mi><mo>&gt;</mo><mi>i</mi></mrow></munder></mrow><mrow><mo fence="true" form="prefix">[</mo><msub><mi>ξ</mi><msub><mi>k</mi><mi>i</mi></msub></msub><msub><mi>σ</mi><mrow><msub><mi>k</mi><mrow><mo form="prefix" stretchy="false" lspace="0em" rspace="0em">(</mo><mi>i</mi><mo separator="true">,</mo><mi>j</mi><mo form="postfix" stretchy="false" lspace="0em" rspace="0em">)</mo></mrow></msub><mo separator="true">,</mo><mi>c</mi></mrow></msub><mo form="prefix" stretchy="false">(</mo><mi>u</mi><mo form="postfix" stretchy="false">)</mo><mo>+</mo><msub><mi>ξ</mi><msub><mi>k</mi><mi>j</mi></msub></msub><msub><mi>σ</mi><mrow><msub><mi>k</mi><mrow><mo form="prefix" stretchy="false" lspace="0em" rspace="0em">(</mo><mi>j</mi><mo separator="true">,</mo><mi>i</mi><mo form="postfix" stretchy="false" lspace="0em" rspace="0em">)</mo></mrow></msub><mo separator="true">,</mo><mi>c</mi></mrow></msub><mo form="prefix" stretchy="false">(</mo><mi>u</mi><mo form="postfix" stretchy="false">)</mo><mo fence="true" form="postfix">]</mo></mrow><mspace width="0.2778em"></mspace><mo separator="true">,</mo></mrow></math><br>
+<p>where
+<math><msubsup><mi>σ</mi><mrow><msub><mi>k</mi><mi>i</mi></msub><mo separator="true">,</mo>
+<mi>c</mi></mrow><mrow><mtext></mtext><mi>el</mi></mrow></msubsup></math>,
+<math><msub><mi>σ</mi><mrow><msub><mi>k</mi><mrow><mo form="prefix" stretchy="false" lspace="0em" rspace="0em">(</mo><mi>i</mi><mo separator="true">,</mo><mi>j</mi><mo form="postfix" stretchy="false" lspace="0em" rspace="0em">)</mo></mrow></msub><mo separator="true">,</mo><mi>c</mi></mrow></msub></math>
+and
+<math><msub><mi>σ</mi><mrow><msub><mi>k</mi><mrow><mo form="prefix" stretchy="false" lspace="0em" rspace="0em">(</mo><mi>j</mi><mo separator="true">,</mo><mi>i</mi><mo form="postfix" stretchy="false" lspace="0em" rspace="0em">)</mo></mrow></msub><mo separator="true">,</mo><mi>c</mi></mrow></msub></math>
+are the electron-neutral momentum-transfer cross sections for the elastic scattering
+of state <math><msub><mi>k</mi><mi>i</mi></msub></math>, the inelastic excitation
+<math><mrow><msub><mi>k</mi><mi>i</mi></msub><mo stretchy="false">→</mo></mrow><mrow><msub><mi>k</mi><mi>j</mi></msub></mrow></math>,
+and the superelastic de-excitation <math><mrow><msub><mi>k</mi><mi>j</mi></msub>
+<mo stretchy="false">→</mo></mrow><mrow><msub><mi>k</mi><mi>i</mi></msub></mrow></math>,
+respectively. The latter cross sections, whose magnitudes are usually much smaller
+than those of <math><msubsup><mi>σ</mi><mrow><msub><mi>k</mi><mi>i</mi></msub>
+<mo separator="true">,</mo><mi>c</mi></mrow><mrow><mtext></mtext><mi>el</mi></mrow></msubsup></math>,
+are often taken assuming an isotropic scattering (also due to the lack of data),
+in which case one can identify the momentum-transfer cross section with the integral
+cross section (integrated over all scattering angles), <i>i.e.</i>
+<math><mrow><msub><mi>σ</mi><mrow><msub><mi>k</mi><mrow><mo form="prefix" stretchy="false" lspace="0em" rspace="0em">(</mo><mi>i</mi><mo separator="true">,</mo><mi>j</mi><mo form="postfix" stretchy="false" lspace="0em" rspace="0em">)</mo></mrow></msub><mo separator="true">,</mo><mi>c</mi></mrow></msub><mo>≃</mo></mrow><mrow><msub><mi>σ</mi><msub><mi>k</mi><mrow><mo form="prefix" stretchy="false" lspace="0em" rspace="0em">(</mo><mi>i</mi><mo separator="true">,</mo><mi>j</mi><mo form="postfix" stretchy="false" lspace="0em" rspace="0em">)</mo></mrow></msub></msub></mrow></math>.
+Also, the elastic momentum-transfer cross section is usually identified with that
+of the highly-populated ground-state of the gas. Therefore</p>
+<math display="block" class="tml-display" style="display:block math;"><mrow><msub><mi>σ</mi><mrow><mi>k</mi><mo separator="true">,</mo><mi>c</mi></mrow></msub><mo form="prefix" stretchy="false">(</mo><mi>u</mi><mo form="postfix" stretchy="false">)</mo><mo>≃</mo><msubsup><mi>σ</mi><mrow><mi>k</mi><mo separator="true">,</mo><mi>c</mi></mrow><mrow><mtext></mtext><mi>el</mi></mrow></msubsup><mo form="prefix" stretchy="false">(</mo><mi>u</mi><mo form="postfix" stretchy="false">)</mo><mo>+</mo><mrow><munder><mo movablelimits="false">∑</mo><mrow><mi>i</mi><mo separator="true">,</mo><mi>j</mi><mo>&gt;</mo><mi>i</mi></mrow></munder></mrow><mrow><mo fence="true" form="prefix">[</mo><msub><mi>ξ</mi><msub><mi>k</mi><mi>i</mi></msub></msub><msub><mi>σ</mi><msub><mi>k</mi><mrow><mo form="prefix" stretchy="false" lspace="0em" rspace="0em">(</mo><mi>i</mi><mo separator="true">,</mo><mi>j</mi><mo form="postfix" stretchy="false" lspace="0em" rspace="0em">)</mo></mrow></msub></msub><mo form="prefix" stretchy="false">(</mo><mi>u</mi><mo form="postfix" stretchy="false">)</mo><mo>+</mo><msub><mi>ξ</mi><msub><mi>k</mi><mi>j</mi></msub></msub><msub><mi>σ</mi><msub><mi>k</mi><mrow><mo form="prefix" stretchy="false" lspace="0em" rspace="0em">(</mo><mi>j</mi><mo separator="true">,</mo><mi>i</mi><mo form="postfix" stretchy="false" lspace="0em" rspace="0em">)</mo></mrow></msub></msub><mo form="prefix" stretchy="false">(</mo><mi>u</mi><mo form="postfix" stretchy="false">)</mo><mo fence="true" form="postfix">]</mo></mrow><mspace width="0.2778em"></mspace><mi>.</mi></mrow></math><br>
+<p>Note that electron-neutral anisotropic scattering can indeed be handled in a
+two-term Boltzmann solver by using momentum-transfer cross sections in the equations
+above and the EBE (see Reference Manual [<a href="References.html#R11">11</a>]),
+<b>for mechanisms with low excitation-thresholds</b> (such as rotational
+excitations / deexcitations) [<a href="References.html#R17">17</a>]. The IST-Lisbon
+database on LXCat provides momentum-transfer cross sections for these mechanisms
+in the case of some gases (see section <a href="Auxiliary_input_files.html#1">4.1</a>).<br>
+The solution of the EBE requires information on both the "elastic" and the "total"
+momentum-transfer cross sections for <b>all</b> the electronic target-states of the gas,
+but the way to obtain it depends on the momentum-transfer data available for each
+gas. If the "elastic" momentum-transfer cross section is available, the equation above
+can be used directly to deduce the corresponding "total"
+<math><msub><mi>σ</mi><mrow><mi>k</mi><mo separator="true">,</mo><mi>c</mi></mrow></msub></math>,
+knowing the electron-scattering inelastic / superelastic cross sections for the
+transitions considered together with the relevant populations, to be self-consistently
+determined (if possible) within a kinetic model. Conversely, if the data available
+is for a "total" momentum-transfer cross section, which in databases is usually
+termed as "effective" <math><msubsup><mi>σ</mi><mrow><mi>k</mi><mo separator="true">,</mo>
+<mi>c</mi></mrow><mrow><mtext></mtext><mi>eff</mi></mrow></msubsup></math>, then
+the elastic momentum-transfer cross section can be deduced from</p>
+<math display="block" class="tml-display" style="display:block math;"><mrow><msubsup><mi>σ</mi><mrow><mi>k</mi><mo separator="true">,</mo><mi>c</mi></mrow><mrow><mtext></mtext><mi>el</mi></mrow></msubsup><mo>=</mo><msubsup><mi>σ</mi><mrow><mi>k</mi><mo separator="true">,</mo><mi>c</mi></mrow><mrow><mtext></mtext><mi>eff</mi></mrow></msubsup><mo>−</mo><mrow><munder><mo movablelimits="false">∑</mo><mrow><mi>i</mi><mo separator="true">,</mo><mi>j</mi><mo>&gt;</mo><mi>i</mi></mrow></munder></mrow><mrow><mo fence="true" form="prefix">[</mo><msubsup><mi>ξ</mi><msub><mi>k</mi><mi>i</mi></msub><mrow><mtext></mtext><mi>prescribed</mi></mrow></msubsup><msub><mi>σ</mi><msub><mi>k</mi><mrow><mo form="prefix" stretchy="false" lspace="0em" rspace="0em">(</mo><mi>i</mi><mo separator="true">,</mo><mi>j</mi><mo form="postfix" stretchy="false" lspace="0em" rspace="0em">)</mo></mrow></msub></msub><mo>+</mo><msubsup><mi>ξ</mi><msub><mi>k</mi><mi>j</mi></msub><mrow><mtext></mtext><mi>prescribed</mi></mrow></msubsup><msub><mi>σ</mi><msub><mi>k</mi><mrow><mo form="prefix" stretchy="false" lspace="0em" rspace="0em">(</mo><mi>j</mi><mo separator="true">,</mo><mi>i</mi><mo form="postfix" stretchy="false" lspace="0em" rspace="0em">)</mo></mrow></msub></msub><mo fence="true" form="postfix">]</mo></mrow><mspace width="0.2778em"></mspace><mo separator="true">,</mo></mrow></math><br>
+<p>where the populations <math><msubsup><mi>ξ</mi><msub><mi>k</mi><mi>i</mi></msub>
+<mrow><mtext></mtext><mi>prescribed</mi></mrow></msubsup></math> and
+<math><msubsup><mi>ξ</mi><msub><mi>k</mi><mi>j</mi></msub><mrow><mi>prescribed</mi>
+</mrow></msubsup></math> correspond to prescribed distributions for the vibrational
+states with the electronic ground-state of the gas and for the rotational states
+with the vibrational ground-state of the electronic ground-state of the gas. Ideally,
+the distributions should be coherent with the measured / estimated data of
+<math><msubsup><mi>σ</mi><mrow><mi>k</mi><mo separator="true">,</mo><mi>c</mi></mrow>
+<mrow><mtext></mtext><mi>eff</mi></mrow></msubsup></math> allowing to obtain a
+<i>unique</i> result (density independent) for the elastic cross section.</p>
+<p><b>The prescription of populations <math><msubsup><mi>ξ</mi><msub><mi>k</mi><mrow>
+<mi>i</mi><mo>,</mo><mi>j</mi></mrow></msub><mrow><mtext></mtext><mi>prescribed</mi></mrow></msubsup></math>
+by the user is strongly discouraged and should be taken with extreme care, since
+the values of these populations are directly used above without any checking or
+processing. In any case, this feature is to be used only when an "effective"
+momentum-transfer cross section is provided, instead of an "elastic". By default,
+prescribed LoKI-B adopts a Boltzmann distribution at 300 K for
+<math><msubsup><mi>ξ</mi><msub><mi>k</mi><mrow><mi>i</mi><mo>,</mo><mi>j</mi></mrow></msub>
+<mrow><mi>prescribed</mi></mrow></msubsup></math>, but the user can modify this
+choice.</b></p>
+Note also the following:
+<ul>
+<li>when the collisional data for a gas includes an electron-impact "effective"
+momentum-transfer cross section: (i) it is assumed that it corresponds to an electronic
+momentum-transfer cross section; and (ii) the code evaluates an elastic momentum-transfer
+cross section and uses this <b>same</b> cross section for <b>all</b> the electronic
+target-states of the gas;</li>
+<li>when the collisional data for a gas includes an electron-impact "elastic"
+momentum-transfer cross section for a given state (electronic, vibrational or rotational),
+the user must provide <b>individual</b> elastic momentum-transfer cross sections for
+<b>each</b> target-sibling of that state.<br>
+For example, if N<sub>2</sub>(X,v=0-10) and N<sub>2</sub>(A) are targets, the user can
+provide "elastic" momentum-transfer cross sections: (i) for the 11 vibrational states
+N<sub>2</sub>(X,v=0-10) and for the electronic state N<sub>2</sub>(A); or (ii) for the
+2 electronic states N<sub>2</sub>(X) and N<sub>2</sub>(A). However, it cannot simply provide
+"elastic" momentum-transfer cross sections for N<sub>2</sub>(X,v=0) and N<sub>2</sub>(A).
+</li>
+</ul>
+</li>
+<li>In <tt>CARgases</tt>  the user can specify the gas or gases (indicated as a
+list of gas names) for which the continuous approximation for rotations (CAR)
+[<a href="References.html#R18">18</a>] should be activated in the simulations
+(see Reference Manual [<a href="References.html#R11">11</a>]). When the CAR is not
+to be used, this field must be removed or commented.<br>
+<p><b>Note that the CAR approach, to describe the effect of rotational
+inelastic/superelastic mechanisms, is valid only for some homonuclear diatomic
+molecules, such as N<sub>2</sub> and O<sub>2</sub> for which it was tested. In general,
+for rotations, the discrete approach of the collision operator should be adopted instead.
+(see Reference Manual [<a href="References.html#R11">11</a>])</b>.</p></li>
+<li>In <tt>gasProperties</tt> the user can specify the relevant properties of the
+different gases used in the simulations, such as<br>
+<tt>mass<br>
+fraction<br>
+harmonicFrequency<br>
+anharmonicFrequency<br>
+rotationalConstant<br>
+electricQuadrupoleMoment<br>
+OPBParameter</tt><br>
+<ul>
+<li> It is <b>mandatory</b> to specify the values of <tt>mass</tt> and <tt>fraction</tt>.
+The latter should add to 1, when summed over all gases used in the simulations;</li>
+<li><tt>harmonicFrequency</tt> and <tt>anharmonicFrequency</tt> are optional, and
+are used to evaluate the energy of the different vibrational states by assuming
+an harmonic / anharmonic oscillator model;</li>
+<li><tt>rotationalConstant</tt> is optional, and is used to evaluate the energy
+of the different rotational states by assuming a rigid-rotor model.</li>
+<li><tt>rotationalConstant</tt> and <tt>electricQuadrupoleMoment</tt> are optional,
+and are used when adopting the CAR approach for homonuclear diatomic molecules.
+In the latter case the code returns an error message if these parameters are not
+specified;</li>
+<li><tt>OPBParameter</tt> is optional and corresponds to the value of the <i>w</i>
+parameter to be used above, when adopting the <tv>usingSDCS</tv> mode for the
+ionisation operator.</li>
+</ul>
+The values of the different gas properties can be specified using one of the
+following methods:
+<ul>
+<li>"Direct input" (see example below)<br>
+<tt>N2</tt> <tv>= 1</tv><br>
+<tt>N</tt> <tv>= 0</tv><br>
+<b>When using the "direct input" method, properties must be set only for those gases
+used in the simulations, <i>i.e.</i> those listed in the specified LXCat files.</b></li>
+<li>"Property file" (see example below; for more information about "property files"
+see section <a href="Auxiliary_input_files.html#2">4.2</a>).<br>
+<tt>mass:</tt> <tv>Databases/masses.txt</tv><br>
+<b>When using the "property file" method, it is possible to specify the properties
+of gases that are not used in the simulations. LoKI-B handles input files as
+"databases", where it searches only for the information required.</b></li>
+</ul>
+</li>
+<li> In <tt>stateProperties</tt> the user can specify the properties of the states
+of the different gases used in the simulations, in accordance with the information
+retrieved from the LXCat files. The properties available are<br>
+<tt>energy<br>
+statisticalWeight<br>
+population</tt><br>
+<ul>
+<li><tt>energy</tt> and <tt>statisticalWeight</tt> are optional, and can be used
+for the code to evaluate the <tt>population</tt> of some set of states, for example
+adopting a given distribution;</li>
+<li><tt>statisticalWeight</tt> is <b>mandatory</b> for those states appearing in
+the LXCat files as involved in second-kind collisions (mechanisms tagged with a
+double-arrow ⟷), in which case the Klein-Rosseland relation
+[<a href="References.html#R19">19</a>] is used to obtain the superelastic cross
+section from the corresponding inelastic.</p>
+<p><b>In general, the</b> <tt>statisticalWeight</tt> <b>of a state corresponds to
+the product of the statistical weights <i>g</i> associated with the different
+partition functions (electronic, vibrational, rotation) of this state. For example,
+the statistical weight of states N<sub>2</sub>(X,v=0,J) should be set as
+<math><mrow><mi>g</mi><mo form="prefix" stretchy="false">[</mo><msub><mpadded lspace="0"><mi mathvariant="normal">N</mi></mpadded><mn>2</mn></msub><mrow><mo form="prefix" stretchy="false" lspace="0em" rspace="0em">(</mo><mpadded lspace="0"><mi mathvariant="normal">X</mi></mpadded><mo separator="true">,</mo><mpadded lspace="0"><mi mathvariant="normal">v</mi></mpadded><mo>=</mo><mn>0</mn><mo separator="true">,</mo><mpadded lspace="0"><mi mathvariant="normal">J</mi></mpadded><mo form="postfix" stretchy="false" lspace="0em" rspace="0em">)</mo></mrow><mo form="postfix" stretchy="false">]</mo><mo>=</mo></mrow><mrow><msub><mi>g</mi><mpadded lspace="0"><mi mathvariant="normal">X</mi></mpadded></msub><mo>×</mo></mrow><mrow><msub><mi>g</mi><mrow><mpadded lspace="0"><mi mathvariant="normal">v</mi></mpadded><mo>=</mo><mn>0</mn></mrow></msub><mo>×</mo></mrow><mrow><msub><mi>g</mi><mi>J</mi></msub><mo>=</mo></mrow><mrow><mn>1</mn><mo>×</mo></mrow><mrow><mn>1</mn><mo>×</mo></mrow><mrow><mn>3</mn><mrow><mo fence="true" form="prefix">[</mo><mn>1</mn><mo>+</mo><mfrac><mn>1</mn><mn>2</mn></mfrac><mrow><mo fence="true" form="prefix">(</mo><mn>1</mn><mo>+</mo><mo form="prefix" stretchy="false">(</mo><mo form="prefix" stretchy="false">−</mo><mn>1</mn><msup><mo form="postfix" stretchy="false">)</mo><mi>J</mi></msup><mo fence="true" form="postfix">)</mo></mrow><mo fence="true" form="postfix">]</mo></mrow><mo form="prefix" stretchy="false">(</mo><mn>2</mn><mi>J</mi><mo>+</mo><mn>1</mn><mo form="postfix" stretchy="false">)</mo></mrow></math>,
+where the rotational statistical weight <math><msub><mi>g</mi><mi>J</mi></msub></math>
+includes also the contribution of the hyperfine splitting resulting from the coupling
+between the electron and the nuclear spin. Note, however, that the statistical weights
+are used only to handle second-kind collisions (see Reference Manual [<a href="References.html#R11">11</a>])
+and to define prescribed distributions of populations (e.g, see section <a href="Auxiliary_functions.html#1">5.1</a>),
+where they always appear as ratios <i>g<sub>j</sub>/g<sub>i</sub></i> with <i>i,j</i> corresponding
+to sibling states (i.e. both electronic, or both  vibrational or both rotational). Therefore,
+the results are not changed if the</b> <tt>statisticalWeight</tt> <b>of a state is
+defined only for the partition function <i>intrinsic</i> to that state; for example,
+the statistical weight of <i>rotational</i> states N₂(X,v=0,J) can be defined simply as
+<math><mrow><mi>g</mi><mo form="prefix" stretchy="false">[</mo><msub><mpadded lspace="0"><mi mathvariant="normal">N</mi></mpadded><mn>2</mn></msub><mrow><mo form="prefix" stretchy="false" lspace="0em" rspace="0em">(</mo><mpadded lspace="0"><mi mathvariant="normal">X</mi></mpadded><mo separator="true">,</mo><mpadded lspace="0"><mi mathvariant="normal">v</mi></mpadded><mo>=</mo><mn>0</mn><mo separator="true">,</mo><mpadded lspace="0"><mi mathvariant="normal">J</mi></mpadded><mo form="postfix" stretchy="false" lspace="0em" rspace="0em">)</mo></mrow><mo form="postfix" stretchy="false">]</mo><mo>=</mo></mrow><mrow><msub><mi>g</mi><mi>J</mi></msub><mo>=</mo></mrow><mrow><mn>3</mn><mrow><mo fence="true" form="prefix">[</mo><mn>1</mn><mo>+</mo><mfrac><mn>1</mn><mn>2</mn></mfrac><mrow><mo fence="true" form="prefix">(</mo><mn>1</mn><mo>+</mo><mo form="prefix" stretchy="false">(</mo><mo form="prefix" stretchy="false">−</mo><mn>1</mn><msup><mo form="postfix" stretchy="false">)</mo><mi>J</mi></msup><mo fence="true" form="postfix">)</mo></mrow><mo fence="true" form="postfix">]</mo></mrow><mo form="prefix" stretchy="false">(</mo><mn>2</mn><mi>J</mi><mo>+</mo><mn>1</mn><mo form="postfix" stretchy="false">)</mo></mrow></math>
+(see also section <a href="Auxiliary_functions.html#1">5.1</a>);</b></p></li>
+<li>It is <b>mandatory</b> to specify the values of <tt>population</tt> for all
+states considered as <b>targets of electron-scattering mechanisms</b>, <i>e.g.</i>
+the vibrational distribution of an electronic ground-state.<br>
+The user should <b>not</b> define populations for the states that are only involved
+in electron-scattering extra collisions (included in the <tt>LXCatFilesExtra</tt>),
+since the corresponding cross sections are not used in the calculation of the EEDF;</li>
+<li>The values of the different populations should be properly normalized to 1,
+when summed over all sibling states.</li></ul>
+The values of the different properties of states can be specified using one of the
+following methods (note that the syntax supports the wildcard character *):
+  <ul>
+  <li>"Direct input" (see example below)<br>
+  <tt>N2(X,v=*)</tt> <tv>= 1.0</tv></li>
+  <li>"Property functions" (see example below; for more information about "property
+  functions" see section <a href="Auxiliary_functions.html#1">5.1</a>)<br>
+  <tt>N2(X,v=*)</tt> <tv>= harmonicOscillatorEnergy</tv><br>
+  <b>When using the "direct input" method or the "property functions" method, properties
+  must be set only for those gases and states used in the simulations, i.e. those
+  listed in the specified LXCat files</b></li>
+  <li>"Property file" (see example below; for more information about "property files"
+  see section <a href="Auxiliary_input_files.html#2">4.2</a>)<br>
+  <tv>Nitrogen/N2_vibpop.txt</tv><br>
+  <b>When using the "property file" method, it is possible to specify the properties of
+  gases and states that are not used in the simulations. LoKI-B handles input files as
+  "databases", where it searches only for the information required.</b></li>
+  </ul></li>
+  <li> In <tt>numerics</tt> the user can specify the numerical details of the
+  simulations. The configuration parameters available are<br>
+  <tt>energyGrid<br>
+  maxPowerBalanceRelError<br>
+  nonLinearRoutines<br></tt>
+  <ul>
+  <li> The <tt>energyGrid</tt> allows the user to specify the properties of the
+  energy grid for simulations in LoKI-B (see Reference Manual [<a href="References.html#R11">11</a>]):
+    <ul>
+    <li><tt>maxEnergy</tt>, corresponding to the value of <math><msub><mi>u</mi>
+    <mi>umax</mi></msub></math> (in eV) (this is a <b>mandatory</b> parameter);</li>
+    <li><tt>cellNumber</tt>, is an integer corresponding to the number of cells
+    <i>N > 0</i> of the energy grid (this is a <b>mandatory</b> parameter);</li>
+    <li><tt>smartGrid</tt>, activating a "smart grid" that will automatically adjust
+    the maximum energy of the grid, as to ensure a user-prescribed number of decades
+    in the fall of the EEDF, between <math><msub><mi>f</mi><mi>1</mi></msub></math>
+    and <math><msub><mi>f</mi><mi>N</mi></msub></math> (this is an optional parameter).
+    This option is particularly relevant for simulations spanning different values
+    of <i>E/N</i> or <i>T<sub>e</sub></i>. The configuration parameters are:
+      <ul>
+      <li><tt>minEedfDecay</tt>, is an integer corresponding to the minimum number
+      of decade-fall for the EEDF;</li>
+      <li><tt>maxEedfDecay</tt>, is an integer corresponding to the minimum number
+      of decade-fall for the EEDF (<tt>maxEedfDecay</tt> > <tt>minEedfDecay</tt>);</li>
+      <li><tt>updateFactor</tt>, corresponding to the factor by which the <tt>maxEnergy</tt>
+      is increased or decreased, in the automatic adjustment of the energy grid
+      (0 &#60; <tt>updateFactor</tt> &#60; 1).</li>
+      </ul>
+      <b>Note that the "smart grid" is as "smart" as the user that control its properties.
+      So, if you have doubts on how this works, it is better to ignore this feature.
+      However, if you decide to activate the "smart grid", you should consider the
+      following:
+        <ol>
+        <li>When the smart grid is activated, the</b> <tt>maxEnergy</tt> <b>parameter
+        is the initial value for the maximum energy of the grid. Please try to provide
+        the best possible approximation for it, in order to avoid unnecessary
+        iterations that will degrade the run time;</li>
+        <li>Do not specify very restrictive conditions for the EEDF, for example by
+        setting</b> <tt>minEedfDecay</tt> <b>to 20 and</b> <tt>maxEedfDecay</tt> <b>to
+        21, since this condition can only be satisfied by imposing a very-small</b>
+        <tt>updateFactor</tt>, <b>which will also degrade the run time. Typical
+        values for the decade-fall are within 10 to 25, considering not only the use
+        of double precision, but also the order of magnitude of the various quantities
+        (kinetic energy, cross sections) multiplying the EEDF in the calculations;</li>
+        <li>Use a "reasonable" value for the</b> <tt>updateFactor</tt> <b>parameter.
+        Very-small values will decrease the performance of the code, whereas very-large
+        values will make extremely diffcult for the code to satisfy the decade-fall
+        imposed for the EEDF. Recommended values are usually between 0.05 and 0.2.</b></li>
+        </ol>
+        </b>
+      </li>
+    </ul>
+  </li>
+  <li>The <tt>maxPowerBalanceRelError</tt> allows the user to specify the threshold
+  value for the error of the relative power balance, above which the code <b>returns
+  a warning message</b>. The typical threshold value is &#8773; 10<sup>-9</sup> - 10<sup>-8</sup>.
+  (This is a <b>mandatory</b>  parameter). Note that this parameter is not active in time-dependent simulations, in
+  which case the "power balance" corresponds to the value of the intrinsic time-change
+  of the electron mean energy, at unit gas density (see Reference Manual [<a href="References.html#R11">11</a>]);</li>
+  <li>In <tt>nonLinearRoutines</tt> the user can specify several parameters for the
+  configuration of the algorithms with the non-linear routines, dealing with the
+  non-conservative collision operators (ionisation and attachment) and the
+  electron-electron collisions operator (see Reference Manual [<a href="References.html#R11">11</a>]).
+    <ul>
+    <li><tt>algorithm:</tt> the user can choose the nonlinear algorithm to adopt
+    in the simulations. (This is a <b>mandatory</b> parameter).
+      <ul>
+      <li><tt>mixingDirectSolutions</tt>, which uses two nested iterative algorithms,
+      based on successive direct solutions.<br>
+      This algorithm is recommended in general.</li>
+      <li><tt>temporalIntegration</tt>, which uses a relaxation method.<br>
+      This algorithm is recommended only in the case of strong nonlinear effects
+      (<i>e.g.</i> high electronegativity and/or high ionization degrees).<br>
+      This algorithm <b>MUST</b> be chosen for time-dependent simulations, <i>e.g.</i>
+      when LoKI-B runs independently for electrons subjected to a pulsed electric-field.</li>
+      </ul>
+    </li>
+    <li><tt>mixingParameter:</tt> the user <b>MUST</b> define the value (between
+    0 and 1) of a mixing parameter, when choosing the <tt>mixingDirectSolutions</tt>
+    algorithm.<br>
+    <b>Note that the mixing parameter should not be zero</b>, as the non-linear
+    operators will not converge, in this case.</li>
+    <li><tt>maxEedfRelError:</tt> the user can define the stop criterion for the
+    <tt>nonLinearRoutines</tt>, by defining the maximum value for the relative
+    variations of the EEDF, between two consecutive iterations.
+    The typical value is 10<sup>-9</sup>. (This is a <b>mandatory</b> parameter). Note that
+    this parameter is not active in time-dependent simulations, in which case the
+    convergence criterion is defined by the relative tolerance <tt>RelTol</tt>,
+    imposed as parameter of the <tt>temporalIntegration</tt> solver (see Reference
+    Manual [<a href="References.html#R11">11</a>]);</li>
+    <li><tt>odeSetParameters:</tt> this is an optional field where the user can
+    define specific options for the <tt>temporalIntegration</tt> solver. A detailed
+    description of the different options can be found in the MATLAB documentation
+    [<a href="References.html#R20">20</a>]. Example of useful options are given below.
+      <ul>
+      <li><tt>AbsTol:</tt> is the value of the absolute tolerance for the
+      <tt>temporalIntegration</tt> algorithm. The typical value is 10<sup>-300</sup>.</li>
+      <li><tt>RelTol:</tt> is the value of the relative tolerance for the
+      <tt>temporalIntegration</tt> algorithm. The typical value is 10<sup>-6</sup>.</li>
+      <li><tt>MaxStep:</tt> is the maximum value for the step of the advancing
+      parameter with the <tt>temporalIntegration</tt> algorithm. The typical
+      value is 10<sup>-7</sup>.</li>
+      </ul>
+    </li>
+    </ul>
+  </li>
+  </ul>
+  </li>
+</ul>
+</div>
+<p class="footer">
+<br>
+<a href="https://www.mathworks.com/products/matlab/">Published with MATLAB&reg; R2024b</a>
+<br>
+</p>
+</div>
+
+</body>
+</html>

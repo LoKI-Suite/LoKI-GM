@@ -1,0 +1,138 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%   DEFAULT CONFIGURATION FILE LOKI-C (pulsed)  %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% --- configuration of the working conditions ---
+workingConditions:
+  reducedField: pulse@reducedFieldFromCurrentFile, 1e-12, 1e-6, logspace, 200, CO2/pulse/currentPulseFile.txt % pulse@functionName, firstStep, finalTime, samplingType, samplingPoints, aditionalParameters
+  electronTemperature: 300*Constant.boltzmann/Constant.electronCharge   % in eV
+  excitationFrequency: 0                                                % in Hz
+  gasPressure: 760*133.332                                              % in Pa
+  gasTemperature: 2500                                                  % in K      (average gas temperature)
+  nearWallTemperature: 300                                              % in K      (near wall temperature)
+  wallTemperature: 300                                                  % in K      (wall temperature)
+  extTemperature: 300                                                   % in K      (external temperature)
+  surfaceSiteDensity: 1e19                                              % in m-2    (used for surface kinetics)
+  electronDensity: 760*133.332/2500/1.38064852e-23*1E-3                 % in m-3
+  chamberLength: 5E-3                                                   % in m
+  chamberRadius: 0.5e-3                                                 % in m
+  totalSccmInFlow: 10                                                   % in sccm
+  totalSccmOutFlow: ensureIsobaric                                      % a number  (in sccm) or a model: totalSccmInFlow, ensureIsobaric
+
+% --- configuration of the electron kinetics ---
+electronKinetics:
+  isOn: false                            % true or false (to activate or deactivate the electron Kinetics)
+
+% --- configuration of the heavy-species for the kinetic scheme ---
+chemistry:
+  isOn: true
+  convergenceParameter: electronDensity % electronDensity or dischargeCurrent or dischargePowerDensity
+  thermalModel: 
+    isOn: false                         % true or false (to activate or deactivate the thermal model)
+    boundary: wall                      % wall or external (location of the model boundary condition)
+    wallFraction: 1                     % fraction of energy released at the wall that returns to the gas/plasma volume (check fw parameter in the documentation)
+    intConvCoeff: 120/1.6021766208e-19  % in eV s-1 m-2 K-1 (internal convection coefficient of the cylindrical wall)
+    extConvCoeff: 15/1.6021766208e-19   % in eV s-1 m-2 K-1 (external convection coefficient of the cylindrical wall)
+    includeJouleHeating: false
+  chemFiles: 
+    - Oxygen/pulse/oxygen_novib_pulse.chem
+    - CO2/pulse/CO2_novib.chem
+    - CO/pulse/CO_simple_X.chem
+  lookUpTables:
+    lookUpMethod: localField            % localField or localEnergy
+    power: CO2/pulse/lookUpTablePower.txt
+    swarm: CO2/pulse/lookUpTableSwarm.txt
+    rateCoeff: CO2/pulse/lookUpTableRateCoeff.txt
+  gasProperties:                        % inherited from the configuration of the electron kinetics
+    mass: Databases/masses.txt
+    harmonicFrequency: Databases/harmonicFrequencies.txt
+    anharmonicFrequency: Databases/anharmonicFrequencies.txt
+    rotationalConstant: Databases/rotationalConstants.txt
+    electricQuadrupoleMoment: Databases/quadrupoleMoment.txt
+    fraction:
+      - O2 = 0.0   
+      - O = 0.0
+      - CO2 = 1  
+      - CO = 0.0      
+    heatCapacity:                       % in eV K-1 mol-1 (heat capacity functions at constant pressure)
+      - O2 = oxygenHeatCapacity
+      - O = oxygenAtomHeatCapacity
+      - O3 = ozoneHeatCapacity 
+    thermalConductivity:                % in eV s-1 m-1 K-1 (thermal conductivity functions)
+      - O2 = oxygenThermalConductivity 
+      - O = oxygenAtomThermalConductivity
+      - O3 = oxygenThermalConductivity
+    inFlowFraction: 
+      - CO2 = 1
+    lennardJonesDistance: Databases/lennardJonesDistance.txt
+    lennardJonesDepth: Databases/lennardJonesDepth.txt
+  stateProperties:
+    reducedMobility:
+      - O(+,gnd) = tableEoNDependentMobility@Databases/IonMobilities/O+_O2.txt
+      - O2(+,X) = tableEoNDependentMobility@Databases/IonMobilities/O2+_O2.txt
+      - O(-,gnd) = tableEoNDependentMobility@Databases/IonMobilities/O-_O2.txt
+      - CO2(+,X) = 1.1e-4*101324.72/(273*1.38064852e-23) 
+      - CO(+,X) = 1.8e-4*101324.72/(273*1.38064852e-23) 
+    reducedDiffCoeff:
+      - O2(+,X) = temperatureDependentEinsteinDiffCoeff@gasTemperature
+      - O(+,gnd) = temperatureDependentEinsteinDiffCoeff@gasTemperature
+      - CO2(+,X) = generalizedTemperatureDependentCoeff@1.5e20/sqrt(273),gasTemperature,0.5 
+      - CO(+,X) = generalizedTemperatureDependentCoeff@1.5e20/sqrt(273),gasTemperature,0.5 
+    energy:
+      - O2(X) = 0
+      - O2(a1Dg) = 0.98
+      - O2(b1Sg+) = 1.63
+      - O2(A3Su+_C3Du_c1Su-) = 4.5
+      - O(3P) = 2.58
+      - O(1D) = 4.55
+      - O3(X) = 1.48
+      - O3(exc) = 1.57
+      - O2(+,X) = 12.14
+      - O(+,gnd) = 16.26
+      - O(-,gnd) = 1.05
+      - CO2/energyVibLevCO2X.txt
+      - CO/energyVibLevCOX.txt  
+    statisticalWeight:
+      - O2(X) = 3
+      - O2(a1Dg) = 2 
+      - O2(b1Sg+) = 1 
+      - O(3P) = 9
+      - O(1D) = 5 
+      - O2(A3Su+_C3Du_c1Su-) = 10       
+    population:
+      - O(3P) = 1.0
+      - O3(X) = 1.0
+      - CO2(*) = 1e-25
+      - CO2(X) = 1.0-1E-3
+      - CO2(+,X) = 1E-3
+      - CO(*) = 1e-25
+      - CO(X) = 1.0
+    inFlowPopulation:
+      - CO2(X) = 1 
+  timeIntegrationConf:
+    odeSolver: ode15s
+    odeSetParameters:               % optional parameters that can be sent to the odeSolver
+      MaxStep: 0.1
+      RelTol: 5e-4
+      % AbsTol: 1e-10
+    
+% --- configuration of the graphical user interface ---
+gui: 
+  isOn: true
+  refreshFrequency: 1
+
+% ---  configuration of the output files ---
+output: 
+  isOn: true
+  folder: simulation_pulsed_chem_1
+  dataFormat: txt                   % only txt is currently supported
+  dataSets:
+%     - inputs
+    - log
+    - rateCoefficients
+    - finalDensities
+    %- finalTemperatures
+    - finalParticleBalance
+    %- finalThermalBalance
+    - chemSolutionTime
+    - chemParameters

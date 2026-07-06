@@ -1,0 +1,309 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<META http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<!--
+This HTML was auto-generated from MATLAB code.
+To make changes, update the MATLAB code and republish this document.
+      -->
+<title>Graphical user interface</title>
+<meta name="generator" content="MATLAB 24.2">
+<link rel="schema.DC" href="http://purl.org/dc/elements/1.1/">
+<meta name="DC.date" content="2025-04-05">
+<meta name="DC.source" content="gui.m">
+<link rel="stylesheet" type="text/css" href="loki.css">
+</head>
+<body>
+<div class="content">
+<h1>Graphical user interface</h1>
+<p>In this field of the setup file the user can set the configuration of the
+Graphical User Interface (GUI). The code below shows the section of the
+<tt>'default_lokibc_setup.in'</tt> file that handles this configuration.</p>
+<pre class="codeinput">
+<span class="comment">% --- configuration of the grafical user interface ---</span>
+gui:
+  isOn: true
+  refreshFrequency: 1
+</pre>
+<p><b>IMPORTANT NOTES:</b></p>
+<div>
+<ul>
+<li>The <tt>isOn</tt> parameter allows the user to activate (<tt>true</tt>) or
+deactivate (<tt>false</tt>) the GUI;</li>
+<li>In <tt>refreshFrequency</tt> the user can control the frequency with which the
+GUI is refreshed. The value of this parameter corresponds to the number of required
+simulations for the GUI to be updated, hence the larger this value the less
+frequently the GUI is updated.<br>
+<b>Note that a very frequent update of the GUI can considerably degrade the run
+time. Note further that the GUI is optimized for Full HD screen resolution.
+Adopting different resolutions may result in anomalous displays.</b></li>
+</ul>
+</div>
+<p>When running LoKI-GM with the GUI activated (<tt>isOn: true</tt>), the graphic
+interface appears as in the following figure:<br>
+<img vspace="5" hspace="5" src="lokigm-GUI-output.webp" alt="loki-GM_GUI" width="800">
+</p>
+
+<ul>
+<li> On the left-hand upper corner, for each run and depending on the selected tab,
+the GUI displays the <b>Results (graphical)</b> of the time evolution of the densities
+of species (in m<sup>−3</sup> for volume densities and m<sup>−2</sup> for surface densities) and the
+gas-related temperatures (<i>Chemistry Vs Time</i>), or the EEDF and the corresponding
+first anisotropy (EEDF), calculated for the self-consistent <i>E/N</i> value obtained
+from the simulations.<br>
+The user can select/unselect a <i>X axis logscale</i> in the <i>Chemistry Vs Time</i>
+graphs, and/or a <i>Y axis logscale</i> in all the graphs (<i>Chemistry Vs Time</i>
+and <i>EEDF</i>).<br>
+The user can select to display the results of a specic Run (rst tab), and/or the results
+for a specic gas (second tab in <i>Chemistry Vs Time</i>), and/or the results for a
+specic species (third tab in <i>Chemistry Vs Time</i>). Each of the previous selections
+adds one or more curves to the graphs (in addition to the gas-related temperatures in
+<i>Chemistry Vs Time</i>).</li>
+<li> On the left-hand lower corner, for each run and depending on the selected tab,
+the GUI displays a summary of the <b>Results (text)</b> that can be found in the output
+files (see section <a href="The_setup_file.html#5">3.5</a>), namely
+<ul>
+<li>in <em>Final densities</em>, quantitative information about the final values of
+the particle balance in the <em>Chemistry</em>, including the absolute density <i>N<sub>ki</sub></i>,
+the population <i>ξ<sub>ki</sub></i> and the relative error of the rate balance equation,
+for each species <i>i</i> of "gas" <i>k</i>, separating the <em>Volume Chemistry</em>
+and the <em>Surface Chemistry</em>; quantitative information about the population <i>ξ<sub>ki</sub></i>
+of each species <i>i</i> of gas <i>k</i> used in the calculation of the <em>Electron Kinetics</em>,
+by solving the EBE. The information is organized by gases and their corresponding states
+(see Reference Manual [<a href="References.html#R11">11</a>]). The final percentage
+100χ<sub>k</sub> % of each gas in the mixture is indicated in square brackets;</li>
+<li>in <em>Final temperatures</em>, quantitative information about the final values of
+the gas-related temperatures that are present in the <tt>workingConditions</tt> object;</li>
+<li>in <em>Chem Parameters</em>, a summary of results relevant for the chemistry
+calculations, <i>e.g.</i> the final values of <i>E/N, p, T<sub>g</sub>, N, Q<sub>out</sub>,
+n<sub>e</sub>, I</i> and/or <i>P/V</i>, and the corresponding relative errors (when
+applicable);</li>
+<li>in <em>Final balance</em>, details about the particle balance for each species, as
+calculated by the Chemistry solver. Note that the same gain/loss rate may appear in
+different places with different values and units, if it relates to a reaction involving
+both volume and surface species;</li>
+<li>in <em>Power balance</em>, details about the electron power balance, as calculated
+by the Boltzmann solver for the self-consistent <i>E/N</i> value obtained from the
+simulations;</li>
+<li>in <em>Swarm Parameters</em>, a summary of the electron swarm parameters, calculated
+for the self-consistent <i>E/N</i> value obtained from the simulations;</li>
+<li>in <em>Rate Coefficients</em>, a summary of the inelastic/superelastic electron
+rate coefficients, calculated for the self-consistent <i>E/N</i> value obtained from
+the simulations, using both the cross sections adopted for solving the EBE and the
+<i>extra</i> set of cross sections dened by the user as additional input data of
+LoKI-B (see section <a href="The_setup_file.html">3</a>). It also displays the
+description of each mechanism.</li>
+</ul>
+</li>
+<li>On the right-hand upper corner, depending on the selected tab, the GUI displays a
+summary of the input <b>Setup</b>, namely
+<ul>
+<li>in <em>setup file</em>, the uncommented lines of the setup file;</li>
+<li>in <em>Rate Coefficients</em>, an interactive list of the reactions included in
+the <tt>chemFiles</tt>. By clicking on each reaction, the GUI shows the main properties
+related with the reaction;</li>
+<li>in <em>Cross Sections</em>, the graphs of the cross sections uploaded for the
+simulations (including both those adopted for solving the EBE and the extra cross
+sections dened by the user as additional input data of LoKI-B). Here, the user can
+select in the appropriated tab which cross section(s) to display.</li>
+</ul>
+</li>
+<li>On the right-hand lower corner, depending on the selected tab, the GUI displays
+a summary of the <b>Status</b> of the simulations, namely
+<ul>
+<li>in <em>Simulation Log</em>, information documenting events relevant to the code
+execution;</li>
+<li>in <em>Chemistry Iterations</em>, graphical and quantitative information on the
+progress of the relative error of the simulations (identifying positive and negative
+error values), as a function of the iteration numbers, for the different nested calculation
+cycles (see Reference Manual, [<a href="References.html#R11">11</a>]), namely (from
+right to left), the <em>Pressure cycle</em>, the <em>Quasineutrality cycle</em> and
+the <em>Global cycle</em>.</li>
+</ul>
+</li>
+</ul>
+
+<p>When <b>running LoKI-B as a standalone tool for <i>electron kinetics stationary
+simulations</i></b> (DC and HF cases) with the GUI activated (<tt>isOn: true</tt>), the graphic
+interface appears as in the following figure:<br>
+<img vspace="5" hspace="5" src="lokib-GUI-output.webp" alt="loki-B_GUI" width="800">
+</p>
+<div>
+</div>
+
+<div>
+<ul>
+<li>On the left-hand upper corner, for each value of <i>E/N</i> (or <i>Tₑ</i>)
+adopted in the simulations and depending on the selected tab, the GUI displays
+the <b>Results (graphical)</b> that can be found in the output files (see Reference
+Manual, [<a href="References.html#R11">11</a>]), namely
+<ul>
+<li>in <i>EEDF</i>, the plot of the EEDF and the corresponding first anisotropy;</li>
+<li>in <i>Electron Reduced Diffusion</i>, the plot of <i>DₑN</i> as a function
+of <i>E/N</i> (or <i>Tₑ</i>);</li>
+<li>in <i>Electron Reduced Mobility</i>, the plot of <i>μₑN</i> (and also
+<math><mrow><mi>ℜ</mi><mo form="prefix" stretchy="false">[</mo><msub><mi>μ</mi>
+<mrow><mi>HF</mi></mrow></msub><mi>N</mi><mo form="postfix" stretchy="false">]</mo></mrow></math>
+and
+<math><mrow><mo>−</mo></mrow><mrow><mi>ℑ</mi><mo form="prefix" stretchy="false">[</mo>
+<msub><mi>μ</mi><mrow><mi>HF</mi></mrow></msub><mi>N</mi><mo form="postfix" stretchy="false">]</mo></mrow></math>
+in a HF case), as a function of <i>E/N</i> (or <i>Tₑ</i>);</li>
+<li>in <i>Electron Reduced Energy Diffusion</i>, the plot of
+<math><mrow><msub><mi>D</mi><mi>ε</mi></msub><mi>N</mi></mrow></math>
+as a function of <i>E/N</i> (or <i>Tₑ</i>);</li>
+<li>in <i>Electron Reduced Energy Mobility</i>, the plot of
+<math><mrow><msub><mi>μ</mi><mi>ε</mi></msub><mi>N</mi></mrow></math>
+as a function of <i>E/N</i> (or <i>Tₑ</i>);</li>
+<li>in <i>Electron Energies</i>, the plot of <i>Tₑ &equiv; (2/3)ε</i> and <i>uₖ</i>,
+as a function of <i>E/N</i> (or <i>Tₑ</i>);</li>
+<li>in <i>Townsend Coefficient</i>, the plot of <i>α/N</i> as a function of
+<i>E/N</i> (or <i>Tₑ</i>);</li>
+<li>in <i>Attachment Coefficient</i>, the plot of <i>η/N</i> as a function of
+<i>E/N</i> (or <i>Tₑ</i>);</li>
+<li>in <i>Power Channels</i>, the plot of the electron energy transferred in different
+channels, relative to the reference power,
+<math><mrow><msub><mpadded lspace="0"><mi mathvariant="normal">Θ</mi></mpadded>
+<mi>x</mi></msub><mi>/</mi><msub><mpadded lspace="0"><mi mathvariant="normal">Θ</mi></mpadded>
+<mpadded lspace="0"><mi>ref</mi></mpadded></msub></mrow></math>,
+as a function <i>E/N</i> (or <i>Tₑ</i>) (see Reference Manual, [<a href="References.html#R11">11</a>]).</li>
+</ul>
+In all the graphs (except for <i>EEDF</i> and <i>Power Channels</i>), the user can select/unselect a <i>X axis logscale</i> and/or a <i>Y axis logscale.</i><br>
+The GUI supports graphs for multiple values of <i>E/N</i> (or <i>Tₑ</i>) and <i>T<sub>g</sub></i>.
+In ths case (i) each curve in the graph <i>EEDF</i> corresponds to a pair of values
+(<i>E/N, T<sub>g</sub></i>) or (<i>Tₑ, T<sub>g</sub></i>): (ii) all other graphs plot
+points/curves for the different <i>T<sub>g</sub></i> values considered.<br>
+GUI support to multiple electron kinetics stationary simulations (with LoKI-B) is currently
+limited to simultaneous variations of these parameters.
+</li>
+<li>On the left-hand lower corner, for each value of <i>E/N</i> (or <i>Tₑ</i>)
+adopted in the simulations and depending on the selected tab, the GUI displays a
+summary of the <b>Results (text)</b> that can be found in the output files (see section
+<a href="functions.html#4">5.4</a>), namely
+<ul>
+<li> in <i>Power balance</i>, details about the electron power balance;</li>
+<li> in <i>Swarm Parameters</i>, a summary of the electron swarm parameters (the
+Townsend coefficient, the attachment coefficient, and the drift velocity are
+only calculated and displayed in a DC case);</li>
+<li>in <i>Rate Coefficients</i>, a summary of the inelastic/superelastic electron
+rate coecients, calculated using both the cross sections adopted for solving the
+EBE and the extra set of cross sections defined by the user as additional input
+data of LoKI-B (see section <a href="The_setup_file.html">3</a>). It also displays the
+description of each mechanism</li>
+</ul>
+</li>
+<li>On the right-hand upper corner, depending on the selected tab, the GUI displays
+a summary of the input <b>Setup</b>, namely
+<ul>
+<li>in <i>Setup file</i>, the uncommented lines of the setup file;</li>
+<li>in <i>Cross Sections</i>, the graphs of the cross sections uploaded for the
+simulations (including both those adopted for solving the EBE and the <i>extra</i>
+cross sections defined by the user as additional input data of LoKI-B). Here, the
+user can select in the appropriated tab which cross section(s) to display.</li>
+</ul>
+</li>
+<li>On the right-hand lower corner, the GUI will display a summary of the <b>Status</b>
+of the <i>Simulation Log</i>, with information documenting events relevant to the code
+execution.</li>
+</ul>
+</div>
+<div>
+<p>When <b>running LoKI-B as standalone tool for <i>electron kinetics time-dependent
+simulations</i></b> (<i>e.g.</i> considering a
+time-dependent, non-oscillatory (<i>ω = 0</i>) electric field) with the GUI activated
+(<tt>isOn:</tt> <tv>true</tv>), the graphic interface looks similar to the last figure.
+In this case
+<ul>
+<li>the <b>Results (graphical)</b> and the <b>Results (text)</b> are displayed as
+a function of the time <i>t</i> (instead of <i>E/N</i> or <i>Tₑ</i> );</li>
+<li>the GUI displays also a <i>Pulse temporal integration progress bar</i> that
+depicts the progress of the simulation as a function of the <i>Integration time</i>,
+indicating also the current <i>Computational time</i>.</li>
+</lu>
+<p>In this case, the GUI also supports graphs for multiple values of <i>t</i> and
+<i>T<sub>g</sub></i>, depicting: (i) curves for pairs of values (<i>t, T<sub>g</sub></i>)
+in the graph <i>EEDF</i>; (ii) points/curves for the different <i>T<sub>g</sub></i>
+values considered, in all other graphs.<br>
+GUI support to multiple electron kinetics time-dependent simulations (with LoKI-B) is
+currently limited to simultaneous variations of <i>E/N(t)</i> and <i>T<sub>g</sub></i>.</p>
+</div>
+<p class="footer">
+<br>
+<a href="https://www.mathworks.com/products/matlab/">Published with MATLAB&reg; R2024b</a>
+<br>
+</p>
+</div>
+<!--
+##### SOURCE BEGIN #####
+%% Graphical user interface
+%
+% In this field of the setup file the user can set the configuration of the
+% Graphical User Interface (GUI). The code below shows the section of the
+% |'default_lokib_setup.in'| file that handles this configuration.
+%
+%   % REPLACE_WITH_DASH_DASH- configuration of the grafical user interface REPLACE_WITH_DASH_DASH-
+%   gui:
+%     isOn: true
+%     refreshFrequency: 1
+%
+% *IMPORTANT NOTES:*
+%
+% * The |isOn| parameter allows the user to activate (|true|) or deactivate
+% (|false|) the GUI.
+% * In |refreshFrequency| the user can control the frequency with which the GUI
+% is refreshed. The value of this parameter corresponds to the number of required
+% simulations for the GUI to be updated, hence the larger this value the less
+% frequently the GUI is updated. <br>
+% *Note that a very frequent update of the GUI can considerably degrade the run
+% time. Note further that the GUI is optimized for Full HD screen resolution.
+% Adopting dierent resolutions may result in anomalous displays.*
+%
+% When running LoKI-B for time-independent simulations (DC or HF cases) with the
+% GUI activated (|isOn: true|), the graphic interface appears as in figure 4.
+%
+% * On the left-hand upper corner, for each value of _E/N_ (or _Tₑ_) adopted in
+% the simulations and depending on the selected tab, the GUI displays the *Results
+% (graphical)* that can be found in the output files, namely
+%
+% # in _EEDF_, the plot of the EEDF and the corresponding first anisotropy;
+% # in _Electron Reduced Diffusion_, the plot of _DₑN_ as a function of _E/N_ (or _Tₑ_);
+% # in _Electron Reduced Mobility_, the plot of _μₑN_ (and also R[μHF N ]
+% and −I[μHF N ] in a HF case), as a function of _E/N_ (or _Tₑ_);
+% # in _Electron Reduced Energy Diffusion_, the plot of DεN as a function of
+% _E/N_ (or _Tₑ_);
+% # in _Electron Reduced Energy Mobility_, the plot of με N as a function of _E/N_ (or _Tₑ_);
+% # in _Electron Energies_, the plot of _Tₑ ≡ (2/3)ε_ and _uₖ_ , as a function of _E/N_ (or _Tₑ_);
+% # in _Townsend Coefficient_, the plot of _α/N_ as a function of _E/N_ (or _Tₑ_);
+% # in _Attachment Coefficient_, the plot of _η/N_ as a function of _E/N_ (or _Tₑ_);
+% # in _Power Channels_, the plot of the electron energy transferred in different
+% channels, relative to the reference power, Θx /Θref , as a function _E/N_ (or
+% _Tₑ_) (see section 3).
+%
+% In all the graphs (except for _EEDF_ and _Power Channels_), the user can
+% select/unselect a _X axis logscale_ and/or a _Y axis logscale._
+%
+% * On the right-hand upper corner, depending on the selected tab, the GUI displays
+% a summary of the input *Setup*, namely
+%
+% # in _Setup file_, the uncommented lines of the setup file;
+% # in _Cross Sections_, the graphs of the cross sections uploaded for the simulations
+% (including both those adopted for solving the EBE and the _extra_ cross sections
+% defined by the user as additional input data of LoKI-B). Here, the user can select
+% in the appropriated tab which cross section(s) to display.
+%
+% * On the right-hand lower corner, the GUI will display a summary of the *Status*
+% of the _Simulation Log_, with information documenting events relevant to the code execution.
+%
+% When running LoKI-B for time-dependent simulations (_e.g._ considering a
+% time-dependent, non-oscillatory (_ω = 0_) electric field) with the GUI activated
+% (|isOn: true|), the graphic interface looks similar to that of figure 4. In this case
+%
+% * the *Results (graphical)* and the *Results (text)* are displayed as a function
+% of the time _t_ (instead of _E/N_ or _Tₑ_ );
+% * the GUI displays also a |Pulse temporal integration progress bar| that
+% depicts the progress of the simulation as a function of the |Integration time|,
+% indicating also the current |Computational time|.
+
+##### SOURCE END #####
+-->
+</body>
+</html>

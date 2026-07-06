@@ -1,0 +1,463 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<META http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+<title>Auxiliary input files</title>
+<meta name="generator" content="MATLAB 24.2">
+<link rel="schema.DC" href="http://purl.org/dc/elements/1.1/">
+<meta name="DC.date" content="2025-03-14">
+<link rel="stylesheet" type="text/css" href="loki.css">
+</head>
+
+
+<body>
+<div class="content">
+<h1>Auxiliary input files</h1>
+
+<p>This section gives detailed information on the configuration of the different
+auxiliary input files used by LoKI-B, namely on the notation to be adopted in the
+description of the species and the electron-scattering mechanisms involved in the
+simulations.</p>
+<p>The auxiliary input files should be located in the input folder <tt>[repository
+folder]/LoKI-B_v2.2.0/Code/Input/</tt> or in any subfolder within it. They are
+plain text files, although some can display extensions different than *.txt, for
+the sake of folder organisation.</p>
+
+<h2>Contents</h2>
+<div>
+<ul>
+<li>
+<a href="#1">LXCat files</a>
+</li>
+<li>
+<a href="#2">Property files</a>
+</li>
+<li>
+<a href="#3">Chemistry files</a>
+</li>
+</ul>
+</div>
+
+<div>
+<h2 id="1">LXCat files</h2>
+<p>By default, LoKI-B uses electron-scattering cross sections obtained from the
+LXCat open-access website <a href="https://www.lxcat.net">LXCat</a>, in the
+solution to the EBE or as <i>extra</i> data for integration over the calculated
+EEDF, to obtain electron macroscopic parameters. The cross sections can be <b>assembled
+into a single file or given from multiple files</b>, and if/when <b>appearing
+duplicated in the datafiles they are considered only once by LoKI-B</b>.</p>
+
+<p>LXCat is organised to provide "data required for modeling low temperature
+plasmas" [<a href="https://www.lxcat.net">LXCat</a>] in the most effective way. In
+the case of electron-neutral scattering cross sections, LXCat provides easy access
+to <i>complete sets</i> of cross sections, defined as those giving a good description
+of all electron energy and momentum losses [<a href="references.html#R16">16</a>],
+yielding electron swarm parameters in agreement with available measured data (within
+experimental uncertainties), when used in a two-term Boltzmann solver
+[<a href="references.html#R16">16</a>,<a href="references.html#R17">17</a>]. Each
+<i>complete set</i> assembles cross sections for electron collisions with different
+neutral targets, usually associated with the electronic ground-state of each gas.
+To date, on LXCat these data are tagged with the name of the corresponding gas
+(<i>e.g.</i> <tt>Ar</tt>, <tt>N2</tt>, <tt>O2</tt>, <tt>CO2</tt>, ...) and are
+grouped under the category <tt>Ground states</tt>, where one can find cross sections
+for the collisions of electrons with the electronic / vibrational / rotational
+ground-states of a neutral gas. For example, the dataset <tt>N2</tt> may contain
+(i) the elastic / effective momentum-transfer cross section for N&#8322;; (ii)
+excitation cross sections for different electronic states (including the ionisation
+state), from the electronic ground-state N&#8322;(X); (iii) excitation cross sections
+for different vibrational states N&#8322;(X,v), from the vibrational ground-state
+N&#8322;(X,v=0); (iv) a global rotational excitation cross section for N&#8322;(X).</p>
+
+<p>This practical organisation of LXCat can create some difficulties when a detailed
+discrimination and handling of data is intended. The reason is of technical nature,
+and it relates with the fact that, to date, electron collisions with the <tt>Ground
+state</tt> of a gas are described as a collection of mechanisms <tt>e + gas name -> ...</tt>,
+with no possibility to specify the internal structure of the electronic ground-state
+of the gas. Meaning that the information, if any, about the different species involved
+in each electron collision is scattered across the LXCat files, depending on the
+strategy adopted by each particular LXCat contributor. Obviously, this makes impossible
+to develop a general parser to collect the full list of species (with internal structure),
+for any file downloaded from LXCat.</p>
+
+<p>This problem is to be solved by the developers of the platform, but meanwhile
+users can modify any cross section datafile downloaded from LXCat, to make it compliant
+with the LoKI-B parser. For this, it is important to understand how LXCat structures
+the metadata associated with each cross section. In an LXCat file, each cross-section-table
+comes with a header including the following fields:
+  <ul>
+  <li><tt>SPECIES</tt></li>
+  <li><tt>PROCESS</tt></li>
+  <li><tt>PARAM.</tt></li>
+  <li><tt>COMMENT</tt> (multiple lines)</li>
+  <li><tt>UPDATED</tt></li>
+  <li><tt>COLUMNS</tt></li>
+  </ul>
+  In principle, LoKI-B should check the <tt>PROCESS</tt> field to obtain details
+  on the full structure of reactants and products, for each electron-impact mechanism,
+  but again this is not available in the current structure of LXCat metadata. To
+  circumvent this limitation, the LoKI-B parser looks for this information in the
+  first line of the free-field <tt>COMMENT</tt>, which is modified to meet the
+  following structure:
+    <pre class="codeinput">COMMENT:⌴[﹤electron﹥⌴+⌴﹤target state﹥⌴﹤directionality﹥⌴﹤products states﹥,⌴﹤collision type﹥,⌴﹤collision subtype﹥]...</pre>
+    where the square brackets and spaces are mandatory characters, and where the
+    different elements in the expression have the following features:</p>
+      <ul>
+      <li><tt>electron</tt>: can be represented by either characters <tt>e</tt>
+      or <tt>E</tt> (see section <a href="user_guide.html#1">Species description</a>
+      for more information about the description of the species involved in
+      electron-scattering mechanisms).</li>
+      <li><tt>target state</tt>: can detail the electronic/vibrational/rotational
+      state of the target species (see section <a href="user_guide.html#1">Species
+      description</a> for more information about the description of the species
+      involved in electron-scattering mechanisms).</li>
+      <li><tt>directionality</tt>: can be a forward arrow (<tt>-></tt>) for inelastic
+      collisions, or a double arrow (<tt><-></tt>) for inelastic/superelastic collisions.</li>
+      <li><tt>product states</tt>: sum of all the product(s) resulting from an
+      electron collision, including electron(s) and heavy-species, eventually with
+      indication of the electronic/vibrational/rotational level (see section
+      <a href="user_guide.html#1">Species description</a> for more information about
+      the description of the species involved in electron-scattering mechanisms).</li>
+      <li><tt>collision type</tt>: one of the following collision types, supported
+      by the LXCat database: <tt>Elastic</tt>, <tt>Effective</tt>, <tt>Excitation</tt>,
+      <tt>Vibrational</tt>, <tt>Rotational</tt>, <tt>Ionization</tt> or <tt>Attachment</tt>.
+      Note the <b>mandatory</b> capital letters, since the parser is case sensitive.</li>
+      <li><tt>collision subtype</tt>: (optional field) either empty for integral
+      cross sections, or <tt>momentum-transfer</tt> for momentum-transfer cross section.<br>
+      <b>Note the following exception: the collision types</b> <tt>Elastic</tt>
+      <b>and</b> <tt>Effective</tt> <b>are automatically handled as</b>
+      <tt>momentum-transfer</tt>, <b>even if the collision subtype if left empty.</b></li>
+      </ul>
+
+    <p>The workaround described above is the practical solution to prepare any cross
+    section datafile obtained from LXCat for compliance with the LoKI-B parser, and
+    it is already implemented in the following files:</p>
+      <ul>
+        <li>the LXCat files distributed with the code, and located in
+        <tt>[repository folder]/LoKI-B_v2.2.0/Code/Input/</tt> (see section
+        <a href="getting_started.html#3">Data organization: How to find your way
+        in the code</a>).<br>
+        <b>Before modifying any other LXCat file, the user should check the files
+        distributed with the code, to become familiarised with the modifications needed.</b></li>
+        <li>cross section files, <b>directly downloadable only from the IST-Lisbon
+        database with the website LXCat, and to date only for the gases indicated
+        below</b> <a href="#footnote-8">[8]</a></li>
+        <ul type="circle">
+          <li>Argon: <tt>Ar</tt>, for electron excitations from the ground-state Ar(1S₀);</li>
+          <li>Helium: <tt>He</tt>, for electron excitations from the ground-state He(1¹S);</li>
+        <li>Nitrogen: <tt>N2</tt>, for electron excitations from the electronic ground-state
+        N₂(X) and the vibrational ground-state N₂(X,v=0); <tt>N2-vib</tt> for electron
+        excitations from vibrational states N₂(X,v=1-10); <tt>N2-rot</tt> for electron
+        excitations from rotational states N₂(X,v=0,J=0-30) ΔJ=2. <br>
+          The latter two datagroups are clustered under <tt>Nitrogen</tt> in
+        <tt>State-specific and gas mixtures</tt> at LXCat;</li>
+        <li>Atomic Nitrogen: <tt>N</tt>, for electron excitations from the ground-state
+        N(⁴S); <tt>N-elec</tt>, for electron excitations from the excited states
+        N(²D) and N(²P). <br>
+          These datagroups are clustered under <tt>Nitrogen</tt> in <tt>State-specific
+        and gas mixtures</tt> at LXCat;</li>
+        <li>>Oxygen: <tt>O2</tt>, for electron excitations from the electronic
+        ground-state O₂(X) and the vibrational ground-state O₂(X,v=0); <tt>O2-vib</tt>
+        for electron excitations from vibrational states O₂(X,v=0-41); <tt>O2-rot</tt>
+        for electron excitations from rotational states O₂(X,v=0,J=1-29) ΔJ=2; <tt>O2-elec</tt>
+        for electron excitations from excited electronic states of O₂, namely O₂(a¹Δg, b¹Σg⁺).<br>
+          The latter three datagroups are clustered under <tt>>Oxygen</tt> in
+        <tt>State-specific and gas mixtures</tt> at LXCat;</li>
+        <li>Atomic Oxygen: <tt>O</tt>, for electron excitations from the ground-state
+        O(³P); <tt>O-elec</tt> for electron excitations from excited electronic
+        states of O, namely O⁻. <br>
+          These datagroups are clustered under <tt>Oxygen</tt> in <tt>State-specific
+        and gas mixtures</tt> at LXCat;</li>
+        <li>Ozone: <tt>O3</tt>, for electron excitations from the ground-state O₃(X). <br>
+          This datagroup is under <tt>Oxygen</tt> in <tt>State-specific and gas mixtures</tt> at LXCat;</li>
+        <li>Hydrogen: <tt>H2</tt>, for electron excitations from the electronic
+        ground-state H₂(X) and the vibrational ground-state H₂(X,v=0); <tt>H2-vib</tt>
+        for electron excitations from vibrational states H₂(X,v=1-15); <tt>H2-rot</tt>
+        for electron excitations from rotational states H₂(X,v=0,J=0-5) ΔJ=2; <tt>H2-elec</tt>
+        for electron recombination of ionic states H₂⁺ and H₃⁺. <br>
+          The latter three datagroups are clustered under <tt>Hydrogen</tt> in
+          <tt>State-specific and gas mixtures</tt> at LXCat;</li>
+        <li>Atomic Hydrogen: <tt>H</tt>, for electron excitations from the ground-state H(1s);
+        <tt>H-elec</tt>, for electron excitations from the excited states H(2s), H(2p), H(3),
+        H(4) and H(5). <br>
+          These datagroups are clustered under <tt>Hydrogen</tt> in <tt>State-specific
+        and gas mixtures</tt> at LXCat;</li>
+        <li>Carbon dioxide: <tt>CO2</tt>, for electron excitations from the electronic
+        ground-state CO₂(X) and the vibrational ground-state CO₂(X,v=000);</li>
+        <li>Carbon monoxide: <tt>CO</tt>, for electron excitations from the electronic
+        ground-state CO(X) and the vibrational ground-state CO(X,v=0); <tt>CO-rot</tt>
+        for electron excitations from rotational states CO(X,v=0,J=0-17) ΔJ=1;</li>
+        <li>Carbon monoxide (with anisotropic scattering) <a href="#footnote-9">[9]</a>:
+          <tt>CO_anis</tt>, for electron excitations from the electronic ground-state CO(X)
+          and the vibrational ground-state CO(X,v=0), to be adopted when anisotropic scattering
+          for rotational collisions is also considered; <tt>CO_dipint-rot</tt> delivering
+          dipole-integral cross sections for electron excitations from rotational states
+          CO(X,v=0,J=0-25) ΔJ=1; <tt>CO_dipmt-rot</tt> delivering dipole-momentum-transfer
+          cross sections for electron excitations from rotational states CO(X,v=0,J=0-25) ΔJ=1;
+          <tt>CO_quadint-rot</tt> delivering quadrupole-integral cross sections for electron
+          excitations from rotational states CO(X,v=0,J=0-24) ΔJ=2. <br>
+          These datagroups are clustered under <tt>CO_anis</tt> in <tt>State-specific
+          and gas mixtures</tt> at LXCat.</li>
+        </ul>
+        </ul>
+
+        In the folder <tt>[repository folder]/LoKI-B_v2.2.0/Code/OtherAuxFunctions</tt> the
+        user can find the script <tt>LXCat2LoKI.m</tt> that interactively assists the
+        modification of LXCat files, for compliance with the LoKI-B parser. The code below
+        shows an example of a modified header, for a cross-section-table extracted from the
+        <tt>N2_LXCat.txt</tt> file distributed with LoKI-B.
+
+        <pre class="codeinput">
+        <span class="keyword">EXCITATION</span>
+        <span class="string">N2 -> N2 (v=0 - v=1)</span>
+        3.000000e-1
+        <span class="keyword">SPECIES:</span> <span class="string">e / N2</span>
+        <span class="keyword">PROCESS:</span> <span class="string">E + N2 -> E + N2 (v=0 - v=1), Excitation</span>
+        <span class="keyword">PARAM.:</span>  <span class="string">E = 0.3 eV, complete set</span>
+        <span class="keyword">COMMENT:</span> <span class="string">[e + N2(X,v=0) <-> e + N2(X,v=1), Vibrational] Pitchford L C and Phelps A V 1982</span>
+        <span class="keyword">COMMENT:</span> <span class="string">Bull. Am. Phys. Soc. 27 109 Tachibana K and Phelps A V 1979 JCP 71 3544 Schulz G J 1962</span>
+        <span class="keyword">COMMENT:</span> <span class="string">Phys. Rev. 125 229 Schulz G J 1964 Phys. Rev. 135 A988 Schulz G J 1973 Rev. Mod. Phys.</span>
+        <span class="keyword">COMMENT:</span> <span class="string">45 423 Engelhardt A G, Phelps A V and Risk C G 1964 Phys. Rev. 135 A1566 Pavlovic Z,</span>
+        <span class="keyword">COMMENT:</span> <span class="string">Boness M J W, Herzenberg A and Schulz G J 1972 Phys. Rev. A 6 676.</span>
+        <span class="keyword">UPDATED:</span> <span class="string">2017-09-03 10:54:40</span>
+        <span class="keyword">COLUMNS:</span> <span class="string">Energy (eV) | Cross section (m2)</span>
+        <span class="string">-----------------------------</span>
+        3.000000e-1	0.000000e+0
+        4.000000e-1	3.000000e-23
+        5.000000e-1	4.000000e-23
+        ...
+        9.653000e+2	1.238000e-24
+        9.654000e+2	0.000000e+0
+        1.000000e+3	0.000000e+0
+        <span class="string">-----------------------------</span></pre>
+
+<div>
+<br>
+<p id="footnote-8">[8] LoKI-B is distributed with only part of the data available on
+the IST-Lisbon database at LXCat, namely complete sets of cross sections for electron
+excitations from the ground-state of gases, of interest for swarm analyses.</p>
+<p id="footnote-9">[9] This complete set of cross sections is the result of the work
+of L. Vialetto <i>et al</i> [<a href="references.html#R10">10</a>], which proposes a
+model of anisotropic scattering for rotational collisions, to be used in a two-term
+Boltzmann solver.</p>
+</div>
+</div>
+
+<div>
+<h2 id="2">Property files</h2>
+<p>Property files are text files with the properties of gases and states used in the
+simulations. Some property files are distributed with LoKI-B, but in general these
+files can be prepared by the user, considering the following rules:
+
+<ul>
+<li> for organisation sake, all "property files" specified in the setup file should
+be located inside the input folder (<tt>[repository folder]/LoKI-B_v2.2.0/Code/Input</tt>),
+eventually organised in subfolders with self-explanatory names (<i>e.g.</i> <tt>Nitrogen</tt>,
+<tt>Databases</tt>; see section <a href="getting_started.html#3">Data organization:
+  How to find your way in the code</a>);</li>
+<li> property files can include comments, signaled by the character <tt>%</tt>;</li>
+<li> property files <b>MUST</b> be two-column-formatted, separated by any white-space character.
+<br>
+ The first column should include the gas/state name (see section <a href="user_guide.html#1">Species
+description</a> for more information about the description of the species used in
+the simulations), and the second column should include the value of the property for
+that particular gas/state;</li>
+<li> property files accept basic mathematical operations (such as addition, subtraction,
+multiplication and division), in the second column with the value of the property (see
+the following code as an example);</li>
+<li> property files can include the properties of gases/states not used in the simulations.
+LoKI-B handles input files as "databases", where it searches only for the information required.</li>
+</ul>
+</p>
+
+<p>Sample property file with the masses of different gases (<tt>Databases/masses.txt</tt>):
+<pre class="codeinput">
+<span class="comment">% masses of different gases expressed in SI units (Kg)</span>
+N3    3*14.007*1.660539040e-27
+N4    4*14.007*1.660539040e-27
+N2    2*14.007*1.660539040e-27
+N     14.007*1.660539040e-27
+O2    2*15.999*1.660539040e-27
+O     15.999*1.660539040e-27
+O3    3*15.999*1.660539040e-27
+H2    2*1.008*1.660539040e-27
+H     1.008*1.660539040e-27
+CO2   (12.0107+2*15.999)*1.660539040e-27
+CO    (12.0107+15.999)*1.660539040e-27
+Ar    39.948*1.660539040e-27
+He    4.002602*1.660539040e-27
+He2   8.005204*1.660539040e-27
+H2O   (2*1.008+15.999)*1.660539040e-27
+CH4   16.0427*1.660539040e-27
+C     12.0107*1.660539040e-27
+</pre>
+</p>
+
+<p>Property file with a vibrational distribution of N₂ (<tt>Nitrogen/N2_vibpop.txt</tt>):
+<pre class="codeinput">
+<span class="comment">% populations of the different vibrational states of N2</span>
+N2(X,v=0)   1
+N2(X,v=1)   0
+N2(X,v=2)   0
+N2(X,v=3)   0
+N2(X,v=4)   0
+N2(X,v=5)   0
+N2(X,v=6)   0
+N2(X,v=7)   0
+N2(X,v=8)   0
+N2(X,v=9)   0
+N2(X,v=10)  0
+</pre>
+</p>
+</div>
+
+<div>
+<h2 id="3">Chemistry files</h2>
+<p>Chemistry files are text files listing the different reactions to be included
+in the LoKI-C simulations. Some chemistry files are distributed with LoKI, but in
+general these files can be prepared by the user, considering the following rules:
+  <ul>
+    <li>for aesthetic and organisation purposes, "chemistry files" adopt the file
+    extension <tt>.chem</tt>.</li>
+    <li>for organisation sake, all "chemistry files" specified in the setup file
+    should be located inside the input folder (<tt>[repository folder]/LoKI_v3.1.0/Code/Input</tt>),
+    eventually organised in subfolders with self-explanatory names (<i>e.g.</i> <tt>Nitrogen</tt>,
+    <tt>Oxygen</tt>; see section <a href="getting_started.html#3">Data organization</a>);</li>
+    <li>chemistry files can include comments, signaled by the character <tt>%</tt>;</li>
+    <li><p>each entry in a chemistry file <b>MUST</b> have the following structure:</p>
+      <math display="block" class="tml-display" style="display:block math;"><mrow><mrow><munder><munder><mtext>&lt;𝚛𝚎𝚊𝚌𝚝𝚊𝚗𝚝𝚜&gt; &lt;𝚍𝚒𝚛𝚎𝚌𝚝𝚒𝚘𝚗𝚊𝚕𝚒𝚝𝚢&gt; &lt;𝚙𝚛𝚘𝚍𝚞𝚌𝚝𝚜&gt;</mtext><mo stretchy="true" style="math-depth:0;">⏟</mo></munder><mtext>Reaction description</mtext></munder></mrow><mtext> | </mtext><mrow><munder><munder><mrow><mtext>&lt;𝚛𝚊𝚝𝚎 𝚌𝚘𝚎𝚏𝚏𝚒𝚌𝚒𝚎𝚗𝚝&gt;</mtext><mpadded width="0px"><mphantom><mtext>𝚓</mtext></mphantom></mpadded></mrow><mo stretchy="true" style="math-depth:0;">⏟</mo></munder><mtext>Type of rate coefficient</mtext></munder></mrow><mtext> | </mtext><mrow><munder><munder><mtext>&lt;𝚙𝚊𝚛𝚊𝚖𝚎𝚝𝚎𝚛𝚜&gt;</mtext><mo stretchy="true" style="math-depth:0;">⏟</mo></munder><mtext>Parameters needed</mtext></munder></mrow><mtext> | </mtext><mrow><munder><munder><mtext>&lt;𝚎𝚗𝚝𝚑𝚊𝚕𝚙𝚢&gt;</mtext><mo stretchy="true" style="math-depth:0;">⏟</mo></munder><mtext>Reaction enthalpy</mtext></munder></mrow></mrow></math>
+      where
+      <ul>
+      <li><tt>&lt;reactants&gt;</tt> is the field with the reactant or the sum of
+      reactant species involved in the reaction. <b>Note that this field should
+      not be empty, in which case the code returns an error.</b><br>
+      For more information about the description of the species involved in a reaction
+      see section <a href="user_guide.html#1">Species description</a>;</li>
+      <li><tt>&lt;directionality&gt;</tt> can be a forward arrow (<tt>-&gt;</tt>),
+      when only the direct reaction is considered, or a double arrow (<tt>&lt;-&gt;</tt>),
+      when both the direct and the reverse (detailed balance) reactions are considered.
+      For electron-impact reactions with <tt>eedf</tt> rate coefficients and for
+      two-body reactions between volume heavy species, when a double arrow is detected
+      the <tt>detailedBalance</tt> function evaluates and returns the reverse rate
+      coefficient. For other double-arrow reactions, the <tt>detailedBalance</tt>
+      function checks if the collision property <tt>backRateCoeff</tt> is not empty,
+      in which case it returns the reverse rate coefficient.<br>
+      <b>When using double-arrow in a reaction, users must ensure that the corresponding
+      rate coefficient function evaluates both the direct and the reverse rate
+      coefficients</b> (see <tt>eedfcopyv0</tt> as an example);</li>
+      <li><tt>&lt;products&gt;</tt> is the field with the product or the sum of
+      product species resulting from the reaction. <b>Note that this field should
+      not be empty, in which case the code returns an error.</b><br>
+      For more information about the description of the species involved in a reaction
+      see section <a href="user_guide.html#1">Species description</a></li>
+      <li><tt>&lt;rate coefficient&gt;</tt> is the field with the name of the function
+      that evaluates the rate coefficient of the corresponding reaction. For more
+      information about rate coefficient functions see section ~\ref{RateCoeffFunctions};</li>
+      <li><tt>&lt;parameters&gt;</tt> is a list of comma separated values with all
+      the parameters (if any) required for the corresponding rate coefficient function.
+      For more information about the parameters needed for each rate coefficient
+      functions see section \ref{RateCoeffFunctions};</li>
+      <li><tt>&lt;enthalpy&gt;</tt> is the field with the value of the reaction
+      enthalpy (positive or negative). If this field is missing, then the reaction
+      enthalpy is assumed to be zero; if the value of the enthalpy is to be calculated
+      from the difference between the energies of <tt>&lt;products&gt;</tt> and
+      <tt>&lt;reactants&gt;</tt>, then the keyword <tt>level</tt> should be used
+      in this field.<br>
+      <b>The enthalpy information is only needed for the thermal model. However,
+      every entry of the chemistry files should follow the previous structure, even
+      if the thermal model is not activated.</b></li>
+      </ul>
+      </li>
+    <li>LoKI-C ignores multiple descriptions of the same reactions (<i>i.e.</i> reactions with the same set of <tt>&lt;reactants&gt;</tt> and <tt>&lt;products&gt;</tt>), <b>returning a warning message</b>.</li>
+  </ul>
+  </p>
+
+<p>Before creating a chemistry file, it is recommended that the user checks out
+those distributed with the code (<i>e.g.</i>, <tt>[repository folder]/Code/Input/Nitrogen/nitrogen.chem</tt>
+or <tt>[repository folder]/Code/Input/Oxygen/oxygen.chem</tt>), so that he/she
+becomes familiar with the writing of the different chemical reactions already
+implemented in LoKI-C. As an example, the code below shows an extract of a chemistry
+file distributed with LoKI <tt>nitrogen_mod.chem</tt>) that contains a simplified
+chemistry scheme for Nitrogen.
+</p>
+
+  <pre class="codeinput">
+  <span class="comment">%---- electron impact excitation/deexcitation ----</span>
+  e + N2(X,v=0) <-> e + N2(A3Su+)           | eedf                    |           |
+  ...
+  e + N(4S) <-> e + N(2D)                   | eedf                    |           |
+  ...
+
+  <span class="comment">%---- e-V processes ----</span>
+  e + N2(X,v=0) <-> e + N2(X,v=1)           | eedf                    |           |
+  ...
+  e + N2(X,v=1:9) -> e + N2(X,v=v+1)        | nitrogenEVscaling       |           |
+  ...
+
+  <span class="comment">%---- electron impact dissociation ----</span>
+  e + N2(X,v=0) -> e + 2N(4S)               | eedf                    |           | 2.24
+  e + N2(X,v=0) -> e + N(4S) + N(2D)        | eedf                    |           | 0.00
+
+  <span class="comment">%---- electron impact ionization ----</span>
+  e + N2(X,v=0) -> 2e + N2(+,X)             | eedf                    |           |
+  ...
+  e + N(4S) -> 2e + N(+,gnd)                | eedf                    |           |
+  ...
+
+  <span class="comment">%---- electron recombination ----</span>
+  e + N2(+,X) -> 2N(4S)                     | powerElectronTemp       | 2.80E-13*(300)^0.5, -0.5 | 5.82
+  ...
+
+  <span class="comment">%---- heavy species collisions ----</span>
+  N2(B3Pg) + N2(X) -> N2(A3Su+) + N2(X)     | constantRateCoeff       | 0.95*3e-17                  | 1.18
+  ...
+  N2(a'1Su-) + N2(X) -> N2(B3Pg) + N2(X)    | constantRateCoeff       | 1.9e-19                     | 1.0
+  ...
+  N(2D) + N(2P) -> N2(+,X) + e              | constantRateCoeff       | 1e-19                       |
+  ...
+  N(4S) + N(4S) + N2(X) -> N2(B3Pg) + N2(X) | arrheniusGasTemp        | 8.27E-46, 500               | 2.36
+  ...
+  N2(+,X) + N2(X,v=0) + N2(X) -> N4(+,X) + N2(X) | powerGasTemp       | 6.80E-41*300^1.64, -1.64    | 1.05
+  ...
+  N4(+,X) + N2(X) -> N2(+,X) + N2(X,v=0) + N2(X) | expGasTemp         | 2.1e-22, 121                | -1.05
+  ...
+
+  <span class="comment">%---- V-V processes ----</span>
+  N2(X,v=1:10) + N2(X,w=0:v-1) <-> N2(X,v=v-1) + N2(X,v=w+1)    | nitrogenMolecularVV     |         | level
+  N2(X,v=1:10) + N2(X,v=10) -> N2(X,v=v-1) + 2N(4S)             | nitrogenMolecularVVDis  |         |
+
+  <span class="comment">%---- Molecular V-T processes ----</span>
+  N2(X,v=1:10) + N2(X) <-> N2(X,v=v-1) + N2(X)                  | nitrogenMolecularVT     |         | level
+  N2(X,v=10) + N2(X) -> 2N(4S) + N2(X)                          | nitrogenMolecularVTDis  |         |
+
+  <span class="comment">%---- Atomic V-T processes ----</span>
+  N2(X,v=7:59) + N(4S) <-> N2(X,v=v-1) + N(4S)                  | nitrogenAtomicVT        |         | level
+  ...
+  N2(X,v=10) + N(4S) -> 2N(4S) + N(4S)                          | nitrogenAtomicVTDis     | 11      |
+  ...
+
+  <span class="comment">%---- Neutral transport ----</span>
+  N2(A3Su+) + wall -> N2(X,v=0)             | binaryDiff              | 1                           | 6.2*(1-0.5)
+  ...
+  N(4S) + wall -> 0.5N2(X,v=0)              | wallReaction            | 1e-1, gasTemperature        | 9.76/2*(1-0.5)
+
+  <span class="comment">%---- Wall vibrational deactivation ----</span>
+  N2(X,v=1:59) + wall -> N2(X,v=v-1)        | wallReaction            | 0.0011, gasTemperature      | level
+
+  <span class="comment">%---- Ion transport ----</span>
+  N4(+,X) + wall -> 2N2(X,v=0)              | classicalAmbipolarDiff  | 1                           |
+  ...
+  </pre>
+
+
+</div>
+
+<p class="footer">
+<br>
+<a href="https://www.mathworks.com/products/matlab/">Published with MATLAB&reg; R2024b</a>
+<br>
+</p>
+</div>
+
+</body>
+</html>

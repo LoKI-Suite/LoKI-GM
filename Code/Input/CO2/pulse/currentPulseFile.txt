@@ -1,0 +1,4 @@
+% time, power density
+0 0
+5E-9 100
+15E-9 0

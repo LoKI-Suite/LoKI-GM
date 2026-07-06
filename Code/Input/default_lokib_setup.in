@@ -82,7 +82,7 @@ gui:
 
 % ---  configuration of the output files ---
 output: 
-  isOn: false
+  isOn: true
   dataFormat: hdf5+txt % txt or hdf5 or hdf5+txt
   folder: simulation_1
   dataSets:

@@ -1,0 +1,43 @@
+<?xml version='1.0' encoding="utf-8"?>
+
+<toc version="2.0">
+    <tocitem target="Introduction.html">The LoKI Toolbox
+        <!-- To include icons, use the following syntax for tocitems: -->
+        <!-- <tocitem target="foo.html" image="HelpIcon.NAME"> -->
+        <!-- Title-of-Section </tocitem> -->
+        <!-- where NAME is one of the following (use capital letters): -->
+        <!-- FUNCTION, USER_GUIDE, EXAMPLES, BLOCK, GETTING_STARTED, -->
+        <!-- DEMOS, RELEASE_NOTES --> 
+        <!-- Icon images used for these entries are also stored in -->
+        <!-- matlabroot/toolbox/matlab/icons -->
+<!--        <tocitem target="loki_features.html#1">LoKI Features
+        </tocitem>-->
+    </tocitem>
+    <tocitem target="Getting_started.html" image="HelpIcon.GETTING_STARTED">Getting started
+    </tocitem>
+    <tocitem target="The_setup_file.html">The setup file
+        <tocitem target="Working_conditions.html">Working conditions
+        </tocitem>
+        <tocitem target="Electron_kinetics.html">Electron kinetics
+        </tocitem>
+        <tocitem target="Chemistry.html">Chemistry
+        </tocitem>
+        <tocitem target="GUI.html">Graphical user interface
+        </tocitem>
+        <tocitem target="Output_files.html">Output
+        </tocitem>
+    </tocitem>
+    <tocitem target="Auxiliary_input_files.html">Auxiliary input files
+    </tocitem>
+    <tocitem target="Auxiliary_functions.html">Auxiliary functions
+    </tocitem>
+    <tocitem target="Changelog.html">Changelog
+    </tocitem>
+    <tocitem target="References.html">References
+    </tocitem>
+    <!-- Optional link or links to your or other Web sites -->
+    <tocitem target="https://nprime.tecnico.ulisboa.pt/loki/"
+                image="$toolbox/matlab/icons/webicon.gif">
+    LoKI Web Site
+    </tocitem>
+</toc>

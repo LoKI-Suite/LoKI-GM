@@ -1,11 +1,43 @@
-% LoKI-B solves a time and space independent form of the two-term 
-% electron Boltzmann equation (EBE), for non-magnetised non-equilibrium 
-% low-temperature plasmas excited by DC/HF electric fields from 
-% different gases or gas mixtures.
+% LoKI-GM comprises two modules, that can run self-consistently coupled 
+% or as standalone tools.
+% 
+% LoKI-B, which solves the space independent form of the two-term 
+% electron Boltzmann equation (EBE) to calculate the isotropic and the 
+% anisotropic parts of the electron distribution function, 
+% and the associated electron macroscopic parameters. 
+% LoKI-B applies to non-magnetised non-equilibrium LTPs, excited by 
+% DC/HF electric fields or time-dependent (non-oscillatory) electric fields 
+% from different gases or gas mixtures. 
+% The tool uses a stationary description for DC fields, 
+% a Fourier time-expansion description for HF fields, 
+% and a time-dependent description for time-varying fields.
+% 
+% LoKI-C, which solves the system of zero-dimensional (volume average) 
+% rate balance equations for the most relevant 
+% charged and neutral species in the plasma. 
+% LoKI-C receives as input data the kinetic schemes for the gas/plasma/
+% surface system under study, via an intuitive csv-like input file, 
+% and gives as output the particle densities of the different gas/plasma/
+% surface species, the corresponding creation/destruction reaction rates, 
+% and the reduced electric field (and any related quantity, such as 
+% the discharge current or the discharge power-density).
+% The tool uses several modules to describe the mechanisms 
+% (collisional, radiative and transport) controlling the
+% creation/destruction of species, namely various transport models 
+% for the charged particles and for the neutral particles. 
+% LoKI-C includes also a gas/plasma thermal model, for the self-consistent 
+% calculation of the gas temperature, and supports multicomponent 
+% mean-field microkinetic mesoscopic models to handle surface kinetics 
+% in a fully coupled way with volume kinetics.
+%
 % Copyright (C) 2018 A. Tejero-del-Caz, V. Guerra, D. Goncalves, 
 % M. Lino da Silva, L. Marques, N. Pinhao, C. D. Pintassilgo and
 % L. L. Alves
 % 
+% Copyright (C) 2026 L. L. Alves, A. Tejero-del-Caz, T. C. Dias, 
+% A. Gonçalves, L. Marques, P. Pereira, N. Pinhão, C. D. Pintassilgo, 
+% T. Silva, P. Viegas and V. Guerra
+%
 % This program is free software: you can redistribute it and/or modify
 % it under the terms of the GNU General Public License as published by
 % the Free Software Foundation, either version 3 of the License, or
@@ -30,6 +62,7 @@ classdef Parse
       '(?:,)?(?<eleLevel>[\w''.\[\]/+*^|-]+){1}(?:,v=)?(?<vibLevel>(?<=,v=)[\w+*|-]+)?'...
       '(?:,J=)?(?<rotLevel>(?<=,J=)[\d+*|-]+)?\)\s*'];
     electronRegExp = '\s*(?<quantity>\d+)?((?:[eE]\s*)(?=[\s]|[+][^\(])|(?:[eE]$))';
+    wallRegExp = '\s*(?<gasName>[wW][aA][lL][lL])\s*';
     
   end
   
@@ -43,7 +76,7 @@ classdef Parse
       setupStruct = structArray2struct(structArray);
       
     end
-
+    
     function [setupStruct, unparsed] = setupFileJson(fileName)
     % setupFileJson Reads the configuration file in JSON format for the 
     % simulation and returns a setup structure with all the information.
@@ -73,7 +106,7 @@ classdef Parse
         fclose(fileID);
       
     end
-    
+
     function LXCatEntryArray = LXCatFiles(fileName)
     % LXCatFiles Reads LXCat files, parse their content and returns an
     % structure array 'LXCatEntryArray' with all the information.
@@ -159,6 +192,40 @@ classdef Parse
 
     end
 
+    function chemEntryArray = chemFiles(fileName)
+    % chemFiles Reads ".chem" files, parse their content and returns an
+    % structure array 'chemEntryArray' with all the information.
+      
+      % create a cell array with filenames in case only one file is received as input
+      if ischar(fileName)
+        fileName = {fileName};
+      end
+      % create an empty struct array of chem entries 
+      chemEntryArray = struct.empty;
+      % loop over different ".chem" files that have to be read
+      for i = 1:length(fileName)
+        % open ".chem" file
+        fileID = fopen([Parse.inputFolder filesep fileName{i}], 'r');
+        if fileID<0
+          error(' Unable to open ''.chem'' file: %s\n', fileName{i});
+        end
+        % parse ".chem" file
+        lineNumber = 1;
+        while ~feof(fileID)
+          cleanLine = removeComments(strtrim(fgetl(fileID)));
+          if isempty(cleanLine)
+            lineNumber = lineNumber + 1;
+          else
+            chemEntryArray = addChemEntry(lineNumber, fileName{i}, cleanLine, chemEntryArray);
+            lineNumber = lineNumber + 1;
+          end
+        end
+        % close ".chem" file
+        fclose(fileID);
+      end
+      
+    end
+
     function gasAndValueArray = gasPropertyFile(fileName)
     % gasPropertyFile Reads a file with gas properties, parse its content
     % and returns an structure array 'gasAndValueArray' with all the
@@ -225,7 +292,6 @@ classdef Parse
     % the information.
     
       regExp = [Parse.stateRegExp '\s*(?<valueStr>.+)'];
-
       fileID = fopen([Parse.inputFolder filesep fileName], 'r');
       if fileID == -1
         error('\t Unable to open file: %s\n', [Parse.inputFolder filesep fileName]);
@@ -256,7 +322,7 @@ classdef Parse
     % an structure with the parsed information. 
     
       regExp = [Parse.stateRegExp '\s*=\s*(?<constant>[\d.eE\s()*/+-]+)?' ...
-            '(?<function>\w+)?(?(function)@?)(?<argument>.+)?\s*'];
+        '(?<function>\w+)?(?(function)@?)(?<argument>.+)?\s*'];
       parsedEntry = regexp(entry, regExp, 'names');
       if isempty(parsedEntry)
         parsedEntry = struct('fileName', entry);
@@ -363,7 +429,6 @@ function [structArray, rawLine] = file2structArray(file)
   fclose(fileID);
       
 end
-
 
 function structure = structArray2struct(structArray)
 % structArray2struct Convert an array of structures into a single structure.
@@ -611,8 +676,6 @@ function LXCatEntryArray = addLXCatEntryJson(jsonStates, description, parameter,
 
 end
 
-
-
 function [eleLevel, vibLevel, rotLevel] = parseStateLevelInfoJson(stateField)
 % parseStateLevelInfoJson Parses the electronic, vibrational, and rotational levels from the state field's
 % serialized information. Reads the summary field of the electronic, vibrational, and rotational levels.
@@ -683,11 +746,9 @@ function [eleLevel, vibLevel, rotLevel] = parseStateLevelInfoJson(stateField)
 
 end
 
-
 function LXCatEntryArray = addLXCatEntry(description, parameter, rawCrossSection, LXCatEntryArray)
 % addLXCatEntry analyses the information of a particular LXCat entry and adds it to the structure array
 % LXCatEntryArray.
-      
       
   % if type is Electronic, change to Excitation
   % This is a WIP, according to the development of the new LXCat3.0
@@ -755,6 +816,330 @@ function LXCatEntryArray = addLXCatEntry(description, parameter, rawCrossSection
   
 end
 
+function chemEntryArray = addChemEntry(lineNumber, fileName, cleanLine, chemEntryArray)
+
+  % definition of regular expressions to parse chemistry entries
+  chemRegExp = ['\s*(?<reactants>.*?)\s*(?<direction>->|<->)\s*(?<products>.*?)'...
+    '\s*[|]\s*(?<type>\w+)\s*[|]\s*(?<parameters>.*?)[|](?<enthalpy>.*)'];
+  stateRegExp = ['\s*(?<quantity>[\d.]+\s*)?(?<gasName>\w+)\((?<ionCharg>[-+])?'...
+    ',?(?<eleLevel>[\w][\w''.\[\]/+*-]*)'...
+    ',?(?<vibRange>(?<=,)[vw](?==))?=?(?<vibLevel>(?<=,[vw]=)[vw\d:+*-]+)?'...
+    '(?:,J=)?(?<rotLevel>(?<=,J=)[\d+*-]+)?\)\s*'];
+  electronRegExp = '\s*(?<quantity>\d+)?((?:[eE]\s*)(?=[\s]|[+][^\(])|(?:[eE]$))';
+  wallRegExp = '\s*(?<gasName>[wW][aA][lL][lL])\s*';
+  gasRegExp = '\s*(?<gasName>[gG][aA][sS])\s*';
+  
+  % parsing chemistry entry to check for proper structure
+  auxChemEntry = regexp(cleanLine, chemRegExp, 'names', 'once');
+  if isempty(auxChemEntry)
+    error(['Error when parsing line %d of file %s:\n%s\nChemistry entries should follow the struture:\n' ...
+      '<reactants> [<]-> <products> | <rate coefficient type> | [rate coefficient function parameters] | ' ...
+      '[reaction enthalpy]'], lineNumber, fileName, cleanLine);
+  elseif isempty(auxChemEntry.reactants)
+    error(['Error when parsing line %d of file %s:\n%s\nChemistry entries should follow the struture:\n' ...
+      '<reactants> [<]-> <products> | <rate coefficient type> | [rate coefficient function parameters] | ' ...
+      '[reaction enthalpy]'], lineNumber, fileName, cleanLine);
+  elseif isempty(auxChemEntry.products)
+    error(['Error when parsing line %d of file %s:\n%s\nChemistry entries should follow the struture:\n' ...
+      '<reactants> [<]-> <products> | <rate coefficient type> | [rate coefficient function parameters] | ' ...
+      '[reaction enthalpy]'], lineNumber, fileName, cleanLine);
+  end
+  
+  % initialize variables
+  reactantArray = struct.empty;
+  reactantElectrons = 0;
+  productArray = struct.empty;
+  productElectrons = 0;
+  isTransport = false;
+  leftHandSideGas = false;
+  rightHandSideGas = false;
+  isGasStabilised = false;
+  
+  % parsing species on the left hand side of the reaction
+  rawReactants = regexp(auxChemEntry.reactants, [stateRegExp '|' electronRegExp '|' wallRegExp '|' gasRegExp], 'names');
+  % checking proper writing of the left hand side of the reaction
+  pluses = regexp(auxChemEntry.reactants, [stateRegExp '|' electronRegExp '|' wallRegExp '|' gasRegExp], 'split');
+  if ~strcmp(pluses{1}, '') || ~strcmp(pluses{end}, '')
+    error('Error when parsing line %d of file %s:\n %s\n Please check the reactants of the reaction description.', ...
+      lineNumber, fileName, cleanLine);
+  end
+  for i = 2:length(pluses)-1
+    if ~strcmp(pluses{i}, '+')
+      error('Error when parsing line %d of file %s:\n %s\n Please check the reactants of the reaction description.', ...
+        lineNumber, fileName, cleanLine);
+    end
+  end
+  % parsing electrons, wall, gas or regular reactants (states)
+  for i = 1:length(rawReactants)
+    if isempty(rawReactants(i).gasName)
+      if isempty(rawReactants(i).quantity)
+        reactantElectrons = reactantElectrons+1;
+      else
+        reactantElectrons = reactantElectrons+str2double(rawReactants(i).quantity);
+      end
+    elseif length(rawReactants(i).gasName)>=4 && strcmpi(rawReactants(i).gasName(1:4), 'wall')
+      for j = 1:length(rawReactants)
+        if i==j
+          continue;
+        elseif ~(length(rawReactants(j).gasName)>=4 && strcmpi(rawReactants(j).gasName(1:4), 'wall'))
+          isTransport = true;
+        end
+      end
+      if ~strcmpi(rawReactants(i).gasName, 'wall')
+        if isempty(reactantArray)
+          reactantArray = rawReactants(i);
+        else
+          reactantArray(end+1) = rawReactants(i);
+        end
+      end
+    elseif strcmpi(rawReactants(i).gasName, 'gas')
+      if leftHandSideGas
+        error(['Error when parsing line %d of file %s:\n %s\nThe simulation can not have more than one "gas" ' ...
+          'on the left hand side.'], lineNumber, fileName, cleanLine);
+      end
+      leftHandSideGas = true;
+    else
+      if isempty(reactantArray)
+        reactantArray = rawReactants(i);
+      else
+        reactantArray(end+1) = rawReactants(i);
+      end
+    end
+  end
+  
+  % parsing species on the right hand side of the reaction 
+  rawProducts = regexp(auxChemEntry.products, [stateRegExp '|' electronRegExp '|' wallRegExp '|' gasRegExp], 'names');
+  % checking proper writing of the right hand side of the reaction
+  pluses = regexp(auxChemEntry.products, [stateRegExp '|' electronRegExp '|' wallRegExp '|' gasRegExp], 'split');
+  if ~strcmp(pluses{1}, '') || ~strcmp(pluses{end}, '')
+    error('Error when parsing line %d of file %s:\n %s\n Please check the products of the reaction description.', ...
+      lineNumber, fileName, cleanLine);
+  end
+  for i = 2:length(pluses)-1
+    if ~strcmp(pluses{i}, '+')
+      error('Error when parsing line %d of file %s:\n %s\n Please check the products of the reaction description.', ...
+        lineNumber, fileName, cleanLine);
+    end
+  end
+  % parsing electrons, gas or regular products (states)
+  for i = 1:length(rawProducts)
+    if isempty(rawProducts(i).gasName)
+      if isempty(rawProducts(i).quantity)
+        productElectrons = productElectrons+1;
+      else
+        productElectrons = productElectrons+str2double(rawProducts(i).quantity);
+      end
+    elseif strcmpi(rawProducts(i).gasName, 'wall')
+      error('Error when parsing line %d of file %s:\n %s\nThe simulation can not create "wall".', ...
+        lineNumber, fileName, cleanLine);
+    elseif strcmpi(rawProducts(i).gasName, 'gas')
+      if rightHandSideGas
+        error(['Error when parsing line %d of file %s:\n %s\nThe simulation can not have more than one "gas" ' ...
+          'on the right hand side.'], lineNumber, fileName, cleanLine);
+      end
+      rightHandSideGas = true;
+    else
+      if isempty(productArray)
+        productArray = rawProducts(i);
+      else
+        productArray(end+1) = rawProducts(i);
+      end
+    end
+  end
+  
+  % check if the reaction is stabilised by the gas, i.e. it includes a gas molecule (any) as catalyst
+  if leftHandSideGas && rightHandSideGas
+    isGasStabilised = true;
+  elseif leftHandSideGas
+    error('Error when parsing line %d of file %s:\n %s\nThe simulation can not destroy "gas".', ...
+      lineNumber, fileName, cleanLine);
+  elseif rightHandSideGas
+    error('Error when parsing line %d of file %s:\n %s\nThe simulation can not create "gas".', ...
+      lineNumber, fileName, cleanLine);
+  end
+  
+  % analyse the directionality of the reaction 
+  if strcmp(auxChemEntry.direction, '->')
+    isReverse = false;
+  else
+    isReverse = true;
+  end
+  
+  % parsing rate coefficient parameters
+  rawRateCoeffParams = regexp(auxChemEntry.parameters, ',', 'split');
+  rateCoeffParams = cell(size(rawRateCoeffParams));
+  for i = 1:length(rawRateCoeffParams)
+    rateCoeffParams{i} = str2value(rawRateCoeffParams{i});
+  end
+  
+  % parsing reaction enthalpy
+  enthalpy = str2value(auxChemEntry.enthalpy);
+  
+  % analise vibrational ranges
+  vRangeReactantID = [];
+  vRange = [];
+  vDependentProductIDs = [];
+  vDependentExpression = {};
+  wRangeReactantID = [];
+  wRange = [];
+  wDependentProductIDs = [];
+  wDependentExpression = {};
+  for i = 1:length(reactantArray)
+    if ~isempty(reactantArray(i).vibLevel) && ~isempty(strfind(reactantArray(i).vibLevel, ':'))
+      switch reactantArray(i).vibRange
+        case 'v'
+          if ~isempty(vRange)
+            error('vRange already filled up');
+          end
+          vRangeReactantID = i;
+          vRange = reactantArray(i).vibLevel;
+          for j = 1:length(productArray)
+            if ~isempty(strfind(productArray(j).vibLevel, 'v'))
+              vDependentProductIDs(end+1) = j;
+              vDependentExpression{end+1} = productArray(j).vibLevel;
+            end
+          end
+        case 'w'
+          if ~isempty(wRange)
+            error('wRange already filled up');
+          end
+          wRangeReactantID = i;
+          wRange = reactantArray(i).vibLevel;
+          for j = 1:length(productArray)
+            if ~isempty(strfind(productArray(j).vibLevel, 'w'))
+              wDependentProductIDs(end+1) = j;
+              wDependentExpression{end+1} = productArray(j).vibLevel;
+            end
+          end
+      end
+    end
+  end
+  
+  % add new reactions
+  newChemEntry.type = auxChemEntry.type;
+  newChemEntry.isTransport = isTransport;
+  newChemEntry.isGasStabilised = isGasStabilised;
+  newChemEntry.isReverse = isReverse;
+  newChemEntry.rateCoeffParams = rateCoeffParams;
+  newChemEntry.enthalpy = enthalpy;
+  newChemEntry.reactantElectrons = reactantElectrons;
+  newChemEntry.productElectrons = productElectrons;
+  if isempty(vRange) && isempty(wRange)
+    % removing duplicated states in the reactant array
+    newReactantArray = removeDuplicatedStates(reactantArray);
+    % removing duplicated states in the product array
+    newProductArray = removeDuplicatedStates(productArray);
+    % find catalyst species in the reaction
+    [newReactantArray, newProductArray, catalystArray] = findCatalysts(newReactantArray, newProductArray);
+    % avoid reactions where nothing is created nor destroyed
+    if isempty(newReactantArray) && isempty(newProductArray)
+      return;
+    end
+    % saving new chemistry entry
+    newChemEntry.reactantArray = newReactantArray;
+    newChemEntry.productArray = newProductArray;
+    newChemEntry.catalystArray = catalystArray;
+    if isempty(chemEntryArray)
+      chemEntryArray = newChemEntry;
+    else
+      chemEntryArray(end+1) = newChemEntry;
+    end
+  elseif isempty(vRange)
+    for w = eval(wRange)
+      % evaluating reactant states
+      reactantArray(wRangeReactantID).vibLevel = int2str(w);
+      % evaluating product states
+      for j = 1:length(wDependentProductIDs)
+        productArray(wDependentProductIDs(j)).vibLevel = int2str(eval(wDependentExpression{j}));
+      end
+      % removing duplicated states in the reactant array
+      newReactantArray = removeDuplicatedStates(reactantArray);
+      % removing duplicated states in the product array
+      newProductArray = removeDuplicatedStates(productArray);
+      % find catalyst species in the reaction
+      [newReactantArray, newProductArray, catalystArray] = findCatalysts(newReactantArray, newProductArray);
+      % avoid reactions where nothing is created nor destroyed
+      if isempty(newReactantArray) && isempty(newProductArray)
+        continue;
+      end
+      % saving new chemistry entry
+      newChemEntry.reactantArray = newReactantArray;
+      newChemEntry.productArray = newProductArray;
+      newChemEntry.catalystArray = catalystArray;
+      if isempty(chemEntryArray)
+        chemEntryArray = newChemEntry;
+      else
+        chemEntryArray(end+1) = newChemEntry;
+      end
+    end
+  elseif isempty(wRange)
+    for v = eval(vRange)
+      % evaluating reactant states
+      reactantArray(vRangeReactantID).vibLevel = int2str(v);
+      % evaluating product states
+      for j = 1:length(vDependentProductIDs)
+        productArray(vDependentProductIDs(j)).vibLevel = int2str(eval(vDependentExpression{j}));
+      end
+      % removing duplicated states in the reactant array
+      newReactantArray = removeDuplicatedStates(reactantArray);
+      % removing duplicated states in the product array
+      newProductArray = removeDuplicatedStates(productArray);
+      % find catalyst species in the reaction
+      [newReactantArray, newProductArray, catalystArray] = findCatalysts(newReactantArray, newProductArray);
+      % avoid reactions where nothing is created nor destroyed
+      if isempty(newReactantArray) && isempty(newProductArray)
+        continue;
+      end
+      % saving new chemistry entry
+      newChemEntry.reactantArray = newReactantArray;
+      newChemEntry.productArray = newProductArray;
+      newChemEntry.catalystArray = catalystArray;
+      if isempty(chemEntryArray)
+        chemEntryArray = newChemEntry;
+      else
+        chemEntryArray(end+1) = newChemEntry;
+      end
+    end
+  else
+    for v = eval(vRange)
+      % evaluating reactant states (v)
+      reactantArray(vRangeReactantID).vibLevel = int2str(v);
+      % evaluating product states (v)
+      for j = 1:length(vDependentProductIDs)
+        productArray(vDependentProductIDs(j)).vibLevel = int2str(eval(vDependentExpression{j}));
+      end
+      for w = eval(wRange)
+        % evaluating reactant states (w)
+        reactantArray(wRangeReactantID).vibLevel = int2str(w);
+        % evaluating product states (w)
+        for j = 1:length(wDependentProductIDs)
+          productArray(wDependentProductIDs(j)).vibLevel = int2str(eval(wDependentExpression{j}));
+        end
+        % removing duplicated states in the reactant array
+        newReactantArray = removeDuplicatedStates(reactantArray);
+        % removing duplicated states in the product array
+        newProductArray = removeDuplicatedStates(productArray);
+        % find catalyst species in the reaction
+        [newReactantArray, newProductArray, catalystArray] = findCatalysts(newReactantArray, newProductArray);
+        % avoid reactions where nothing is created nor destroyed
+        if isempty(newReactantArray) && isempty(newProductArray)
+          continue;
+        end
+        % saving new chemistry entry
+        newChemEntry.reactantArray = newReactantArray;
+        newChemEntry.productArray = newProductArray;
+        newChemEntry.catalystArray = catalystArray;
+        if isempty(chemEntryArray)
+          chemEntryArray = newChemEntry;
+        else
+          chemEntryArray(end+1) = newChemEntry;
+        end
+      end
+    end
+  end
+  
+end
+
 function newStateArray = removeDuplicatedStates(stateArray)
   
   if isempty(stateArray)
@@ -794,4 +1179,43 @@ function newStateArray = removeDuplicatedStates(stateArray)
     end
   end
   
+end
+
+function [reactantArray, productArray, catalystArray] = findCatalysts(reactantArray, productArray)
+  catalystArray = [];
+  i = 1;
+  while i <= length(reactantArray)
+    j = 1;
+    while j <= length(productArray)
+      if strcmp(reactantArray(i).gasName, productArray(j).gasName) && ...
+          strcmp(reactantArray(i).ionCharg, productArray(j).ionCharg) && ...
+          strcmp(reactantArray(i).eleLevel, productArray(j).eleLevel) && ...
+          strcmp(reactantArray(i).vibLevel, productArray(j).vibLevel) && ...
+          strcmp(reactantArray(i).rotLevel, productArray(j).rotLevel)
+        if isempty(catalystArray)
+          catalystArray = reactantArray(i);
+        else
+          catalystArray(end+1) = reactantArray(i);
+        end
+        if reactantArray(i).quantity < productArray(j).quantity
+          productArray(j).quantity = productArray(j).quantity-reactantArray(i).quantity;
+          reactantArray = reactantArray([1:i-1 i+1:end]);
+          i = i-1;
+          break;
+        elseif reactantArray(i).quantity > productArray(j).quantity
+          catalystArray(end).quantity = productArray(j).quantity;
+          reactantArray(i).quantity = reactantArray(i).quantity-productArray(j).quantity;
+          productArray = productArray([1:j-1 j+1:end]);
+          break;
+        else
+          reactantArray = reactantArray([1:i-1 i+1:end]);
+          i = i-1;
+          productArray = productArray([1:j-1 j+1:end]);
+          break;
+        end
+      end
+      j = j+1;
+    end
+    i = i+1;
+  end
 end

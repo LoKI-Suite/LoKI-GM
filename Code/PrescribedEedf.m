@@ -1,11 +1,43 @@
-% LoKI-B solves a time and space independent form of the two-term 
-% electron Boltzmann equation (EBE), for non-magnetised non-equilibrium 
-% low-temperature plasmas excited by DC/HF electric fields from 
-% different gases or gas mixtures.
+% LoKI-GM comprises two modules, that can run self-consistently coupled 
+% or as standalone tools.
+% 
+% LoKI-B, which solves the space independent form of the two-term 
+% electron Boltzmann equation (EBE) to calculate the isotropic and the 
+% anisotropic parts of the electron distribution function, 
+% and the associated electron macroscopic parameters. 
+% LoKI-B applies to non-magnetised non-equilibrium LTPs, excited by 
+% DC/HF electric fields or time-dependent (non-oscillatory) electric fields 
+% from different gases or gas mixtures. 
+% The tool uses a stationary description for DC fields, 
+% a Fourier time-expansion description for HF fields, 
+% and a time-dependent description for time-varying fields.
+% 
+% LoKI-C, which solves the system of zero-dimensional (volume average) 
+% rate balance equations for the most relevant 
+% charged and neutral species in the plasma. 
+% LoKI-C receives as input data the kinetic schemes for the gas/plasma/
+% surface system under study, via an intuitive csv-like input file, 
+% and gives as output the particle densities of the different gas/plasma/
+% surface species, the corresponding creation/destruction reaction rates, 
+% and the reduced electric field (and any related quantity, such as 
+% the discharge current or the discharge power-density).
+% The tool uses several modules to describe the mechanisms 
+% (collisional, radiative and transport) controlling the
+% creation/destruction of species, namely various transport models 
+% for the charged particles and for the neutral particles. 
+% LoKI-C includes also a gas/plasma thermal model, for the self-consistent 
+% calculation of the gas temperature, and supports multicomponent 
+% mean-field microkinetic mesoscopic models to handle surface kinetics 
+% in a fully coupled way with volume kinetics.
+%
 % Copyright (C) 2018 A. Tejero-del-Caz, V. Guerra, D. Goncalves, 
 % M. Lino da Silva, L. Marques, N. Pinhao, C. D. Pintassilgo and
 % L. L. Alves
 % 
+% Copyright (C) 2026 L. L. Alves, A. Tejero-del-Caz, T. C. Dias, 
+% A. Gonçalves, L. Marques, P. Pereira, N. Pinhão, C. D. Pintassilgo, 
+% T. Silva, P. Viegas and V. Guerra
+%
 % This program is free software: you can redistribute it and/or modify
 % it under the terms of the GNU General Public License as published by
 % the Free Software Foundation, either version 3 of the License, or
@@ -112,7 +144,7 @@ classdef PrescribedEedf < handle
       % evaluate transport parameters
       prescribedEedf.evaluateSwarmParameters();
 
-      % bradcast obtention of a solution for the EEDF
+      % broadcast obtention of a solution for the EEDF
       notify(prescribedEedf, 'obtainedNewEedf');
       
       % logging end of the EEDF evaluation
@@ -258,13 +290,13 @@ classdef PrescribedEedf < handle
         for collision = gas.collisionArray
           % collision type
           collType = collision.type;
-          % avoid Effective, Elastic, Attachment collisions and collisions whos threshold is larger than the maximum
+          % avoid Effective, Elastic, Attachment collisions and collisions whose threshold is larger than the maximum
           % energy
           if strcmp(collType, 'Effective') || strcmp(collType, 'Elastic') || strcmp(collType, 'Attachment') || ...
               collision.threshold > energyNode(end)
             continue;
           end
-          % switch to lower case because of aesthetical reasons
+          % switch to lower case for aesthetic reasons
           collType = lower(collType);
           % evaluate cross section at cell positions
           cellCrossSection = 0.5*(collision.crossSection(1:end-1)+collision.crossSection(2:end));

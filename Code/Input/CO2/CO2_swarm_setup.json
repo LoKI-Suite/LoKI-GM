@@ -4,7 +4,7 @@
     "electronTemperature": "linspace(0.03, 5, 100)",
     "excitationFrequency": 0,
     "gasPressure": 133.32,
-    "gasTemperature": 195,
+    "gasTemperature": 300,
     "wallTemperature": 390,
     "extTemperature": 300,
     "surfaceSiteDensity": 1e19,
@@ -21,7 +21,6 @@
     "growthModelType": "temporal",
     "includeEECollisions": false,
     "LXCatFiles": ["CO2/CO2_LXCat.json"],
-    "effectiveCrossSectionPopulations": ["CO2/CO2_effectivePop_for_demo.txt"],
     "gasProperties": {
       "mass": "Databases/masses.txt",
       "fraction": ["CO2 = 1"],
@@ -43,8 +42,8 @@
       ],
       "population": [
         "CO2(X^1S_g^+) = 1.0",
-        "CO2(X^1S_g^+,v=000) = 0.9859",
-        "CO2(X^1S_g^+,v=010) = 0.0141"
+        "CO2(X^1S_g^+,v=000) = 0.9254",
+        "CO2(X^1S_g^+,v=010) = 0.0746"
       ]
     },
     "numerics": {
@@ -73,9 +72,9 @@
     "refreshFrequency": 1
   },
   "output": {
-    "isOn": false,
+    "isOn": true,
     "dataFormat":  "hdf5+txt",
-    "folder": "CO2Swarm_195K_PT",
+    "folder": "CO2Swarm_300K_PT",
     "dataSets": [
       "log",
       "eedf",
