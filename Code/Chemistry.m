@@ -675,6 +675,7 @@ classdef Chemistry < handle
           case 'wall'
             nearWallTemperatureTime = zeros(1,length(gasTemperatureTime));
             nearWallTemperatureTime(1) = chemistry.initialNearWallTemperature;
+            thermalModel = struct.empty;
             for i = 1:length(gasTemperatureTime)-1
               chemistry.workCond.gasTemperature = gasTemperatureTime(i);
               chemistry.workCond.nearWallTemperature = nearWallTemperatureTime(i);
@@ -687,6 +688,7 @@ classdef Chemistry < handle
             nearWallTemperatureTime(1) = chemistry.initialNearWallTemperature;
             wallTemperatureTime = zeros(1,length(gasTemperatureTime));
             wallTemperatureTime(1) = chemistry.initialWallTemperature;
+            thermalModel = struct.empty;
             for i = 1:length(gasTemperatureTime)-1
               chemistry.workCond.gasTemperature = gasTemperatureTime(i);
               chemistry.workCond.nearWallTemperature = nearWallTemperatureTime(i);
@@ -1363,16 +1365,22 @@ classdef Chemistry < handle
         tspan = [0 chemistry.odeDischargeTime];
       end
 
-      % call the ODE solver
-      start = tic;
-      notify(chemistry, 'genericStatusMessage', ...
-        StatusEventData('\t- Integrating particle rate-balance equations ...\n', 'status'));
-      % uncomment the next line for testing event detection functionalities (NOT FOR PRODUCTION!)
-      % chemistry.odeOptions.Events = @odeEventFunction;
-      [time, timeSolution] = chemistry.odeSolver(@kinetics, tspan, initialValues, ...
-        chemistry.odeOptions, directRateCoeffs, inverseRateCoeffs, timeDependentReactionIDs, chemistry, false);
-      str = sprintf('\\t    Finished (%f seconds).\\n', toc(start));
-      notify(chemistry, 'genericStatusMessage', StatusEventData(str, 'status'));
+      if tspan(end) ~= 0
+        % call the ODE solver
+        start = tic;
+        notify(chemistry, 'genericStatusMessage', ...
+          StatusEventData('\t- Integrating particle rate-balance equations ...\n', 'status'));
+        % uncomment the next line for testing event detection functionalities (NOT FOR PRODUCTION!)
+        % chemistry.odeOptions.Events = @odeEventFunction;
+        [time, timeSolution] = chemistry.odeSolver(@kinetics, tspan, initialValues, ...
+          chemistry.odeOptions, directRateCoeffs, inverseRateCoeffs, timeDependentReactionIDs, chemistry, false);
+        str = sprintf('\\t    Finished (%f seconds).\\n', toc(start));
+        notify(chemistry, 'genericStatusMessage', StatusEventData(str, 'status'));
+      else
+        time = [0; 0];
+        timeSolution(1,:) = initialValues;
+        timeSolution(2,:) = initialValues;
+      end
 
       % separate time solutions into its different components
       absDensitiesTime = timeSolution(:,1:chemistry.numberOfSpecies);
