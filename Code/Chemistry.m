@@ -964,7 +964,8 @@ classdef Chemistry < handle
       for i = 1:length(time)
         % evaluate working conditions at each time point (for the evaluation of the rates)
         chemistry.workCond.electronDensity = electronDensity(i);
-        chemistry.workCond.gasTemperature = gasTemperatureTime(i);
+        chemistry.workCond.update('gasPressure', totalGasDensity(i)*Constant.boltzmann*gasTemperatureTime(i));
+        chemistry.workCond.update('gasTemperature', gasTemperatureTime(i));
         reducedFieldTime(i) = chemistry.pulseFunction(time(i), chemistry.pulseFunctionParameters);
         chemistry.workCond.update('reducedField', reducedFieldTime(i));
         if strcmp(chemistry.electronKineticsDependence, 'quasiStationary') && strcmp(chemistry.lookUpMethod, 'localEnergy')
@@ -992,6 +993,9 @@ classdef Chemistry < handle
               directRateCoeffs(reactionID), Constant.boltzmannInEV*chemistry.workCond.gasTemperature);
           end
         end
+        % call kinetics function to evaluate totalOutFlow and save it in the working conditions (for output purposes)
+        [~, thermalModel] = kinetics(time(i), [absDensitiesTime(i,:) gasTemperatureTime(i)]', ...
+          directRateCoeffs, inverseRateCoeffs, timeDependentReactionIDs, chemistry, false);
         % evaluate reaction rate at each time point
         reactionRates = directRateCoeffs.*prod(repmat(absDensitiesTime(i,:)',[1 chemistry.numberOfReactions]).^ ...
           (chemistry.reactantStoiCoeffs+chemistry.catalystStoiCoeffs),1).* ...
