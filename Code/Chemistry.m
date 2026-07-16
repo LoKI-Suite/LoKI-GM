@@ -1617,6 +1617,7 @@ function [derivatives, thermalModel] = kinetics(time, variables, directRateCoeff
         case 'localField'
           lookUpXValues = chemistry.lookUpTableRedFieldValues;
           lookUpQueryPoint = workCond.reducedField;
+          workCond.electronTemperature = interp1(lookUpXValues, chemistry.lookUpTableEleTempValues, lookUpQueryPoint);
         case 'localEnergy'
           lookUpXValues = chemistry.lookUpTableEleTempValues;
           lookUpQueryPoint = workCond.electronTemperature;
