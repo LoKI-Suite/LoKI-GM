@@ -4,7 +4,7 @@
 
 % --- configuration of the working conditions ---
 workingConditions:
-  reducedField: pulse@reducedFieldFromCurrentFile, 1e-12, 1e-6, logspace, 200, CO2/pulse/currentPulseFile.txt % pulse@functionName, firstStep, finalTime, samplingType, samplingPoints, aditionalParameters
+  reducedField: pulse@reducedFieldFromCurrentFile, 1e-12, 1e-6, logspace, 61, CO2/pulse/currentPulseFile.txt % pulse@functionName, firstStep, finalTime, samplingType, samplingPoints, aditionalParameters
   electronTemperature: 300*Constant.boltzmann/Constant.electronCharge   % in eV
   excitationFrequency: 0                                                % in Hz
   gasPressure: 760*133.332                                              % in Pa
@@ -17,7 +17,7 @@ workingConditions:
   chamberLength: 5E-3                                                   % in m
   chamberRadius: 0.5e-3                                                 % in m
   totalSccmInFlow: 10                                                   % in sccm
-  totalSccmOutFlow: ensureIsobaric                                      % a number  (in sccm) or a model: totalSccmInFlow, ensureIsobaric
+  totalSccmOutFlow: 10                                                  % a number  (in sccm) or a model: totalSccmInFlow, ensureIsobaric
 
 % --- configuration of the electron kinetics ---
 electronKinetics:
