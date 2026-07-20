@@ -518,8 +518,7 @@ classdef InputGUILokib < handle
             excitationFreqLabel = uilabel(grid, 'Text', 'Excitation Frequency (Hz):');
             excitationFreqLabel.Layout.Row = row;
             excitationFreqLabel.Layout.Column = 1;
-            gui.UIControls.workingConditions.excitationFrequency = uieditfield(grid, 'numeric', ...
-                'Limits', [0, Inf], ...
+            gui.UIControls.workingConditions.excitationFrequency = uieditfield(grid, 'text', ...
                 'HorizontalAlignment', 'left', ...
                 'ValueChangedFcn', @(src, evt) gui.handleExcitationFrequencyChange(src, evt.Value));
             gui.UIControls.workingConditions.excitationFrequency.Layout.Row = row;
@@ -533,8 +532,7 @@ classdef InputGUILokib < handle
             gasPressureCheckbox.Layout.Column = 1;
             gui.UIControls.workingConditions.gasPressureCheckbox = gasPressureCheckbox;
             
-            gui.UIControls.workingConditions.gasPressure = uieditfield(grid, 'numeric', ...
-                'Limits', [0, Inf], ...
+            gui.UIControls.workingConditions.gasPressure = uieditfield(grid, 'text', ...
                 'Enable', 'off', ...
                 'HorizontalAlignment', 'left', ...
                 'ValueChangedFcn', @(src, evt) gui.updateField(src, 'workingConditions.gasPressure', evt.Value));
@@ -547,8 +545,7 @@ classdef InputGUILokib < handle
             gasTempLabel.Layout.Row = row;
             gasTempLabel.Layout.Column = 1;
             
-            gui.UIControls.workingConditions.gasTemperature = uieditfield(grid, 'numeric', ...
-                'Limits', [0, Inf], ...
+            gui.UIControls.workingConditions.gasTemperature = uieditfield(grid, 'text', ...
                 'HorizontalAlignment', 'left', ...
                 'ValueChangedFcn', @(src, evt) gui.updateField(src, 'workingConditions.gasTemperature', evt.Value));
             gui.UIControls.workingConditions.gasTemperature.Layout.Row = row;
@@ -2012,7 +2009,15 @@ classdef InputGUILokib < handle
                 currentValue = gui.getNestedField(gui.Setup, fieldPath);
                 % --- Type Conversion Logic ---
                 % Check if the target field in Setup is numeric
-                if isnumeric(currentValue) && ~isa(value, 'logical') % Don't convert logicals to numeric
+                if gui.isStringAllowedWorkingCondition(fieldPath) && (ischar(value) || isstring(value))
+                    textValue = strtrim(char(value));
+                    numericValue = str2double(textValue);
+                    if ~isempty(textValue) && ~isnan(numericValue)
+                        value = numericValue;
+                    else
+                        value = char(value);
+                    end
+                elseif isnumeric(currentValue) && ~isa(value, 'logical') % Don't convert logicals to numeric
                     if ischar(value) || isstring(value) % Handle text input for numeric fields
                         numericValue = str2double(value);
                         if isnan(numericValue)
@@ -2069,6 +2074,14 @@ classdef InputGUILokib < handle
             end
         end
 
+        function tf = isStringAllowedWorkingCondition(~, fieldPath)
+            tf = any(strcmp(fieldPath, { ...
+                'workingConditions.excitationFrequency', ...
+                'workingConditions.gasPressure', ...
+                'workingConditions.gasTemperature', ...
+                'workingConditions.electronDensity'}));
+        end
+
         function handleExcitationFrequencyChange(gui, control, value)
             % Update excitation frequency and require gas pressure for RF cases.
             gui.updateField(control, 'workingConditions.excitationFrequency', value);
@@ -2076,7 +2089,7 @@ classdef InputGUILokib < handle
         end
 
         function activateGasPressureForExcitationFrequency(gui, excitationFrequency)
-            if ~isempty(excitationFrequency) && isnumeric(excitationFrequency) && any(excitationFrequency(:) ~= 0) && ...
+            if gui.hasNonZeroExcitationFrequency(excitationFrequency) && ...
                isfield(gui.UIControls, 'workingConditions') && ...
                isfield(gui.UIControls.workingConditions, 'gasPressureCheckbox')
                 gui.UIControls.workingConditions.gasPressureCheckbox.Value = true;
@@ -2088,6 +2101,20 @@ classdef InputGUILokib < handle
                 gui.UIControls.workingConditions.gasPressureCheckbox.Value = false;
                 gui.toggleGasPressureEnable(false);
                 gui.UIControls.electronKinetics.growthModelType.Enable = 'on';
+            end
+        end
+
+        function tf = hasNonZeroExcitationFrequency(~, excitationFrequency)
+            if isempty(excitationFrequency)
+                tf = false;
+            elseif isnumeric(excitationFrequency)
+                tf = any(excitationFrequency(:) ~= 0);
+            elseif ischar(excitationFrequency) || isstring(excitationFrequency)
+                textValue = strtrim(char(excitationFrequency));
+                numericValue = str2double(textValue);
+                tf = ~isempty(textValue) && (isnan(numericValue) || numericValue ~= 0);
+            else
+                tf = false;
             end
         end
 
@@ -2960,8 +2987,7 @@ classdef InputGUILokib < handle
             gui.updateField(gui.UIControls.electronKinetics.ionizationOperatorType, 'electronKinetics.ionizationOperatorType', value);
 
             excitationFrequency = gui.Setup.workingConditions.excitationFrequency;
-            hasExcitationFrequency = ~isempty(excitationFrequency) && ...
-                isnumeric(excitationFrequency) && any(excitationFrequency(:) ~= 0);
+            hasExcitationFrequency = gui.hasNonZeroExcitationFrequency(excitationFrequency);
 
             if hasExcitationFrequency
                 gui.setTemporalGrowthModelForExcitationFrequency();
@@ -4130,6 +4156,22 @@ classdef InputGUILokib < handle
                            ((ischar(value) || isstring(value)) && isempty(strtrim(char(value))))
                             setup.workingConditions = rmfield(setup.workingConditions, fieldName);
                         end
+                    end
+                end
+                optionalFields = { ...
+                    'gasPressure', 'gasPressureCheckbox'; ...
+                    'electronDensity', 'electronDensityCheckbox'; ...
+                    'dischargeCurrent', 'dischargeCurrentCheckbox'; ...
+                    'dischargePowerDensity', 'dischargePowerDensityCheckbox'};
+                for idx = 1:size(optionalFields, 1)
+                    fieldName = optionalFields{idx, 1};
+                    checkboxName = optionalFields{idx, 2};
+                    if isfield(setup.workingConditions, fieldName) && ...
+                       isfield(gui.UIControls, 'workingConditions') && ...
+                       isfield(gui.UIControls.workingConditions, checkboxName) && ...
+                       isvalid(gui.UIControls.workingConditions.(checkboxName)) && ...
+                       ~gui.UIControls.workingConditions.(checkboxName).Value
+                        setup.workingConditions = rmfield(setup.workingConditions, fieldName);
                     end
                 end
             end
