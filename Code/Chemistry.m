@@ -895,6 +895,23 @@ classdef Chemistry < handle
 
     function solvePulsed(chemistry)
       
+      % Check if initial electron density provided in the setup file is consistent with the initial densities of ions
+      initialGasDensity = chemistry.initialGasPressure/(Constant.boltzmann*chemistry.initialGasTemperature);
+      electronDensity = 0;
+      for i = 1:chemistry.numberOfSpecies
+        if strcmp(chemistry.stateArray(i).ionCharg, '+')
+          electronDensity = electronDensity + chemistry.initialDensities(i)*initialGasDensity;
+        elseif strcmp(chemistry.stateArray(i).ionCharg, '-')
+          electronDensity = electronDensity - chemistry.initialDensities(i)*initialGasDensity;
+        end
+      end
+      relativeError = abs(electronDensity - chemistry.workCond.electronDensity)/chemistry.workCond.electronDensity;
+      if relativeError > 1e-12
+        error(['Initial electron density provided in the setup file is not consistent with the initial densities of' ...
+          ' ions.\nNeutrality Relative Error: %g%% (greater than 1e-10%%)\nPlease check the initial densities of ' ...
+          'ions and the initial electron density in the setup file.'], relativeError * 100)
+      end
+
       % Temporal integration of rate balance equations for pulsed simulations
       [time, absDensitiesTime, gasTemperatureTime, electronTemperatureTime, directRateCoeffs, inverseRateCoeffs, ...
         timeDependentReactionIDs] = chemistry.integrateRateBalanceEquations();
