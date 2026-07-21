@@ -3220,13 +3220,7 @@ classdef InputGUILokib < handle
                     checkbox = gui.UIControls.output.dataSets.(dataSetNames{i});
                     if isvalid(checkbox)
                         checkbox.Enable = enableState;
-                        if ~isEnabled
-                            checkbox.Value = false;
-                        end
                     end
-                end
-                if ~isEnabled
-                    gui.Setup.output.dataSets = {};
                 end
             end
         end
