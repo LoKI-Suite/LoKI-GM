@@ -1451,7 +1451,7 @@ classdef InputGUILokib < handle
 
             gui.UIControls.output.useCustomFolder = uicheckbox(folderLabelGrid, ...
                 'Text', '', ...
-                'Value', true, ...
+                'Value', false, ...
                 'ValueChangedFcn', @(src, evt) gui.toggleOutputFolderMode(evt.Value));
             gui.UIControls.output.useCustomFolder.Layout.Row = 1;
             gui.UIControls.output.useCustomFolder.Layout.Column = 1;
@@ -1997,6 +1997,23 @@ classdef InputGUILokib < handle
             % Map old gasProperties paths to new electronKinetics.gasProperties paths
             if startsWith(fieldPath, 'gasProperties.')
                 fieldPath = strrep(fieldPath, 'gasProperties.', 'electronKinetics.gasProperties.');
+            end
+
+            if strcmp(fieldPath, 'output.folder')
+                [isValidFolder, ~, relativeFolder, outputRoot] = gui.validateOutputFolderValue(value);
+                if ~isValidFolder
+                    try
+                        control.Value = gui.getNestedField(gui.Setup, fieldPath);
+                    catch
+                    end
+                    uialert(gui.Fig, sprintf('Output folder must be a subfolder inside:\n%s', outputRoot), 'Invalid Output Folder');
+                    return;
+                end
+                value = relativeFolder;
+                try
+                    control.Value = relativeFolder;
+                catch
+                end
             end
 
             % Check if the control supports BackgroundColor for visual feedback
@@ -2858,12 +2875,19 @@ classdef InputGUILokib < handle
         end
 
         function browseFolder(gui, ~, ~)
-            folderPath = uigetdir(pwd, 'Select Output Folder'); % Start in current directory
+            outputRoot = gui.getCodeOutputFolder();
+            folderPath = uigetdir(outputRoot, 'Select Output Folder');
             if ~isequal(folderPath, 0)
+                [isValidFolder, ~, relativeFolder, ~] = gui.validateOutputFolderValue(folderPath);
+                if ~isValidFolder
+                    uialert(gui.Fig, sprintf('Output folder must be a subfolder inside:\n%s', outputRoot), 'Invalid Output Folder');
+                    return;
+                end
+
                 % Update the edit field and the setup struct
                 control = gui.UIControls.output.folder;
-                control.Value = folderPath;
-                gui.setNestedField('output.folder', folderPath); % Update setup directly
+                control.Value = relativeFolder;
+                gui.setNestedField('output.folder', relativeFolder); % Update setup directly
             end
         end
 
@@ -4133,12 +4157,23 @@ classdef InputGUILokib < handle
                     end
                 end
             end
-            if isfield(setup, 'output') && isfield(setup.output, 'folder') && ...
-                    isfield(gui.UIControls, 'output') && ...
-                    isfield(gui.UIControls.output, 'useCustomFolder') && ...
-                    isvalid(gui.UIControls.output.useCustomFolder) && ...
-                    ~gui.UIControls.output.useCustomFolder.Value
-                setup.output.folder = datestr(now, 'yyyy-mm-dd_HH-MM-SS');
+            if isfield(setup, 'output') && isfield(setup.output, 'folder')
+                useCustomOutputFolder = true;
+                if isfield(gui.UIControls, 'output') && ...
+                        isfield(gui.UIControls.output, 'useCustomFolder') && ...
+                        isvalid(gui.UIControls.output.useCustomFolder)
+                    useCustomOutputFolder = gui.UIControls.output.useCustomFolder.Value;
+                end
+
+                if ~useCustomOutputFolder
+                    setup.output.folder = datestr(now, 'yyyy-mm-dd_HH-MM-SS');
+                else
+                    [isValidFolder, ~, relativeFolder, outputRoot] = gui.validateOutputFolderValue(setup.output.folder);
+                    if ~isValidFolder
+                        error('Output folder must be a subfolder inside "%s".', outputRoot);
+                    end
+                    setup.output.folder = relativeFolder;
+                end
             end
             if isfield(gui.UIControls, 'gasProperties')
                 gasFileFields = {'mass', 'harmonicFrequency', 'anharmonicFrequency', ...
@@ -5020,6 +5055,80 @@ classdef InputGUILokib < handle
 
         function openSetupFileHelp(~, ~, ~)
             web("../Documentation/html/Index.html");
+        end
+
+        function outputRoot = getCodeOutputFolder(~)
+            codeFolder = fileparts(mfilename('fullpath'));
+            outputRoot = fullfile(codeFolder, 'Output');
+        end
+
+        function [isValidFolder, normalizedFolder, relativeFolder, outputRoot] = validateOutputFolderValue(gui, folderValue)
+            outputRoot = gui.getCodeOutputFolder();
+            normalizedFolder = '';
+            relativeFolder = '';
+            isValidFolder = false;
+
+            if isstring(folderValue)
+                folderValue = char(folderValue);
+            end
+            if ~ischar(folderValue)
+                return;
+            end
+
+            folderValue = strtrim(folderValue);
+            if isempty(folderValue)
+                return;
+            end
+
+            if gui.isAbsolutePath(folderValue)
+                candidateFolder = folderValue;
+            else
+                folderValue = strrep(folderValue, '/', filesep);
+                folderValue = strrep(folderValue, '\', filesep);
+                if strcmpi(folderValue, 'Output')
+                    folderValue = '.';
+                elseif startsWith(lower(folderValue), ['output' filesep])
+                    folderValue = folderValue(length('Output') + 2:end);
+                end
+                candidateFolder = fullfile(outputRoot, folderValue);
+            end
+
+            normalizedFolder = gui.canonicalPath(candidateFolder);
+            normalizedRoot = gui.canonicalPath(outputRoot);
+
+            compareFolder = normalizedFolder;
+            compareRoot = normalizedRoot;
+            if ispc
+                compareFolder = lower(compareFolder);
+                compareRoot = lower(compareRoot);
+            end
+
+            rootWithSeparator = [compareRoot filesep];
+            isValidFolder = startsWith(compareFolder, rootWithSeparator);
+            if isValidFolder
+                relativeFolder = normalizedFolder(length(normalizedRoot) + 2:end);
+            end
+        end
+
+        function isAbsolute = isAbsolutePath(~, pathValue)
+            if ispc
+                isAbsolute = ~isempty(regexp(pathValue, '^[A-Za-z]:[\\/]', 'once')) || ...
+                    startsWith(pathValue, '\\') || startsWith(pathValue, '//');
+            else
+                isAbsolute = startsWith(pathValue, filesep);
+            end
+        end
+
+        function normalizedPath = canonicalPath(~, pathValue)
+            try
+                fileObj = java.io.File(pathValue);
+                if ~fileObj.isAbsolute()
+                    fileObj = java.io.File(pwd, pathValue);
+                end
+                normalizedPath = char(fileObj.getCanonicalPath());
+            catch
+                normalizedPath = char(java.io.File(pathValue).getAbsolutePath());
+            end
         end
 
         function runSimulation(gui, ~, ~)
