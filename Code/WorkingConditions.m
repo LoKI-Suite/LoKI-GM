@@ -153,11 +153,13 @@ classdef WorkingConditions < handle
             str = sprintf('\\t- Updated gas pressure (%g Pa).\\n', newValues(idx));
 
           case 'gasTemperature'
-            workCond.gasDensity = workCond.gasPressure/(Constant.boltzmann*workCond.gasTemperature);
-            workCond.reducedExcFreqSI = workCond.excitationFrequency*2*pi/workCond.gasDensity;
-            notify(workCond, 'updatedGasTemperature'); 
-            notify(workCond, 'updatedGasDensity');
-            notify(workCond, 'updatedExcitationFrequency');
+            if ~isempty(workCond.gasPressure)  
+                workCond.gasDensity = workCond.gasPressure/(Constant.boltzmann*workCond.gasTemperature);
+                workCond.reducedExcFreqSI = workCond.excitationFrequency*2*pi/workCond.gasDensity;
+                notify(workCond, 'updatedGasDensity');
+                notify(workCond, 'updatedExcitationFrequency');
+            end    
+            notify(workCond, 'updatedGasTemperature');
             str = sprintf('\\t- Updated gas temperature (%g K).\\n', newValues(idx));
 
           case 'electronDensity'
