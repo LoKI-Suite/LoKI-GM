@@ -10,7 +10,7 @@
    - a Boltzmann solver (LoKI-B) for the electron Boltzmann equation;
    - a Chemical solver (LoKI-C) for the global kinetic model(s) of pure gases or gas mixtures.
    
-   The relevant documentation can be found [here](https://github.com/LoKI-Suite/LoKI-GM_RC/tree/master/Documentation).
+   The relevant documentation can be found [here](https://github.com/LoKI-Suite/LoKI-GM/tree/master/Documentation).
 
 2. What's the programming language of LoKI-GM ?   
    LoKI-GM is developed with flexible and upgradable object-oriented programming under MATLAB, leveraging its matrix-based architecture.   
@@ -115,7 +115,7 @@
    [available as open-access papers]
 
    For LoKI-GM   
-   [] Alves L L et al "LoKI-GM: a global model tool for plasma chemistry studies" 2026 Plasma Sources Sci. Technol. (submitted)   
+   [] Alves L L et al "LoKI-GM: a global model framework for plasma chemistry studies" 2026 Plasma Sources Sci. Technol. (submitted)   
    [] LoKI-GM (https://doi.org/10.57859/ulisboa-istipfn.000062)
 
 11. Acknowledgments   
