@@ -15,42 +15,47 @@
   <div class="content">
   <h1>Auxiliary functions</h1>
 
-  <p>This section describes several auxiliary functions that can be used in the
-  simulations of LoKI.</p>
+  <p>This section describes several auxiliary functions used internally by LoKI-GM to
+  perform the simulations.</p>
   
   <h2>Contents</h2>
-  <div>
+  <nav>
+  <ol start="5">
+  <li><a href="#0">Auxliliary functions</a>
   <ul>
-  <li><a href="#1">Property functions</a></li>
-  <li><a href="#2">Rate coefficient functions</a></li>
-  <li><a href="#3">Other auxiliary functions</a></li>
-  </ul>
-  </div>
+  <li>5.1 <a href="#1">Property functions</a></li>
+  <li>5.2 <a href="#2">Rate coefficient functions</a></li>
+  <li>5.3 <a href="#3">Other auxiliary functions</a></li>
+  <li>5.4 <a href="#4">Utilities</a></li>
+  </ul></li>
+  </ol>
+  </nav>
   
-  <h2 id="1">Property functions</h2>
+  <h2 id="1">5.1 Property functions</h2>
   <p>Property functions are <tt>*.m</tt> functions that can be used to specify the
   properties of gases and states used in the simulations. Some property functions
-  are distributed with LoKI-B, but in general these functions can be prepared by
+  are distributed with LoKI, but in general these functions can be prepared by
   the user, according to the needs for new functionalities. In this case, the user
   is advised to mimic the structure of any property function already provided with
   the code.</p>
   <p>The following should be considered:
   <ul>
   <li>for organisation sake, all "property functions" specified in the setup file
-  should be located in the property functions folder (<tt>[repository folder]/LoKI-B_v2.2.0/Code/PropertyFunctions</tt>;
-  see section <a href="getting_started.html#3">Data organization</a>);</li>
-  <li>property functions receive the arguments (<tt>state</tt>, <tt>argumentArray</tt>,
-    <tt>workCond</tt>), where
+  should be located in the property functions folder (<tt>[repository folder]/LoKI-GM_26.07/Code/PropertyFunctions</tt>;
+  see section <a href="Getting_started.html#2">2.2</a>);</li>
+  <li>property functions have the arguments (<tt>state</tt>, <tt>argumentArray</tt>,
+  <tt>workCond</tt>), or (<tt>gas</tt>, <tt>argumentArray</tt>, <tt>workCond</tt>), where
     <ul>
-    <li><tt>state</tt>: is a handle to the state-object to which the property is assigned.<br>
+    <li><tt>state</tt> or <tt>gas</tt>: is a handle to the state/gas-object(s) to which
+    the property is assigned.<br>
     For example, when using <tt>N2(X,v=*)</tt> the property is assigned to all the
     vibrational states with the electronic ground-state of N₂;</li>
     <li><tt>argumentArray</tt>: is an array of arguments corresponding to the list
     of parameters to be used in the setup file (see below);</li>
     <li><tt>workCond</tt>: is a handle to the working-conditions-object of the simulation.</li>
     </ul>
-  <li>property functions are called from the setup file (see section <a href="setup_file.html">
-    The setup file</a>) using the following structure:</br></br>
+  <li>property functions are called from the setup file (see section <a href="The_setup_file.html">
+    3</a>) using the following structure:</br></br>
     <math display="block" class="tml-display" style="display:block math;">
       <mrow>
         <mtext>&lt;function name&gt;</mtext>
@@ -68,19 +73,19 @@
   where the <tt>list of parameters</tt> is a list of comma-separated values with
   all the parameters called by the particular property function. The parameters
   sent to the property functions can be mapped to the values of the  different working
-  conditions previously defined in the setup file (see Code <a href="electron_kinetics.html">
-  Electron kinetics</a> for examples, and therein the implementation of property function 
-  <tt>boltzmannPopulation@gasTemperature</tt>) and
+  conditions previously defined in the setup file (see Code <a href="Electron_kinetics.html">
+  3.2</a> and Code <a href="Chemistry.html">3.3</a> for examples, and therein the
+  implementation of property function <tt>boltzmannPopulation@gasTemperature</tt>) and
   <tt>generalizedTemperatureDependentCoeff@5.0e20/sqrt(300),gasTemperature,0.5</tt>);</li>
   <li>property functions <b>MUST</b> be set only for those gases and states used
   in the simulations, <i>i.e.</i> those listed in the specified LXCat files.</li>
   </ul>
   </p>
-  <p>The following table lists the most relevant property functions distributed with
-  LoKI-B_v3.1.0, along with the required parameters and dependencies.</p>
+  <p>Table <a href="#t3">3</a> lists the most relevant property functions distributed with
+  LoKI-GM_26.07, along with the required parameters and dependencies.</p>
 
-  <table id="4">
-    <caption>Table 1: List of property functions distributed with LoKI-B_v3.1.0</caption>
+  <table id="t3">
+    <caption>Table 3: List of property functions distributed with LoKI-GM_26.07</caption>
     <thead>
     <tr>
       <th>Property</th>
@@ -91,89 +96,148 @@
     </thead>
     <tbody>
     <tr>
-      <td rowspan="3"><tt>energy</tt></td>
-      <td>harmonicOscillatorEnergy</td>
+      <td rowspan="4"><tt>energy</tt></td>
+      <td><tv>harmonicOscillatorEnergy</tv></td>
       <td>n/a</td>
-      <td>harmonicFrequency</td>
+      <td><tt>harmonicFrequency</tt></td>
     </tr>
     <tr>
-      <td>morseOscillatorEnergy</td>
+      <td><tv>morseOscillatorEnergy</tv></td>
       <td>n/a</td>
-      <td>harmonicFrequency<br>anharmonicFrequency</td>
+      <td><tt>harmonicFrequency</tt><br><tt>anharmonicFrequency</tt></td>
     </tr>
     <tr>
-      <td>rigidRotorEnergy</td>
+      <td><tv>rigidRotorEnergy</tv></td>
       <td>n/a</td>
-      <td>rotationalConstant</td>
+      <td><tt>rotationalConstant</tt></td>
     </tr>
     <tr>
-      <td rowspan="3"><tt>statisticalWeight</tt></td>
-      <td>rotationalDegeneracy</td>
+      <td><tv>rigidRotorEnergy_NH3</tv></td>
       <td>n/a</td>
-      <td>n/a</td>
+      <td><tt>rotationalConstant</tt></td>
     </tr>
     <tr>
-      <td>rotationalDegeneracy_N2</td>
-      <td>n/a</td>
-      <td>n/a</td>
-    </tr>
-    <tr>
-      <td>rotationalDegeneracy_H2</td>
+      <td rowspan="4"><tt>statisticalWeight</tt></td>
+      <td><tv>rotationalDegeneracy</tv></td>
       <td>n/a</td>
       <td>n/a</td>
     </tr>
     <tr>
-      <td rowspan="5"><tt>population</tt></td>
-      <td>boltzmannPopulation</td>
+      <td><tv>rotationalDegeneracy_N2</tv></td>
+      <td>n/a</td>
+      <td>n/a</td>
+    </tr>
+    <tr>
+      <td><tv>rotationalDegeneracy_H2</tv></td>
+      <td>n/a</td>
+      <td>n/a</td>
+    </tr>
+    <tr>
+      <td><tv>rotationalDegeneracy_NH3</tv></td>
+      <td>n/a</td>
+      <td>n/a</td>
+    </tr>
+    <tr>
+      <td rowspan="6"><tt>population</tt></td>
+      <td><tv>boltzmannPopulation</tv></td>
       <td>Temperature [K]</td>
-      <td>energy<br>statisticalWeight</td>
+      <td><tt>energy</tt><br><tt>statisticalWeight</tt></td>
     </tr>
     <tr>
-      <td>boltzmannPopulationRotationalCutoff</td>
+      <td><tv>boltzmannRotationalPopulation_H2</tv></td>
       <td>Temperature [K]<br>J_MAX</td>
-      <td>energy<br>statisticalWeight</td>
+      <td><tt>energy</tt><br><tt>statisticalWeight</tt></td>
     </tr>
     <tr>
-      <td>boltzmannPopulationVibrationalCutoff</td>
+      <td><tv>boltzmannPopulationRotationalCutoff</tv></td>
+      <td>Temperature [K]<br>J_MAX</td>
+      <td><tt>energy</tt><br><tt>statisticalWeight</tt></td>
+    </tr>
+    <tr>
+      <td><tv>boltzmannPopulationVibrationalCutoff</tv></td>
       <td>Temperature [K]<br>v_MAX</td>
-      <td>energy<br>statisticalWeight</td>
+      <td><tt>energy</tt><br><tt>statisticalWeight</tt></td>
     </tr>
     <tr>
-      <td>treanorPopulation</td>
+      <td><tv>treanorPopulation</tv></td>
       <td>Temperature0 [K]<br>Temperature1 [K]</td>
-      <td>energy<br>statisticalWeight</td>
+      <td><tt>energy</tt><br><tt>statisticalWeight</tt></td>
     </tr>
     <tr>
-      <td>treanorGordietsPopulation</td>
+      <td><tv>treanorGordietsPopulation</tv></td>
       <td>Temperature0 [K]<br>Temperature1 [K]</td>
-      <td>energy<br>statisticalWeight<br>anharmonicFrequency</td>
+      <td><tt>energy</tt><br><tt>statisticalWeight</tt><br><tt>anharmonicFrequency</tt></td>
     </tr>
     <tr>
-      <td rowspan="2"><tt>reducedMobility</tt><br><tt>reducedDiffCoeff</tt><br>...</td>
-      <td>generalizedTemperatureDependentCoeff</td>
+      <td><tt>reducedMobility</tt><br><tt>reducedDiffCoeff</tt><br>...</td>
+      <td><tv>generalizedTemperatureDependentCoeff</tv><br><br><i>aT<sup>b</sup></i></td>
+      <td>Temperature [K]<br><br>a [S.I. (according to T)], b[ ]</td>
+      <td>n/a</td>
+    </tr>
+    <tr>
+      <td rowspan="2"><tt>reducedMobility</tt><br>...<br><tt>reducedDiffCoeff</tt><br>...</td>
+      <td><tv>mobilityHeliumAtomicIon</tv><br><i>a/(bT<sup>0.5</sup>+c)</i></td>
+      <td>Temperature [K]<br>a, b, c [S.I. (according to T)]</td>
+      <td>n/a</td>
+    </tr>
+    <tr>
+      <td><tv>diffusionHeliumAtomicIon</tv><br><i>a/(bT<sup>0.5</sup>+c)(k<sub>B</sub>T/e)</i></td>
+      <td>Temperature [K]<br>a, b, c [S.I. (according to T)]</td>
+      <td>n/a</td>
+    </tr>
+    <tr>
+      <td rowspan="2"><tt>reducedMobility</tt><br>...<br><tt>reducedDiffCoeff</tt><br>...</td>
+      <td><tv>tableE0NDependentMobility</tv><br><i>interpolates &#956;N for the current E/N value</i></td>
+      <td>file with table of<br><i>&#956;N</i> [V<sup>-1</sup>m<sup>-1</sup>s<sup>-1</sup>],<i> E/N</i> [V m<sup>2</sup>]</td>
+      <td>n/a</td>
+    </tr>
+    <tr>
+      <td><tv>temperatureDependentEinsteinDiffCoeff</tv><br><i>&#956;N(k<sub>B</sub>T/e)</i></td>
       <td>Temperature [K]</td>
-      <td>n/a</td>
+      <td><tt>reducedMobility</tt></td>
     </tr>
-    <td>aT<sup>b</sup></td>
-    <td>a [S.I. (according to T)], b[ ]</td>
-    <td></td>
     <tr>
-      <td><tt>reducedMobility</tt><br>...</td>
-      <td>mobilityHeliumAtomicIon<br>a/(bT<sup>0.5</sup>+c)</td>
-      <td>Temperature [K]<br>a, b, c [S.I. (according to T)]</td>
+      <td rowspan="4"><tt>HeatCapacity</tt></td>
+      <td><tv>nitrogenHeatCapacity</tv></td>
+      <td>n/a</td>
       <td>n/a</td>
     </tr>
     <tr>
-      <td><tt>reducedDiffCoeff</tt><br>...</td>
-      <td>mobilityHeliumAtomicIon<br>a/(bT<sup>0.5</sup>+c)(k<sub>B</sub>T/e)</td>
-      <td>Temperature [K]<br>a, b, c [S.I. (according to T)]</td>
+      <td><tv>oxygenHeatCapacity</tv></td>
       <td>n/a</td>
+      <td>n/a</td>
+    </tr>
+    <tr>
+      <td><tv>oxygenAtomHeatCapacity</tv></td>
+      <td>n/a</td>
+      <td>n/a</td>
+    </tr>
+    <tr>
+      <td><tv>ozoneHeatCapacity</tv></td>
+      <td>n/a</td>
+      <td>n/a</td>
+    </tr>
+    <tr>
+      <td rowspan="3"><tt>ThermalConductivity</tt></td>
+      <td><tv>nitrogenThermalConductivity</tv></td>
+      <td>n/a</td>
+      <td>n/a</td>
+    </tr>
+    <tr>
+    <td><tv>oxygenThermalConductivity</tv></td>
+    <td>n/a</td>
+    <td>n/a</td>
+    </tr>
+    <tr>
+    <td><tv>oxygenAtomThermalConductivity</tv></td>
+    <td>n/a</td>
+    <td>n/a</td>
     </tr>
     </tbody>
   </table>
   <br>
   
-  <p>The property functions in the table above correspond to the following physical models:
+  <p>The property functions in table <a href="#t3">3</a> correspond to the following physical models:
   <dl>
     <dt><tt>harmonicOscillatorEnergy</tt></dt>
     <dd>It calculates the energy of (vibrational) state <i>j</i> of a diatomic molecule, adopting the harmonic 
@@ -211,11 +275,11 @@
     <mo separator="true">,</mo>
   </mrow>
 </math>
-where <math><msub><mi>ω</mi><mpadded lspace="0"><mi>vib</mi></mpadded></msub></math> is the harmonicFrequency (angular 
-frequency) of the molecule.</dd>
+where <math><msub><mi>ω</mi><mpadded lspace="0"><mi>vib</mi></mpadded></msub></math> is the
+<tt>harmonicFrequency</tt> (angular frequency) of the molecule.</dd>
     <dt><tt>morseOscillatorEnergy</tt></dt>
-    <dd>It calculates the energy of (vibrational) state <i>j</i> of a diatomic molecule, adopting the Morse oscillator 
-    model
+    <dd>It calculates the energy of (vibrational) state <i>j</i> of a diatomic molecule,
+    adopting the Morse oscillator model
     <math xmlns="http://www.w3.org/1998/Math/MathML" display="block" class="tml-display" style="display:block math;">
   <mrow>
     <msub>
@@ -283,9 +347,10 @@ frequency) of the molecule.</dd>
   </mrow>
 </math>
 where <math><mrow><msub><mi>ω</mi><mpadded lspace="0"><mi>vib</mi></mpadded></msub><msub><mi>χ</mi><mi>e</mi></msub></mrow></math>
-is the first anharmonicFrequency of the molecule (with <math><msub><mi>χ</mi><mi>e</mi></msub></math> the anharmonicity constant).</dd>
+is the first <tt>anharmonicFrequency</tt> of the molecule (with <math><msub><mi>χ</mi><mi>e</mi></msub></math> the anharmonicity constant).</dd>
   <dt><tt>rigidRotorEnergy</tt></dt>
-  <dd>It calculates the energy of (rotational) state <i>J</i> of a diatomic molecule, adopting the rigid-rotor model
+  <dd>It calculates the energy of (rotational) state <i>J</i> of a diatomic molecule, adopting
+  the rigid-rotor model
   <math display="block" class="tml-display" style="display:block math;">
   <mrow>
     <msub>
@@ -305,6 +370,12 @@ is the first anharmonicFrequency of the molecule (with <math><msub><mi>χ</mi><m
   </mrow>
 </math>
 where <i>B</i> is the rotational constant of the molecule.</dd>
+  <dt><tt>rigidRotorEnergy_NH3</tt></dt>
+  <dd>it calculates the energy of (rotational) states (<i>J, K</i>) with <i>K = 0</i> of NH<sub>3</sub>,
+  following the work of Dowling [<a href="References.html#R27">27</a>], which shows good
+  agreement with the MARVEL database [<a href="References.html#R28">28</a>, <a href="References.html#R29">29</a>]
+  <math display="block" class="tml-display" style="display:block math;"><mrow><msub><mi>E</mi><mi>J</mi></msub><mo>=</mo><mi>B</mi><mi>J</mi><mrow><mo fence="true" form="prefix" stretchy="false">(</mo><mi>J</mi><mo>+</mo><mn>1</mn><mo fence="true" form="postfix" stretchy="false">)</mo></mrow><mo>−</mo><mn>8.407</mn><mo>×</mo><msup><mn>10</mn><mrow><mo form="prefix" stretchy="false" lspace="0em" rspace="0em">−</mo><mn>2</mn></mrow></msup><mspace width="0.1667em"></mspace><mi>t</mi><msup><mrow><mo fence="true" form="prefix" stretchy="false">(</mo><mi>J</mi><mrow><mo fence="true" form="prefix" stretchy="false">(</mo><mi>J</mi><mo>+</mo><mn>1</mn><mo fence="true" form="postfix" stretchy="false">)</mo></mrow><mo fence="true" form="postfix" stretchy="false">)</mo></mrow><mn>2</mn></msup><mo>+</mo><mn>2.38</mn><mo>×</mo><msup><mn>10</mn><mrow><mo form="prefix" stretchy="false" lspace="0em" rspace="0em">−</mo><mn>5</mn></mrow></msup><mspace width="0.1667em"></mspace><mi>t</mi><msup><mrow><mo fence="true" form="prefix" stretchy="false">(</mo><mi>J</mi><mrow><mo fence="true" form="prefix" stretchy="false">(</mo><mi>J</mi><mo>+</mo><mn>1</mn><mo fence="true" form="postfix" stretchy="false">)</mo></mrow><mo fence="true" form="postfix" stretchy="false">)</mo></mrow><mn>3</mn></msup><mrow class="tml-label"></mrow><mspace width="0.2778em"></mspace><mo separator="true">,</mo><mspace width="0.2778em"></mspace><mpadded lspace="0"><mi>with</mi></mpadded><mspace width="0.2778em"></mspace><mi>t</mi><mo>=</mo><mi>h</mi><mi>c</mi><mi>/</mi><mi>e</mi><mi>.</mi></mrow></math>
+  </dd>
   </dl>
 
   <p> <b>These property functions should be called within the</b> <tt>energy</tt> <b>property of the setup file, for the 
@@ -320,23 +391,30 @@ where <i>B</i> is the rotational constant of the molecule.</dd>
   <dl>
   <dt><tt>rotationalDegeneracy</tt></dt>
   <dd>It calculates the statistical weight of the <i>intrinsic</i> partition function of a (generic) rotational state <i>J</i>
-  [<a href="references.html#R11">11</a>]
+  [<a href="References.html#R19">19</a>]
   <math display="block" class="tml-display" style="display:block math;"><mrow><msub><mi>g</mi><mi>J</mi></msub><mo>=</mo><mn>2</mn><mi>J</mi><mo>+</mo><mn>1.</mn></mrow></math>
   </dd>
   <dt><tt>rotationalDegeneracy_N2</tt></dt>
   <dd>It calculates the statistical weight of the <i>intrinsic</i> partition function of a rotational state <i>J</i> of the N₂
-  molecule [<a href="references.html#R11">11</a>]
+  molecule [<a href="References.html#R19">19</a>]
   <math display="block" class="tml-display" style="display:block math;"><mrow><msub><mi>g</mi><mi>J</mi></msub><mo>=</mo><mn>3</mn><mrow>
   <mo fence="true" form="prefix">[</mo><mn>1</mn><mo>+</mo><mfrac><mn>1</mn><mn>2</mn></mfrac><mrow><mo fence="true" form="prefix">(</mo><mn>1</mn><mo>+</mo><mo form="prefix" stretchy="false">(</mo><mo form="prefix" stretchy="false">−</mo><mn>1</mn><msup><mo form="postfix" stretchy="false">)</mo><mi>J</mi></msup><mo fence="true" form="postfix">)</mo></mrow><mo fence="true" form="postfix">]</mo></mrow><mo form="prefix" stretchy="false">(</mo><mn>2</mn><mi>J</mi><mo>+</mo><mn>1</mn><mo form="postfix" stretchy="false">)</mo><mi>.</mi></mrow></math>
   </dd>
   <dt><tt>rotationalDegeneracy_H2</tt></dt>
   <dd>It calculates the statistical weight of the <i>intrinsic</i> partition function of a rotational state <i>J</i> of the H₂
-  molecule [<a href="references.html#R11">11</a>]
-  <math display="block" class="tml-display" style="display:block math;"><mrow><msub><mi>g</mi><mi>J</mi></msub><mo>=</mo><mrow><mo fence="true" form="prefix">[</mo><mn>2</mn><mo>−</mo><mo form="prefix" stretchy="false">(</mo><mo form="prefix" stretchy="false">−</mo><mn>1</mn><msup><mo form="postfix" stretchy="false">)</mo><mi>J</mi></msup><mo fence="true" form="postfix">]</mo></mrow><mo form="prefix" stretchy="false">(</mo><mn>2</mn><mi>J</mi><mo>+</mo><mn>1</mn><mo form="postfix" stretchy="false">)</mo><mi>.</mi></mrow></math></dd>
+  molecule [<a href="References.html#R19">19</a>]
+    <math display="block" class="tml-display" style="display:block math;"><mrow><msub><mi>g</mi><mi>J</mi></msub><mo>=</mo><mrow><mo fence="true" form="prefix">[</mo><mn>2</mn><mo>−</mo><mo form="prefix" stretchy="false">(</mo><mo form="prefix" stretchy="false">−</mo><mn>1</mn><msup><mo form="postfix" stretchy="false">)</mo><mi>J</mi></msup><mo fence="true" form="postfix">]</mo></mrow><mo form="prefix" stretchy="false">(</mo><mn>2</mn><mi>J</mi><mo>+</mo><mn>1</mn><mo form="postfix" stretchy="false">)</mo><mi>.</mi></mrow></math></dd>
+  <dt><tt>rotationalDegeneracy_NH3</tt></dt>
+  <dd>It calculates the statistical weight of the <i>intrinsic</i> partition function of a rotational state <i>(J,K)</i>, with <i>K=0</i>
+  of the vibrational ground-state (v1=0, v2=0, v3=0, v4=0) of NH<sub>3</sub>, considering that the state (0,0) has a double degeneracy [<a href="References.html#R28">28</a>]
+
+  <math display="block" class="tml-display" style="display:block math;"><mtable displaystyle="true" class="tml-jot" style="width:100%;"><mtr><mtd class="tml-right" style="padding:0;width:50%;padding-left:0em;padding-right:0em;"></mtd><mtd class="tml-right" style="padding-left:1em;padding-right:0em;"><msub><mi>g</mi><mi>J</mi></msub></mtd><mtd class="tml-left" style="padding-left:0em;padding-right:0em;"><mrow><mo>=</mo><mn>2</mn><mrow><mo fence="true" form="prefix" stretchy="false">(</mo><mn>2</mn><mi>J</mi><mo>+</mo><mn>1</mn><mo fence="true" form="postfix" stretchy="false">)</mo></mrow><mspace width="0.1667em"></mspace><mspace width="0.1667em"></mspace><mspace width="0.1667em"></mspace><mrow><mrow><mi mathvariant="normal">f</mi><mspace></mspace></mrow><mrow><mi mathvariant="normal">o</mi><mspace></mspace></mrow><mrow><mi mathvariant="normal">r</mi><mspace></mspace></mrow><mtext> </mtext></mrow><mi>J</mi><mo>=</mo><mn>0</mn></mrow></mtd><mtd style="padding:0;width:50%;padding-left:1em;padding-right:0em;"><mtext><span class="tml-eqn"></span></mtext></mtd></mtr><mtr><mtd class="tml-right" style="padding:0;width:50%;padding-left:0em;padding-right:0em;"></mtd><mtd class="tml-right" style="padding-left:1em;padding-right:0em;"><msub><mi>g</mi><mi>J</mi></msub></mtd><mtd class="tml-left" style="padding-left:0em;padding-right:0em;"><mrow><mo>=</mo><mn>2</mn><mi>J</mi><mo>+</mo><mn>1</mn><mspace width="0.1667em"></mspace><mspace width="0.1667em"></mspace><mspace width="0.1667em"></mspace><mrow><mrow><mi mathvariant="normal">f</mi><mspace></mspace></mrow><mrow><mi mathvariant="normal">o</mi><mspace></mspace></mrow><mrow><mi mathvariant="normal">r</mi><mspace></mspace></mrow><mtext> </mtext></mrow><mi>J</mi><mo>=</mo><mn>1,2,3</mn><mo separator="true">,</mo><mo>…</mo><mspace width="0.2778em"></mspace><mspace width="0.2778em"></mspace><mspace width="0.2778em"></mspace><mi>.</mi></mrow></mtd><mtd style="padding:0;width:50%;padding-left:1em;padding-right:0em;"><mtext><span class="tml-eqn"></span></mtext></mtd></mtr></mtable></math>
+  </dd>
   </dl>
 
   <p><b>These property functions should be called within the</b> <tt>statisticalWeight</tt> <b>property of the setup file, for the
-  corresponding vibrational and rotational states.</b></p>
+  corresponding vibrational and rotational states (see also section <a href="Electron_kinetics.html#2">3.2</a>).</b></p>
+
   <p>For example:
     <pre class="codeinput">
     N2(X,v=0,J=*) = rotationalDegeneracy_N2</pre>
@@ -421,6 +499,13 @@ where <i>B</i> is the rotational constant of the molecule.</dd>
   </mrow>
   </math>
   where <i>T</i> is the characteristic temperature of the distribution.</p>
+  </dd>
+
+  <dt><tt>boltzmannRotationalPopulation_H2</tt></dt>
+  <dd>It calculates the population of rotational state <i>j</i> of H<sub>2</sub> , adopting Boltzmann
+  distributions for the ortho/para configurations, with weights 25% and 75%, respectively
+  <math display="block" class="tml-display" style="display:block math;"><mtable displaystyle="true" class="tml-jot" style="width:100%;"><mtr><mtd class="tml-right" style="padding:0;width:50%;padding-left:0em;padding-right:0em;"></mtd><mtd class="tml-right" style="padding-left:1em;padding-right:0em;"><msub><mi>ξ</mi><msub><mi>j</mi><mpadded lspace="0"><mi>even</mi></mpadded></msub></msub></mtd><mtd class="tml-left" style="padding-left:0em;padding-right:0em;"><mrow><mo>=</mo><mn>0.25</mn><mfrac><mrow><msub><mi>g</mi><msub><mi>j</mi><mpadded lspace="0"><mi>even</mi></mpadded></msub></msub><mrow><mi>exp</mi><mo>⁡</mo><mspace width="0.1667em"></mspace></mrow><mrow><mo form="prefix" stretchy="false" lspace="0em" rspace="0em">−</mo><mfrac><msub><mi>E</mi><msub><mi>j</mi><mpadded lspace="0" scriptlevel="2"><mi>even</mi></mpadded></msub></msub><mrow><msub><mi>k</mi><mi>B</mi></msub><mi>T</mi></mrow></mfrac></mrow></mrow><mrow><msub><mo movablelimits="false">∑</mo><mrow><mi>i</mi><mo>∈</mo><mtext>siblings</mtext></mrow></msub><msub><mi>g</mi><msub><mi>i</mi><mpadded lspace="0"><mi>even</mi></mpadded></msub></msub><mrow><mi>exp</mi><mo>⁡</mo><mspace width="0.1667em"></mspace></mrow><mrow><mo form="prefix" stretchy="false" lspace="0em" rspace="0em">−</mo><mfrac><msub><mi>E</mi><msub><mi>i</mi><mpadded lspace="0" scriptlevel="2"><mi>even</mi></mpadded></msub></msub><mrow><msub><mi>k</mi><mi>B</mi></msub><mi>T</mi></mrow></mfrac></mrow></mrow></mfrac></mrow></mtd><mtd style="padding:0;width:50%;padding-left:1em;padding-right:0em;"><mtext><span class="tml-eqn"></span></mtext></mtd></mtr><mtr id="boltzmann-rotpop-H2"><mtd class="tml-right" style="padding:0;width:50%;padding-left:0em;padding-right:0em;"></mtd><mtd class="tml-right" style="padding-left:1em;padding-right:0em;"><msub><mi>ξ</mi><msub><mi>j</mi><mpadded lspace="0"><mi>odd</mi></mpadded></msub></msub></mtd><mtd class="tml-left" style="padding-left:0em;padding-right:0em;"><mrow><mo>=</mo><mn>0.75</mn><mfrac><mrow><msub><mi>g</mi><msub><mi>j</mi><mpadded lspace="0"><mi>odd</mi></mpadded></msub></msub><mrow><mi>exp</mi><mo>⁡</mo><mspace width="0.1667em"></mspace></mrow><mrow><mo form="prefix" stretchy="false" lspace="0em" rspace="0em">−</mo><mfrac><msub><mi>E</mi><msub><mi>j</mi><mpadded lspace="0" scriptlevel="2"><mi>odd</mi></mpadded></msub></msub><mrow><msub><mi>k</mi><mi>B</mi></msub><mi>T</mi></mrow></mfrac></mrow></mrow><mrow><msub><mo movablelimits="false">∑</mo><mrow><mi>i</mi><mo>∈</mo><mtext>siblings</mtext></mrow></msub><msub><mi>g</mi><msub><mi>i</mi><mpadded lspace="0"><mi>odd</mi></mpadded></msub></msub><mrow><mi>exp</mi><mo>⁡</mo><mspace width="0.1667em"></mspace></mrow><mrow><mo form="prefix" stretchy="false" lspace="0em" rspace="0em">−</mo><mfrac><msub><mi>E</mi><msub><mi>i</mi><mpadded lspace="0" scriptlevel="2"><mi>odd</mi></mpadded></msub></msub><mrow><msub><mi>k</mi><mi>B</mi></msub><mi>T</mi></mrow></mfrac></mrow></mrow></mfrac><mrow class="tml-label"></mrow><mspace width="0.2778em"></mspace><mspace width="0.2778em"></mspace><mspace width="0.2778em"></mspace><mo separator="true">,</mo></mrow></mtd><mtd style="padding:0;width:50%;padding-left:1em;padding-right:0em;"><mtext><span class="tml-eqn"></span></mtext></mtd></mtr></mtable></math>
+  where <i>T</i> is the characteristic temperature of the distribution.
   </dd>
 
   <dt><tt>boltzmannPopulationRotationalCutoff</tt></dt>
@@ -523,7 +608,7 @@ to the electron Boltzmann calculation, irrespectively of the full list of states
 collision events (for example, appearing also in extra cross section files).</p>
 </dd>
 <dt><tt>boltzmannPopulationVibrationallCutoff</tt></dt>
-<dd>It calculates the population of vibrational state $v$, adopting a Boltzmann distribution truncated at
+<dd>It calculates the population of vibrational state <i>v</i>, adopting a Boltzmann distribution truncated at
 level <math><msub><mi>v</mi><mpadded lspace="0"><mi>MAX</mi></mpadded></msub></math>
 
 <math display="block" class="tml-display" style="display:block math;">
@@ -623,7 +708,7 @@ in electron collision events (for example, appearing also in extra cross section
 </dd>
 <dt><tt>treanorPopulation</tt></dt>
 <dd>It calculates the population of state <i>j</i>, adopting the Treanor distribution
-[<a href="references.html#R18">18</a>,<a href="references.html#R19">19</a>]
+[<a href="References.html#R30">30</a>,<a href="References.html#R31">31</a>]
 <math display="block" class="tml-display" style="display:block math;">
 <mrow>
 <msub>
@@ -830,8 +915,8 @@ in electron collision events (for example, appearing also in extra cross section
 where T₀ and T₁ are the characteristic temperatures of the distribution.</p>
 </dd>
 <dt><tt>treanorGordietsPopulation</tt></dt>
-<dd>It calculates the population of state $j$, adopting the Treanor-Gordiets distribution
-[<a href="references.html#R18">18</a>,<a href="references.html#R19">19</a>]
+<dd>It calculates the population of state <i>j</i>, adopting the Treanor-Gordiets distribution
+[<a href="References.html#R18">18</a>,<a href="References.html#R19">19</a>]
 <math display="block" class="tml-display" style="display:block math;">
 <mrow>
 <msub>
@@ -1026,12 +1111,12 @@ where T₀ and T₁ are the characteristic temperatures of the distribution and
 
 is the vibrational level corresponding to the minimum of the Treanor distribution (with <math><mrow><msub><mi>ω</mi><mpadded lspace="0"><mi>vib</mi></mpadded></msub><msub><mi>χ</mi><mi>e</mi></msub></mrow></math> the anharmonic frequency of the oscillator characterizing the distribution).</p>
 </dd>
-  </dl>
 <p><b>These property functions should be called within the</b> <tt>population</tt> <b>property of the setup file,
 for the corresponding states, using</b></br>
 <tt>boltzmannPopulation@&#12296;temperature&#12297;</tt> </br>
 <tt>boltzmannPopulationRotationalCutoff@&#12296;temperature&#12297;,&#12296;J<sub>MAX</sub>&#12297;</tt></br>
-<tt>treanorPopulation@&#12296;temperature0&#12297;,&#12296;temperature1&#12297;</tt></br>
+<tt>treanorPopulation@&#12296;temperature0&#12297;,&#12296;temperature1&#12297;</tt><br>
+where <tt>temperature</tt>, <tt>temperature0</tt>, <tt>temperature1</tt> can be temperature values for the dynamic variables <tt>gasTemperature</tt> or <tt>electronTemperature</tt>.<br>
 For example:
 <pre class="codeinput">
 N2(X,v=*) = treanorPopulation@gasTemperature,4000</pre>
@@ -1041,20 +1126,109 @@ N2(X,v=0,J=*) = boltzmannPopulation@gasTemperature</pre>
 to set the population of all the rotational states of the vibrational state v=0, with the electronic ground-state of N<sub>2</sub>.
 </p>
 
-  <h2 id="2">Rate coefficient functions</h2>
-  <p>Rate coefficient functions are <tt>'*.m'</tt> functions that evaluate the rate
-  coefficients of the reactions included in LoKI-C. Some of these functions are distributed
+<dt><tt>generalizedTemperatureDependentCoeff</tt></dt>
+<dd>It calculates a general property (<i>e.g.</i>, <tt>reducedMobility</tt> or <tt>reducedDiffCoeff</tt>)
+<math display="block" class="tml-display" style="display:block math;"><mrow><mi>a</mi><msup><mi>T</mi><mi class="tml-med-pad">b</mi></msup><mspace width="0.1667em"></mspace><mo separator="true">,</mo></mrow></math>
+where the normalization constant <i>a</i>, the temperature <i>T</i> and the power <i>b</i> should be specified as parameters
+to the function.
+</dd>
+
+<dt><tt>mobilityHeliumAtomicIon</tt></dt>
+<dd>
+It calculates the <tt>reducedMobility</tt> of the helium atomic ion [<a href="References.html#R32">32</a>]
+<math display="block" class="tml-display" style="display:block math;"><mrow><mfrac><mi>a</mi><mrow><mi>b</mi><msup><mi>T</mi><mn class="tml-med-pad">0.5</mn></msup><mo>+</mo><mi>c</mi></mrow></mfrac><mspace width="0.1667em"></mspace><mo separator="true">,</mo></mrow></math>
+where the normalization constant <i>a</i>, the temperature <i>T</i> and the quantities <i>b, c</i> should be specified as
+parameters to the function.</dd>
+
+<dt><tt>diffusionHeliumAtomicIon</tt></dt>
+<dd>
+It calculates the <tt>reducedDiffCoeff</tt> of the helium atomic ion [<a href="References.html#R32">32</a>]
+<math display="block" class="tml-display" style="display:block math;"><mrow><mfrac><mi>a</mi><mrow><mi>b</mi><msup><mi>T</mi><mn class="tml-med-pad">0.5</mn></msup><mo>+</mo><mi>c</mi></mrow></mfrac><mfrac><mrow><msub><mi>k</mi><mi>B</mi></msub><mi>T</mi></mrow><mi>e</mi></mfrac><mspace width="0.1667em"></mspace><mo separator="true">,</mo></mrow></math>
+where the normalization constant <i>a</i>, the temperature <i>T</i> and the quantities <i>b, c</i> should be specified as
+parameters to the function.</dd>
+<dt><tt>tableEoNDependentMobility</tt></dt>
+<dd>It interpolates the <tt>reducedMobility</tt> for the current value of the reduced electric field, from a table with
+filename specified as parameter to the function.</dd>
+<dt><tt>temperatureDependentEinsteinDiffCoeff</tt></dt>
+<dd>It calculates the reducedDiffCoeff from the Einstein relation
+<math display="block" class="tml-display" style="display:block math;"><mrow><msub><mi>μ</mi><mi>e</mi></msub><mi>N</mi><mfrac><mrow><msub><mi>k</mi><mi>B</mi></msub><mi>T</mi></mrow><mi>e</mi></mfrac><mspace width="0.1667em"></mspace><mo separator="true">,</mo></mrow></math>
+where the temperature <i>T</i> should be specified as parameter to the function, and the reduced mobility <i>μ<sub>e</sub>N</i> is obtained from the <tt>workingConditions</tt>.
+<p><b>These property functions should be called within the</b> <tt>reducedMobility</tt> <b>and</b> <tt>reducedDiffCoeff</tt> <b>properties
+of the setup file, for the corresponding states, using for example</b>
+<dl>
+<dt><tt>reducedMobility</tt>:</dt>
+<dd>
+<pre class="codeinput">
+He(2S3) = generalizedTemperatureDependentCoeff@8.6155e+19,gasTemperature,0.5
+He(+,1S2) = mobilityHeliumAtomicIon@2.68e21,2.96e-3,3.11e-2,gasTemperature
+O(+,gnd) = tableEoNDependentMobility@Databases/IonMobilities/O+_O2.txt
+</pre>
+</dd>
+<dt><tt>reducedDiffCoeff</tt>:</dt>
+<dd>
+<pre class="codeinput">
+He(+,1S2) = diffusionHeliumAtomicIon@2.68e21,2.96e-3,3.11e-2,gasTemperature
+O2(+,X) = temperatureDependentEinsteinDiffCoeff@gasTemperature
+</pre>
+</dd>
+</p>
+</dl>
+
+<dt><tt>nitrogenHeatCapacity</tt></dt>
+<dd>It calculates the nitrogen heat capacity [<a href="References.html#R33">33</a>]
+<math display="block" class="tml-display" style="display:block math;"><mrow><msub><mi>C</mi><mi>p</mi></msub><mrow><mo fence="true" form="prefix" stretchy="false">(</mo><msub><mrow><mi mathvariant="normal">N</mi><mspace></mspace></mrow><mn>2</mn></msub><mo fence="true" form="postfix" stretchy="false">)</mo></mrow><mo>=</mo><mn>29.1</mn><mo>+</mo><mfrac><mn>2494.2</mn><mrow><mn>553.4</mn><msqrt><mrow><mi>π</mi><mi>/</mi><mn>2</mn></mrow></msqrt></mrow></mfrac><mrow><mi>exp</mi><mo>⁡</mo><mspace width="0.1667em"></mspace></mrow><mrow><mo fence="true" form="prefix" stretchy="true">(</mo><mo form="prefix" stretchy="false">−</mo><mn>2</mn><msup><mrow><mo fence="true" form="prefix" stretchy="true">(</mo><mfrac><mrow><msub><mi>T</mi><mi>g</mi></msub><mo>−</mo><mn>1047.4</mn></mrow><mn>553.4</mn></mfrac><mo fence="true" form="postfix" stretchy="true">)</mo></mrow><mn>2</mn></msup><mo fence="true" form="postfix" stretchy="true">)</mo></mrow><mspace width="0.1667em"></mspace><mo separator="true">.</mo></mrow></math>
+</dd>
+<dt><tt>oxygenHeatCapacity</tt> and <tt>oxygenAtomHeatCapacity</tt> and <tt>ozoneHeatCapacity</tt></dt>
+<dd>It calculates the heat capacity of O, O<sub>2</sub> and O<sub>3</sub> [<a href="References.html#R34">34</a>]
+<math display="block" class="tml-display" style="display:block math;"><mrow><msub><mi>C</mi><mi>p</mi></msub><mrow><mo fence="true" form="prefix" stretchy="false">(</mo><mrow><mi mathvariant="normal">O</mi><mspace></mspace></mrow><mo separator="true">,</mo><msub><mrow><mi mathvariant="normal">O</mi><mspace></mspace></mrow><mn>2</mn></msub><mo separator="true">,</mo><msub><mrow><mi mathvariant="normal">O</mi><mspace></mspace></mrow><mn>3</mn></msub><mo fence="true" form="postfix" stretchy="false">)</mo></mrow><mo>=</mo><mn>8.314510</mn><mrow><mo fence="true" form="prefix" stretchy="true">(</mo><msub><mi>a</mi><mn>1</mn></msub><msubsup><mi>T</mi><mi>g</mi><mrow class="tml-med-pad"><mo form="prefix" stretchy="false" lspace="0em" rspace="0em">−</mo><mn>2</mn></mrow></msubsup><mo>+</mo><msub><mi>a</mi><mn>2</mn></msub><msubsup><mi>T</mi><mi>g</mi><mrow class="tml-med-pad"><mo form="prefix" stretchy="false" lspace="0em" rspace="0em">−</mo><mn>1</mn></mrow></msubsup><mo>+</mo><msub><mi>a</mi><mn>3</mn></msub><mo>+</mo><msub><mi>a</mi><mn>4</mn></msub><msub><mi>T</mi><mi>g</mi></msub><mo>+</mo><msub><mi>a</mi><mn>5</mn></msub><msubsup><mi>T</mi><mi>g</mi><mn class="tml-med-pad">2</mn></msubsup><mo>+</mo><msub><mi>a</mi><mn>6</mn></msub><msubsup><mi>T</mi><mi>g</mi><mn class="tml-med-pad">3</mn></msubsup><mo>+</mo><msub><mi>a</mi><mn>7</mn></msub><msubsup><mi>T</mi><mi>g</mi><mn class="tml-med-pad">4</mn></msubsup><mo fence="true" form="postfix" stretchy="true">)</mo></mrow><mspace width="0.1667em"></mspace><mo separator="true">,</mo></mrow></math>
+where <i>a<sub>1</sub>, ..., a<sub>7</sub></i> are NASA polynomial coefficients taken from [<a href="References.html#R34">34</a>]:
+  p. 164 for atomic oxygen; p. 166 for molecular oxygen and ozone.
+
+<p><b>These property functions should be called within the</b> <tt>heatCapacity</tt> <b>property of the setup file, for the corresponding states, using for example</b>
+<dl>
+<dt><tt>heatCapacity</tt>:</dt>
+<dd><pre class="codeinput">
+O2 = oxygenHeatCapacity
+</pre></dd>
+</dl>
+</p>
+</dd>
+<dt><tt>nitrogenThermalConductivity</tt></dt>
+<dd>
+It calculates the nitrogen thermal conductivity [<a href="References.html#R33">33</a>]
+<math display="block" class="tml-display" style="display:block math;"><mrow><msub><mi>λ</mi><mi>g</mi></msub><mrow><mo fence="true" form="prefix" stretchy="false">(</mo><msub><mrow><mi mathvariant="normal">N</mi><mspace></mspace></mrow><mn>2</mn></msub><mo fence="true" form="postfix" stretchy="false">)</mo></mrow><mo>=</mo><mrow><mo fence="true" form="prefix" stretchy="false">(</mo><mn>1.717</mn><mo>+</mo><mn>0.084</mn><msub><mi>T</mi><mi>g</mi></msub><mo>−</mo><mn>1.948</mn><mo>×</mo><msup><mn>10</mn><mrow><mo form="prefix" stretchy="false" lspace="0em" rspace="0em">−</mo><mn>5</mn></mrow></msup><msubsup><mi>T</mi><mi>g</mi><mn class="tml-med-pad">2</mn></msubsup><mo fence="true" form="postfix" stretchy="false">)</mo></mrow><mo>×</mo><msup><mn>10</mn><mrow><mo form="prefix" stretchy="false" lspace="0em" rspace="0em">−</mo><mn>3</mn></mrow></msup><mspace width="0.2778em"></mspace><mo separator="true">,</mo></mrow></math>
+</dd>
+<dt><tt>oxygenThermalConductivity</tt> and <tt>oxygenAtomThermalConductivity</tt></dt>
+<dd>It calculates the thermal conductivity of O<sub>2</sub> and O [<a href="References.html#R35">35</a>]
+<math display="block" class="tml-display" style="display:block math;"><mrow><msub><mi>λ</mi><mi>g</mi></msub><mrow><mo fence="true" form="prefix" stretchy="false">(</mo><mrow><mi mathvariant="normal">O</mi><mspace></mspace></mrow><mo separator="true">,</mo><msub><mrow><mi mathvariant="normal">O</mi><mspace></mspace></mrow><mn>2</mn></msub><mo fence="true" form="postfix" stretchy="false">)</mo></mrow><mo>=</mo><msup><mn>10</mn><mrow><mo form="prefix" stretchy="false" lspace="0em" rspace="0em">−</mo><mn>4</mn></mrow></msup><mrow><mi>exp</mi><mo>⁡</mo><mspace width="0.1667em"></mspace></mrow><mrow><mo fence="true" form="prefix" stretchy="true">(</mo><msub><mi>a</mi><mn>1</mn></msub><mrow><mi>ln</mi><mo>⁡</mo><mspace width="0.1667em"></mspace></mrow><msub><mi>T</mi><mi>g</mi></msub><mo>+</mo><mfrac><msub><mi>a</mi><mn>2</mn></msub><msub><mi>T</mi><mi>g</mi></msub></mfrac><mo>+</mo><mfrac><msub><mi>a</mi><mn>3</mn></msub><msubsup><mi>T</mi><mi>g</mi><mn class="tml-med-pad">2</mn></msubsup></mfrac><mo>+</mo><msub><mi>a</mi><mn>4</mn></msub><mo fence="true" form="postfix" stretchy="true">)</mo></mrow><mspace width="0.2778em"></mspace><mo separator="true">,</mo></mrow></math>
+where <i>a<sub>1</sub> , ..., a<sub>4</sub></i> are transport coefficients taken from [<a href="References.html#R35">35</a>] p. 86.
+
+<p><b>These property functions should be called within the</b> <tt>thermalConductivity</tt> <b>property of the setup file, for the corresponding states, using for example</b>
+<dl>
+<dt><tt>thermalConductivity</tt>:</dt>
+<dd><pre class="codeinput">
+O2 = oxygenThermalConductivity
+</pre></dd>
+</dl>
+</p>
+</dd>
+</dl>
+
+  <h2 id="2">5.2 Rate coefficient functions</h2>
+  <p>Rate coefficient functions are <tt>'*.m'</tt> functions that compute the rate
+  coefficients of the reactions included in the kinetc mechanisms. Some of these functions are distributed
   with LoKI, implementing the most common types of rate coefficients and useful models.
   In general these functions can be prepared by the user, according to the needs for new
   functionalities. In this case, the user is advised to mimic the structure of any rate
-  coefficient function already provided with the code. Future versions of the documentation
-  will include a more thorough description of the structure of these functions.</p>
+  coefficient function already provided with the code.</p>
+  <p>The following should be considered:</p>
 
-  <p>For organisation sake, all ``rate coefficient functions'' specified in the different
+  <ul>
+  <li>For organisation sake, all "rate coefficient functions" specified in the different
   auxiliary input files should be located in the rate coefficient functions folder
-  <tt>[repository folder]/LoKI-B_v2.2.0/Code/RateCoeffFunctions</tt>, which is organized
+  <tt>[repository folder]/LoKI-GM_20.07/Code/RateCoeffFunctions</tt>, which is organized
   into one-level subfolders with self-explanatory names (see section
-  <a href="getting_started.html#3">Data organization: How to find your way in the code</a>),
+  <a href="Getting_started.html#2">2.2</a>),
   for example:
     <ul>
     <li> <tt>ElectronKinetics</tt></li>
@@ -1064,16 +1238,51 @@ to set the population of all the rotational states of the vibrational state v=0,
     <li> <tt>TransportIons</tt></li>
     <li> <tt>TransportNeutrals</tt>.</li>
     </ul>
-
-  The functions supplied with the code can be divided into two categories: those
-  corresponding to simple expressions (see <a href="#5">table 2</a>)
+  </li>
+  <li>rate coefficient functions have the arguments (<tv>time, densitiesAll, totalGasDensity, reaction,
+  rateCoeffParams, chemistry</tv>) where
+  <ul>
+  <li><tv>time</tv>: is the current time at which the function is called;</li>
+  <li><tv>densitiesAll</tv>: is an array with the density values of all the states involved in
+  the simulations;</li>
+  <li><tv>totalGasDensity</tv>: is the the current value of the total gas density;</li>
+  <li><tv>reaction</tv>: is a handle to the reaction-object of the simulation;</li>
+  <li><tv>rateCoeffParams</tv>: is an array of arguments corresponding to the list of parameters to be
+  used in the calculation of the rate coefficient (see tables <a href="#t4">4</a> and <a href="#t5">5</a>-<a href="#t9">9</a>);</li>
+  <li><tv>chemistry</tv>: is a handle to the chemistry-object of the simulation.</li>
+  </ul>
+  <li>rate coefficient functions are called from the auxiliary chemistry files (see section
+  <a href="Auxiliary_input_files.html#3">4.3</a>) using the following structure:<br><br>
+    <math display="block" class="tml-display" style="display:block math;"><mrow><mi>.</mi><mi>.</mi><mi>.</mi><mtext> | </mtext><mrow><munder><munder><mrow><mtext>&lt;𝚛𝚊𝚝𝚎 𝚌𝚘𝚎𝚏𝚏𝚒𝚌𝚒𝚎𝚗𝚝&gt;</mtext><mpadded width="0.1px"><mphantom><mtext>𝚓</mtext></mphantom></mpadded></mrow><mo stretchy="true" style="math-depth:0;">⏟</mo></munder><mtext>Type of rate coefficient</mtext></munder></mrow><mtext> | </mtext><mrow><munder><munder><mtext>&lt;𝚙𝚊𝚛𝚊𝚖𝚎𝚝𝚎𝚛𝚜&gt;</mtext><mo stretchy="true" style="math-depth:0;">⏟</mo></munder><mtext>Parameters needed</mtext></munder></mrow><mtext> | </mtext><mi>.</mi><mi>.</mi><mi>.</mi></mrow></math>
+  where
+    <ul>
+    <li> <tt>&#60;rate coefficient&#62;</tt> is the field with the name of the function that computes the rate coefficient;</li>
+    <li><tt>&#60;parameters&#62;</tt> is a list of comma separated values with all the parameters (if any) required for the
+    corresponding rate coefficient function.</li>
+    </ul>
+  </li>
+  <li>rate coefficient functions <b>MUST</b> conclude with a list of dependencies <tv>true/false</tv>
+    <ul>
+    <li><tt>onTime</tt></li>
+    <li><tt>onDensities</tt></li>
+    <li><tt>onGastemperature</tt></li>
+    <li><tt>onElectronKinetics</tt></li>
+    </ul>
+  <p>for example:
+    <pre class="codeinput">
+    dependent = struct('onTime', false, 'onDensities', false, 'onGasTemperature', false, 'onElectronKinetics', true)</pre>
+  </li>
+  </ul>
+  <p>The functions supplied with the code can be divided into two categories: those
+  corresponding to simple expressions (see table <a href="#t4">4</a>)
   and those corresponding to more elaborated implementations based on specific models
-  (see <a href="#6">table 3</a>).</p>
+  (see tables <a href="#t5">5</a>-<a href="#t9">9</a>).</p>
 
   <p>
-  <table id="5">
-  <caption>Table 2: List of rate coefficient functions distributed with LoKI v2.2.0, corresponding
-  to simple expressions.</caption>
+  <table id="t4">
+  <caption>Table 4: List of rate coefficient functions distributed with LoKI-GM_26.07, corresponding
+  to simple expressions.<br>
+  These functions can be found in the folder <tt>[repository folder]/LoKI-GM_26.07/Code/RateCoeffFunctions/General</tt>.</caption>
   <thead>
   <tr>
   <th>Function name</th>
@@ -1098,14 +1307,14 @@ to set the population of all the rotational states of the vibrational state v=0,
   <td><i>a</i> [S.I.], <i>b</i> [K]</td>
   </tr>
   <tr>
-  <td><tt>arrheniusSumGasTemp</tt></td>
-  <td><math><mrow><msub><mi>a</mi><mn>0</mn></msub><mo>+</mo></mrow><mrow><mi>a</mi><mrow><mspace width="0.1667em"></mspace><mi>exp</mi><mo>⁡</mo><mspace width="0.1667em"></mspace></mrow><mrow><mo form="prefix" stretchy="false" lspace="0em" rspace="0em">(</mo><mi>b</mi><mi>/</mi><msub><mi>T</mi><mi>g</mi></msub><mo form="postfix" stretchy="false" lspace="0em" rspace="0em">)</mo></mrow></mrow></math></td>
-  <td><i>a<sub>0</sub>, a</i> [S.I.], <i>b</i> [K]</td>
-  </tr>
-  <tr>
   <td><tt>constantRateCoeff</tt></td>
   <td><i>a</i></td>
   <td><i>a</i> [S.I.]</td>
+  </tr>
+  <tr>
+  <td><tt>einsteinCoeffFromOscStrength</tt></td>
+  <td><math><mrow><mn>2</mn><mi>π</mi><msub><mi>ε</mi><mn>0</mn></msub><msup><mi>e</mi><mn class="tml-sml-pad">4</mn></msup><mi>/</mi><mrow><mo fence="true" form="prefix" stretchy="false">(</mo><msub><mi>m</mi><mi>e</mi></msub><msup><mi>h</mi><mn>2</mn></msup><mi>c</mi><mo fence="true" form="postfix" stretchy="false">)</mo></mrow><mo>×</mo><msup><mrow><mo fence="true" form="prefix" stretchy="false">(</mo><msub><mi>u</mi><mi>i</mi></msub><mo>−</mo><msub><mi>u</mi><mi>j</mi></msub><mo fence="true" form="postfix" stretchy="false">)</mo></mrow><mn>2</mn></msup><mrow><mo fence="true" form="prefix" stretchy="false">(</mo><msub><mi>g</mi><mi>j</mi></msub><mi>/</mi><msub><mi>g</mi><mi>i</mi></msub><mo fence="true" form="postfix" stretchy="false">)</mo></mrow><msub><mi>f</mi><mrow><mi>j</mi><mi>i</mi></mrow></msub></mrow></math></td>
+  <td><i>f<sub>ji</sub></i> [S.I.]</td>
   </tr>
   <tr>
   <td><tt>expElectronTemp</tt></td>
@@ -1128,19 +1337,33 @@ to set the population of all the rotational states of the vibrational state v=0,
   <td><i>a</i> [S.I. (<i>T</i> in eV)], <i>b</i> [ ], <i>c</i> [eV]</td>
   </tr>
   <tr>
-  <td><tt>modifiedArrheniusElectronTemp</tt></td>
-  <td><math><mrow><mi>a</mi><msubsup><mi>T</mi><mi>e</mi><mi class="tml-med-pad">b</mi></msubsup><mrow><mi>exp</mi><mo>⁡</mo><mspace width="0.1667em"></mspace></mrow><mrow><mo form="prefix" stretchy="false" lspace="0em" rspace="0em">(</mo><mi>c</mi><mi>/</mi><msub><mi>T</mi><mi>e</mi></msub><mo form="postfix" stretchy="false" lspace="0em" rspace="0em">)</mo></mrow></mrow></math></td>
-  <td><i>a</i> [S.I. (<i>T<sub>e</sub></i> in eV)], <i>b</i> [ ], <i>c</i> [eV]</td>
-  </tr>
-  <tr>
   <td><tt>modifiedArrheniusCharEnergyTemp</tt></td>
   <td><math><mrow><mi>a</mi><msup><msub><mi>u</mi><mi>k</mi></msub><mi>b</mi></msup><mrow><mi>exp</mi><mo>⁡</mo><mspace width="0.1667em"></mspace></mrow><mrow><mo form="prefix" stretchy="false" lspace="0em" rspace="0em">(</mo><mi>c</mi><mi>/</mi><msub><mi>u</mi><mi>k</mi></msub><mo form="postfix" stretchy="false" lspace="0em" rspace="0em">)</mo></mrow></mrow></math></td>
   <td><i>a</i> [S.I. (<i>u<sub>k</sub></i> in eV)], <i>b</i> [ ], <i>c</i> [eV]</td>
   </tr>
   <tr>
+  <td><tt>modifiedArrheniusElectronTemp</tt></td>
+  <td><math><mrow><mi>a</mi><msubsup><mi>T</mi><mi>e</mi><mi class="tml-med-pad">b</mi></msubsup><mrow><mi>exp</mi><mo>⁡</mo><mspace width="0.1667em"></mspace></mrow><mrow><mo form="prefix" stretchy="false" lspace="0em" rspace="0em">(</mo><mi>c</mi><mi>/</mi><msub><mi>T</mi><mi>e</mi></msub><mo form="postfix" stretchy="false" lspace="0em" rspace="0em">)</mo></mrow></mrow></math></td>
+  <td><i>a</i> [S.I. (<i>T<sub>e</sub></i> in eV)], <i>b</i> [ ], <i>c</i> [eV]</td>
+  </tr>
+  <tr>
   <td><tt>modifiedArrheniusGasTemp</tt></td>
   <td><math><mrow><mi>a</mi><msubsup><mi>T</mi><mi>g</mi><mi class="tml-med-pad">b</mi></msubsup><mrow><mi>exp</mi><mo>⁡</mo><mspace width="0.1667em"></mspace></mrow><mrow><mo form="prefix" stretchy="false" lspace="0em" rspace="0em">(</mo><mi>c</mi><mi>/</mi><msub><mi>T</mi><mi>g</mi></msub><mo form="postfix" stretchy="false" lspace="0em" rspace="0em">)</mo></mrow></mrow></math></td>
   <td><i>a</i> [S.I. (<i>T<sub>g</sub></i> in eV)], <i>b</i> [ ], <i>c</i> [eV]</td>
+  </tr>
+  <tr>
+  <td><tt>offsetArrheniusGasTemp</tt></td>
+  <td><math><mrow><msub><mi>a</mi><mn>0</mn></msub><mo>+</mo></mrow><mrow><mi>a</mi><mrow><mspace width="0.1667em"></mspace><mi>exp</mi><mo>⁡</mo><mspace width="0.1667em"></mspace></mrow><mrow><mo form="prefix" stretchy="false" lspace="0em" rspace="0em">(</mo><mi>b</mi><mi>/</mi><msub><mi>T</mi><mi>g</mi></msub><mo form="postfix" stretchy="false" lspace="0em" rspace="0em">)</mo></mrow></mrow></math></td>
+  <td><i>a<sub>0</sub>, a</i> [S.I.], <i>b</i> [K]</td>
+  </tr>
+  <tr>
+  <td rowspan="2"><tt>orbitalExchange</tt></td>
+  <td><math><mrow><mi>a</mi><msup><mrow><mo fence="true" form="prefix" stretchy="false">[</mo><mrow><mo fence="true" form="prefix" stretchy="false">(</mo><msub><mi>u</mi><mi>i</mi></msub><mo>−</mo><msub><mi>u</mi><mi>j</mi></msub><mo fence="true" form="postfix" stretchy="false">)</mo></mrow><mi>/</mi><msub><mi>T</mi><mi>g</mi></msub><mo fence="true" form="postfix" stretchy="false">]</mo></mrow><mi>b</mi></msup><mi>/</mi><msub><mi>g</mi><mi>i</mi></msub><mspace width="0.2778em"></mspace><mo separator="true">,</mo><mrow><mo fence="true" form="prefix" stretchy="false">(</mo><msub><mi>u</mi><mi>i</mi></msub><mo>−</mo><msub><mi>u</mi><mi>j</mi></msub><mo fence="true" form="postfix" stretchy="false">)</mo></mrow><mo>&lt;</mo><msub><mi>T</mi><mi>g</mi></msub></mrow></math></td>
+  <td><i>a</i> [S.I.], <i>b</i> [ ], <i>c</i> [K eV<sup>-1</sup>)]<br></td>
+  </tr>
+  <tr>
+  <td><math><mrow><mi>a</mi><msup><mrow><mo fence="true" form="prefix" stretchy="false">[</mo><mrow><mo fence="true" form="prefix" stretchy="false">(</mo><msub><mi>u</mi><mi>i</mi></msub><mo>−</mo><msub><mi>u</mi><mi>j</mi></msub><mo fence="true" form="postfix" stretchy="false">)</mo></mrow><mi>/</mi><msub><mi>T</mi><mi>g</mi></msub><mo fence="true" form="postfix" stretchy="false">]</mo></mrow><mi>b</mi></msup><mrow><mi>exp</mi><mo>⁡</mo><mspace width="0.1667em"></mspace></mrow><mrow><mo fence="true" form="prefix" stretchy="true">(</mo><mo form="prefix" stretchy="false">−</mo><mrow><mo fence="true" form="prefix" stretchy="false">(</mo><msub><mi>u</mi><mi>i</mi></msub><mo>−</mo><msub><mi>u</mi><mi>j</mi></msub><mo fence="true" form="postfix" stretchy="false">)</mo></mrow><mi>c</mi><mi>/</mi><msub><mi>T</mi><mi>g</mi></msub><mo fence="true" form="postfix" stretchy="true">)</mo></mrow><mi>/</mi><msub><mi>g</mi><mi>i</mi></msub><mspace width="0.2778em"></mspace><mo separator="true">,</mo><mrow><mo fence="true" form="prefix" stretchy="false">(</mo><msub><mi>u</mi><mi>i</mi></msub><mo>−</mo><msub><mi>u</mi><mi>j</mi></msub><mo fence="true" form="postfix" stretchy="false">)</mo></mrow><mo>&gt;</mo><msub><mi>T</mi><mi>g</mi></msub></mrow></math></td>
+  <td><i>a</i> [S.I.], <i>b</i> [ ], <i>c</i> [K eV<sup>-1</sup>)]<br></td>
   </tr>
   <tr>
   <td><tt>powerElectronTemp</tt></td>
@@ -1163,17 +1386,39 @@ to set the population of all the rotational states of the vibrational state v=0,
   <td><i>a</i> [S.I. (<i>T<sub>g</sub></i> in K)], <i>b</i> [ ]</td>
   </tr>
   <tr>
+  <td><tt>powerlnGasTemp</tt></td>
+  <td><math><mrow><mrow><mo fence="true" form="prefix" stretchy="false">[</mo><mi>a</mi><mo>+</mo><mi>b</mi><mrow><mspace width="0.1667em"></mspace><mi>ln</mi><mo>⁡</mo><mspace width="0.1667em"></mspace></mrow><mrow><mo fence="true" form="prefix" stretchy="false">(</mo><mi>c</mi><mi>/</mi><msub><mi>T</mi><mi>g</mi></msub><mo fence="true" form="postfix" stretchy="false">)</mo></mrow><mo fence="true" form="postfix" stretchy="false">]</mo></mrow><msubsup><mi>T</mi><mi>g</mi><mi class="tml-med-pad">d</mi></msubsup></mrow></math></td>
+  <td><i>a, b</i> [S.I. (<i>T<sub>g</sub></i> in K)], <i>c</i> [K], <i>d</i> [ ]</td>
+  </tr>
+  <tr>
   <td><tt>powerTemp</tt></td>
   <td><math><mrow><mi>a</mi><msup><mi>T</mi><mi class="tml-med-pad">b</mi></msup></mrow></math></td>
   <td><i>T</i> [any], <i>a</i> [S.I. (according to <i>T</i>)], <i>b</i> [ ]</td>
+  </tr>
+  <tr>
+  <td><tt>radiationImprisonmentEinsteinCoeff</tt></td>
+  <td><math><mrow><msub><mi>A</mi><mrow><mi>i</mi><mi>j</mi></mrow></msub><msub><mi>λ</mi><mrow><mi>i</mi><mi>j</mi></mrow></msub></mrow></math></td>
+  <td><i>A<sub>ij</i> [s<sup>-1</sup>]</td>
+  </tr>
+  <tr>
+  <td><tt>radiationImprisonmentOscStrength</tt></td>
+  <td><math><mrow><mn>2</mn><mi>π</mi><msub><mi>ε</mi><mn>0</mn></msub><msup><mi>e</mi><mn class="tml-sml-pad">4</mn></msup><mi>/</mi><mrow><mo fence="true" form="prefix" stretchy="false">(</mo><msub><mi>m</mi><mi>e</mi></msub><msup><mi>h</mi><mn>2</mn></msup><mi>c</mi><mo fence="true" form="postfix" stretchy="false">)</mo></mrow><mo>×</mo><msup><mrow><mo fence="true" form="prefix" stretchy="false">(</mo><msub><mi>u</mi><mi>i</mi></msub><mo>−</mo><msub><mi>u</mi><mi>j</mi></msub><mo fence="true" form="postfix" stretchy="false">)</mo></mrow><mn>2</mn></msup><mrow><mo fence="true" form="prefix" stretchy="false">(</mo><msub><mi>g</mi><mi>j</mi></msub><mi>/</mi><msub><mi>g</mi><mi>i</mi></msub><mo fence="true" form="postfix" stretchy="false">)</mo></mrow><msub><mi>f</mi><mrow><mi>j</mi><mi>i</mi></mrow></msub><msub><mi>λ</mi><mrow><mi>i</mi><mi>j</mi></mrow></msub></mrow></math></td>
+  <td><i>f<sub>ji</i> [S.I.]</td>
+  </tr>
+  <tr>
+  <td><tt>rateCoeffCopy</tt></td>
+  <td>K<sub>r</sub> of reactDescrip <i>r</i></td>
+  <td>reactDescrip <i>r</i> []</td>
   </tr>
   </tbody>
   </table>
   </p>
   
   <p>
-  <table id="6">
-  <caption>Table 3: List of some model-based rate coefficient functions distributed with LoKI-B_v3.1.0</caption>
+  <table id="t5">
+  <caption>Table 5: List of some model-based rate coefficient functions distributed with LoKI-GM_26.07 in folder
+  <tt>[repository folder]/LoKI-GM_26.07/Code/RateCoeffFunctions/ElectronKinetics</tt>
+  </caption>
   <thead>
   <tr>
     <th>Function name</th>
@@ -1184,159 +1429,512 @@ to set the population of all the rotational states of the vibrational state v=0,
   <tbody>
   <tr>
     <td><tt>eedf</tt></td>
-    <td>Integrated electron-impact cross section (see section \ref{EMP})</td>
+    <td>Integrated electron-impact cross section over an eedf ((either prescribed
+    or obtained from the solution of the Boltzmann equation) (see Reference Manual [<a href="References.html#R11">11</a>])</td>
     <td>The corresponding electron-impact cross section must be provided in the setup file.</td>
   </tr>
   <tr>
     <td><tt>eedfCopyv0</tt></td>
-    <td>Evaluates the rate coefficient of a reaction involving vibrational states (either as reactants or products), by copying the rate coefficient of a similar reaction involving the corresponding parent state.</td>
+    <td>Evaluates the rate coefficient of a reaction involving vibrational states (either as
+    reactants or products), by copying the rate coefficient of a similar reaction involving the
+    corresponding parent state.</td>
     <td></td>
   </tr>
   <tr>
-  <td><tt>classicalAmbipolarDiff</tt></td>
-  <td>Classical ambipolar diffusion for ions (see section \ref{Chem-model})</td>
-  <td>The corresponding reduced diffusion coefficient and reduced mobility must be provided in the setup file; includes parameter, between <i>0</i> and <i>1</i>, corresponding to the wall recombination probability.</td>
-  </tr>
-  <tr>
-  <td><tt>effectiveAmbipolarDiff</tt></td>
-  <td>Effective ambipolar diffusion for ions (see section \ref{Chem-model})</td>
-  <td>The corresponding reduced diffusion coefficient and reduced mobility must be provided in the setup file; includes parameter true/false to include/exclude the influence of the negative ion density.</td>
-  </tr>
-  <tr>
-  <td><tt>classicalAmbipolarDiffNegIon</tt></td>
-  <td>Classical ambipolar diffusion for positive ions, including the effect of several negative ions \cite{Guerra1999}</td>
-  <td>The corresponding reduced diffusion coefficient and reduced mobility must be provided in the setup file.</td>
-  </tr>
-  <tr>
-  <td><tt>LiebermanDiff</tt></td>
-  <td>Lieberman's model, implemented for low-pressure oxygen plasmas; see section \ref{Chem-model}.</td>
-  <td>This function will be generalized to other gases in future releases of LoKI.</td>
-  </tr>
-  <tr>
-  <td><tt>ionTransportQDB</tt></td>
-  <td>Transport rate coefficient of a particular positive ion for a plasma with multiple positive and negative ions (assumed singly-charged) with similar temperatures (T<sub>+</sub> &#8771; T<sub>-</sub>) and very low mobilities (µ<sub>+</sub> &#8771; µ<sub>-</sub> ≪ µ<sub>e</sub>). This transport model is described in \cite{Stoffels1995} and is adopted by the QDB platform (see section \ref{Chem-model}).</td>
-  <td>Includes parameter, between <i>0</i> and <i>1</i>, corresponding to the wall recombination probability; includes parameter true/false to include/exclude the influence of the ions (positive and negative) in the calculation of the multi-component diffusion coefficient.</td>
-  </tr>
-  <tr>
-  <td><tt>binaryDiff</tt></td>
-  <td>Binary diffusion for neutrals (neglecting the effects of the multi-component transport) with recombination at the wall given by a probability (see section \ref{Chem-model})</td>
-  <td>The corresponding reduced diffusion coefficients must be provided in the setup file; the wall recombination probability should be provided as parameter of the reaction in the chemistry file.</td>
-  </tr>
-  <tr>
-  <td><tt>binaryDiffusion</tt></td>
-  <td>Binary diffusion for neutrals (neglecting the effects of the multi-component transport and of the recombination at the wall (see section \ref{Chem-model}), assuming a density profile that is zero at the walls and equal probability for each destruction channel.</td>
-  <td>The corresponding reduced diffusion coefficients must be provided in the setup file.</td>
-  </tr>
-  <tr>
-  <td><tt>binaryTransport</tt></td>
-  <td>Binary transport for neutrals (including the effects of both, binary diffusion and recombination at the wall (see section \ref{Chem-model})</td>
-  <td>The corresponding reduced diffusion coefficients must be provided in the setup file; the wall recombination probability should be provided as parameter of the reaction in the chemistry file; all the wall reactions for the same species (if applicable) have to be consistent, ensuring a maximum total probability of 1 for the losses at the wall; the temperature <i>T</i> used to calculate the thermal velocity <i>⟨v⟩</i> (see \eqref{vthermal}) should be provided as parameter of the reaction in the chemistry file (<i>e.g.</i> <tt>wallTemperature</tt>, <tt>nearWallTemperature</tt>, <tt>gasTemperature</tt>, ...; see section \ref{Chem-model}).</td>
-  </tr>
-  <tr>
-  <td><tt>binaryTransportChantry</tt></td>
-  <td>Binary transport for neutrals (including the effects of both, binary diffusion and recombination at the wall) described using the Chantry approximation (see section \ref{Chem-model}).</td>
-  <td>The corresponding reduced diffusion coefficients must be provided in the setup file; the wall recombination probability should be provided as parameter of the reaction in the chemistry file; all the wall reactions for the same species (if applicable) have to be consistent, ensuring a maximum total probability of 1 for the losses at the wall; the temperature <i>T</i> used to calculate the thermal velocity <i>⟨v⟩</i> (see \eqref{vthermal}) should be provided as parameter of the reaction in the chemistry file (<i>e.g.</i> <tt>wallTemperature</tt>, <tt>nearWallTemperature</tt>, <tt>gasTemperature</tt>, ...; see section \ref{Chem-model}).</td>
-  </tr>
-  <tr>
-  <td><tt>binaryTransportSurface</tt></td>
-  <td>Similar to <tt>binaryTransport</tt>, with the rate coefficient converted to the equivalent of a volume binary-reaction for use in a surface chemistry model.</td>
-  <td>The corresponding reduced diffusion coefficients must be provided in the setup file; the <tt>surfaceSiteDensity</tt> must be provided in the <tt>workingConditions</tt>; the wall recombination probability should be provided as parameter of the reaction in the chemistry file; all the wall reactions for the same species (if applicable) have to be consistent, ensuring a maximum total probability of 1 for the losses at the wall; the temperature <i>T</i> used to calculate the thermal velocity <i>⟨v⟩</i> (see \eqref{vthermal}) should be provided as parameter of the reaction in the chemistry file (<i>e.g.</i> <tt>wallTemperature</tt>, <tt>nearWallTemperature</tt>, <tt>gasTemperature</tt>, ...; see section \ref{Chem-model}).</td>
-  </tr>
-  <tr>
-  <td><tt>binaryTransportChantrySurface</tt></td>
-  <td>Similar to <tt>binaryTransportChantry</tt>, with the rate coefficient converted to the equivalent of a volume binary-reaction for use in a surface chemistry model.</td>
-  <td>The corresponding reduced diffusion coefficients must be provided in the setup file; the <tt>surfaceSiteDensity</tt> must be provided in the <tt>workingConditions</tt>; the wall recombination probability should be provided as parameter of the reaction in the chemistry file; all the wall reactions for the same species (if applicable) have to be consistent, ensuring a maximum total probability of 1 for the losses at the wall; the temperature <i>T</i> used to calculate the thermal velocity <i>⟨v⟩</i> (see \eqref{vthermal}) should be provided as parameter of the reaction in the chemistry file (<i>e.g.</i> <tt>wallTemperature</tt>, <tt>nearWallTemperature</tt>, <tt>gasTemperature</tt>, ...; see section \ref{Chem-model}).</td>
-  </tr>
-  <tr>
-  <td><tt>multicomponentTransportSurface</tt></td>
-  <td>Similar to <tt>multicomponentTransport</tt>, with the rate coefficient converted to the equivalent of a volume binary-reaction for use in a surface chemistry model.</td>
-  <td>The corresponding Lennard-Jones parameters should be provided in the setup file; the <tt>surfaceSiteDensity</tt> must be provided in the <tt>workingConditions</tt>; the wall recombination probability should be provided as parameter of the reaction in the chemistry file; all the wall reactions for the same species (if applicable) have to be consistent, ensuring a maximum total probability of 1 for the losses at the wall; the temperature <i>T</i> used to calculate the thermal velocity <i>⟨v⟩</i> (see \eqref{vthermal}) should be provided as parameter of the reaction in the chemistry file (<i>e.g.</i> <tt>wallTemperature</tt>, <tt>nearWallTemperature</tt>, <tt>gasTemperature</tt>, ...; see section \ref{Chem-model}).</td>
-  </tr>
-  <tr>
-  <td><tt>multicomponentTransportChantrySurface</tt></td>
-  <td>Similar to <tt>multicomponentTransportChantry</tt>, with the rate coefficient converted to the equivalent of a volume binary-reaction for use in a surface chemistry model.</td>
-  <td>The corresponding Lennard-Jones parameters should be provided in the setup file; the <tt>surfaceSiteDensity</tt> must be provided in the <tt>workingConditions</tt>; the wall recombination probability should be provided as parameter of the reaction in the chemistry file; all the wall reactions for the same species (if applicable) have to be consistent, ensuring a maximum total probability of 1 for the losses at the wall; the temperature <i>T</i> used to calculate the thermal velocity <i>⟨v⟩</i> (see \eqref{vthermal}) should be provided as parameter of the reaction in the chemistry file (<i>e.g.</i> <tt>wallTemperature</tt>, <tt>nearWallTemperature</tt>, <tt>gasTemperature</tt>, ...; see section \ref{Chem-model}).</td>
-  </tr>
-  <tr>
-  <td><tt>wallReactionSurface</tt></td>
-  <td>Similar to <tt>wallReaction</tt>, with the rate coefficient converted to the equivalent of a volume binary-reaction for use in a surface chemistry model.</td>
-  <td>The <tt>surfaceSiteDensity</tt> must be provided in the <tt>workingConditions</tt>; the wall recombination probability should be provided as parameter of the reaction in the chemistry file; all the wall reactions for the same species (if applicable) have to be consistent, ensuring a maximum total probability of 1 for the losses at the wall; the temperature <i>T</i> used to calculate the thermal velocity <i>⟨v⟩</i> (see \eqref{vthermal}) should be provided as parameter of the reaction in the chemistry file (<i>e.g.</i> <tt>wallTemperature</tt>, <tt>nearWallTemperature</tt>, <tt>gasTemperature</tt>, ...; see section \ref{Chem-model}).</td>
-  </tr>
-  <tr>
-  <td><tt>multicomponentDiffusion</tt></td>
-  <td>Multi-component diffusion for neutrals (neglecting the effects on the transport of the recombination at the wall; see section \ref{Chem-model}).</td>
-  <td>The corresponding Lennard-Jones parameters should be provided in the setup file.</td>
-  </tr>
-  <tr>
-  <td><tt>multicomponentTransport</tt></td>
-  <td>Multi-component transport for neutrals (including the effects of both diffusion and recombination at the wall; see section \ref{Chem-model}).</td>
-  <td>The corresponding Lennard-Jones parameters should be provided in the setup file; the wall recombination probability should be provided as parameter of the reaction in the chemistry file; all the wall reactions for the same species (if applicable) have to be consistent, ensuring a maximum total probability of 1 for the losses at the wall; the temperature <i>T</i> used to calculate the thermal velocity <i>⟨v⟩</i> (see \eqref{vthermal}) should be provided as parameter of the reaction in the chemistry file (<i>e.g.</i> <tt>wallTemperature</tt>, <tt>nearWallTemperature</tt>, <tt>gasTemperature</tt>, ...; see section \ref{Chem-model}).</td>
-  </tr>
-  <tr>
-  <td><tt>multicomponentTransportChantry</tt></td>
-  <td>Multi-component transport for neutrals (including the effects of both diffusion and recombination at the wall) described using the Chantry approximation (see section \ref{Chem-model}).</td>
-  <td>The corresponding Lennard-Jones parameters should be provided in the setup file; the wall recombination probability should be provided as parameter of the reaction in the chemistry file; all the wall reactions for the same species (if applicable) have to be consistent, ensuring a maximum total probability of 1 for the losses at the wall; the temperature <i>T</i> used to calculate the thermal velocity <i>⟨v⟩</i> (see \eqref{vthermal}) should be provided as parameter of the reaction in the chemistry file (<i>e.g.</i> <tt>wallTemperature</tt>, <tt>nearWallTemperature</tt>, <tt>gasTemperature</tt>, ...; see section \ref{Chem-model}).</td>
-  </tr>
-  <tr>
-  <td><tt>wallReaction</tt></td>
-  <td>Recombination at the wall (neglecting the effects of multi-component diffusion transport; see section \ref{Chem-model}).</td>
-  <td>The wall recombination probability should be provided as parameter of the reaction in the chemistry file; all the wall reactions for the same species (if applicable) have to be consistent, ensuring a maximum total probability of 1 for the losses at the wall; the temperature <i>T</i> used to calculate the thermal velocity <i>⟨v⟩</i> (see \eqref{vthermal}) should be provided as parameter of the reaction in the chemistry file (<i>e.g.</i> <tt>wallTemperature</tt>, <tt>nearWallTemperature</tt>, <tt>gasTemperature</tt>, ...; see section \ref{Chem-model}).</td>
-  </tr>
-  <tr>
-  <td><tt>rateCoeffCopy</tt></td>
-  <td>Evaluates the rate coefficient of a reaction by copying the rate coefficient of another reaction identified in the chemistry scheme by the exact reaction's description.</td>
-  <td></td>
-  </tr>
-  <tr>
-  <td><tt>inFlow</tt></td>
-  <td>Simplified model for the inlet flow of species <i>j</i>.</td>
-  <td>The rate coefficient is calculated as
-  <math><mrow><msub><mi>ν</mi><msub><mrow><mpadded lspace="0"><mi mathvariant="normal">i</mi></mpadded><mpadded lspace="0"><mi mathvariant="normal">n</mi></mpadded><mo>−</mo><mpadded lspace="0"><mi mathvariant="normal">f</mi></mpadded><mpadded lspace="0"><mi mathvariant="normal">l</mi></mpadded><mpadded lspace="0"><mi mathvariant="normal">o</mi></mpadded><mpadded lspace="0"><mi mathvariant="normal">w</mi></mpadded></mrow><mi>j</mi></msub></msub><mo form="prefix" stretchy="false">(</mo><msup><mpadded lspace="0"><mi mathvariant="normal">s</mi></mpadded><mrow><mo lspace="0em" rspace="0em">−</mo><mn>1</mn></mrow></msup><mo form="postfix" stretchy="false">)</mo><mo>=</mo><mfrac><mrow><mo form="prefix" stretchy="false" lspace="0em" rspace="0em">(</mo><mi>d</mi><mi>V</mi><mi>/</mi><mi>d</mi><mi>t</mi><msub><mo form="postfix" stretchy="false">)</mo><mi>j</mi></msub></mrow><msub><mi>V</mi><mpadded lspace="0"><mi>plasma</mi></mpadded></msub></mfrac></mrow></math><br>
-  with<br>
-  <math><mrow><msub><mrow><mo fence="true" form="prefix">(</mo><mfrac><mrow><mi>d</mi><mi>V</mi></mrow><mrow><mi>d</mi><mi>t</mi></mrow></mfrac><mo fence="true" form="postfix">)</mo></mrow><mi>j</mi></msub><mo form="prefix" stretchy="false">(</mo><msup><mpadded lspace="0"><mi mathvariant="normal">m</mi></mpadded><mn>3</mn></msup><msup><mpadded lspace="0"><mi mathvariant="normal">s</mi></mpadded><mrow><mo lspace="0em" rspace="0em">−</mo><mn>1</mn></mrow></msup><mo form="postfix" stretchy="false">)</mo><mo>=</mo><mspace width="0.5cm"></mspace><mfrac><mrow><msub><mi>Q</mi><mi>j</mi></msub><mo form="prefix" stretchy="false">(</mo><mpadded lspace="0"><mi>sccm</mi></mpadded><mo form="postfix" stretchy="false">)</mo><msup><mn>10</mn><mrow><mo lspace="0em" rspace="0em">−</mo><mn>6</mn></mrow></msup></mrow><mn>60</mn></mfrac><mfrac><mrow><msub><mi>p</mi><mpadded lspace="0"><mi>PTN</mi></mpadded></msub><mo form="prefix" stretchy="false">(</mo><mpadded lspace="0"><mi>Pa</mi></mpadded><mo form="postfix" stretchy="false" lspace="0em" rspace="0em">)</mo></mrow><mrow><msub><mi>k</mi><mi>B</mi></msub><msub><mi>T</mi><mpadded lspace="0"><mi>PTN</mi></mpadded></msub><mo form="prefix" stretchy="false">(</mo><mpadded lspace="0"><mi mathvariant="normal">K</mi></mpadded><mo form="postfix" stretchy="false" lspace="0em" rspace="0em">)</mo></mrow></mfrac></mrow></math>
-  <br>
-    The function uses two parameters: the  inlet frequency in SI units (s<sup>-1</sup>) and the volume factor (plasma-volume to chamber-volume ratio) - see the function header for more details.
-    The current version of this function (to be improved in future releases), uses the electron species ("transparent" to LoKI, which does not solve the electron rate-balance equation) to write the inflow reaction of a general species X as <tt>X ⟶ e</tt>.</td>
-  </tr>
-  <tr>
-  <td><tt>outFlow</tt></td>
-  <td>Simplified model for the outlet flow of species <i>j</i>, assuming conservation of atoms in the gas/plasma mixture.</td>
-  <td>The rate coefficient is calculated as
-  <math><mrow><msub><mi>ν</mi><msub><mrow><mpadded lspace="0"><mi mathvariant="normal">o</mi></mpadded><mpadded lspace="0"><mi mathvariant="normal">u</mi></mpadded><mpadded lspace="0"><mi mathvariant="normal">t</mi></mpadded><mo>−</mo><mpadded lspace="0"><mi mathvariant="normal">f</mi></mpadded><mpadded lspace="0"><mi mathvariant="normal">l</mi></mpadded><mpadded lspace="0"><mi mathvariant="normal">o</mi></mpadded><mpadded lspace="0"><mi mathvariant="normal">w</mi></mpadded></mrow><mi>j</mi></msub></msub><mo form="prefix" stretchy="false">(</mo><msup><mpadded lspace="0"><mi mathvariant="normal">s</mi></mpadded><mrow><mo lspace="0em" rspace="0em">−</mo><mn>1</mn></mrow></msup><mo form="postfix" stretchy="false">)</mo><mo>=</mo><mfrac><mrow><msub><mo movablelimits="false">∑</mo><mi>i</mi></msub><msub><mi>ν</mi><msub><mrow><mpadded lspace="0"><mi mathvariant="normal">i</mi></mpadded><mpadded lspace="0"><mi mathvariant="normal">n</mi></mpadded><mo>−</mo><mpadded lspace="0"><mi mathvariant="normal">f</mi></mpadded><mpadded lspace="0"><mi mathvariant="normal">l</mi></mpadded><mpadded lspace="0"><mi mathvariant="normal">o</mi></mpadded><mpadded lspace="0"><mi mathvariant="normal">w</mi></mpadded></mrow><mi scriptlevel="2">i</mi></msub></msub></mrow><mrow><msub><mi>V</mi><mpadded lspace="0"><mi>plasma</mi></mpadded></msub><mo form="prefix" stretchy="false">(</mo><msub><mi>p</mi><mn>0</mn></msub><mi>/</mi><msub><mi>k</mi><mi>B</mi></msub><msub><mi>T</mi><msub><mi>g</mi><mn scriptlevel="2">0</mn></msub></msub><mo form="postfix" stretchy="false" lspace="0em" rspace="0em">)</mo></mrow></mfrac></mrow></math>,<br>
-  with <i>p_0</i> and <i>T<sub>g<sub>0</sub></sub></i> the initial gas pressure and temperature, respectively, for each run of LoKI-C.<br>
-  The current version of this function (to be improved in future releases), uses the electron species ("transparent" to LoKI, which does not solve the electron rate-balance equation) to write the outflow reaction of a general species X as <tt>e ⟶ X</tt>.</td>
-  </tr>
-  <tr>
-  <td><tt>thermalEffusionSurface</tt></td>
-  <td>Adsorption rate coefficient for use in a mesoscopic surface chemistry model.</td>
-  <td>The rate coefficient is calculated from \eqref{kr-surface} for <i>r=</i>adsorption, with <i>k<sup>0</sup><sub>r<sub>j</sub></sub></i> and <i>E<sub>r<sub>j</sub></sub></i> as input parameters. <br>
-    The current version of this function adopts the <i>wall recombination</i> model, with <i>τ<sub>r<sub>j</sub></sub> = τ</i><sub>wall<i><sub>j</sub></sub></i> (see section \ref{Thermal-model} for more details).</td>
-  </tr>
-  <tr>
-  <td><tt>surfaceTransport</tt></td>
-  <td>Surface-diffusion rate coefficient for use in a mesoscopic surface chemistry model.</td>
-  <td>The rate coefficient is calculated from~\eqref{kr-surface} for <i>r=</i>surface diffusion, taking as input parameters <i>ν<sub>D<sub>j</sub></sub></i>, <i>E<sub>D<sub>j</sub></sub></i>, <i>k<sup>0</sup><sub>r<sub>j</sub></sub></i>, <i>E<sub>r<sub>j</sub></sub></i> and a logic parameter to choose the back-diffusion correction (see section \ref{Thermal-model} for more details).</td>
-  </tr>
-  <tr>
-  <td><tt>thermalDesorption</tt></td>
-  <td>Desorption rate coefficient for use in a mesoscopic surface chemistry model.</td>
-  <td>The rate coefficient is calculated from \eqref{kr-surface} for <i>r=</i>desorption, with <i>ν<sub>dr<sub>j</sub></sub></i> and <i>E<sub>dr<sub>j</sub></sub></i> as input parameters (see section \ref{Thermal-model} for more details).</td>
+  <td><tt>pseudoEedfCopy</tt></td>
+  <td>Evaluates the rate coefficient of an electron-impact reaction by setting it equal to the rate
+  coefficient of another reaction using the reaction's description as input parameter.</td>
+  <td>The description of the original reaction must be provided in the chemistry file.</td>
   </tr>
   </tbody>
   </table>
   </p>
 
-  <p>The distribution of the LoKI suite may further include other rate coefficient functions, eventually implemented for specific gases, for example addressing the calculation of VV and VT rate coefficients, of escape factors for radiation imprisonment, etc. Future versions of the documentation will probably include general descriptions of the models adopted in those functions.</p>
+  <p>The distribution of LoKI-GM further includes other rate coefficient functions, implemented for specific gases,
+  for example:</p>
+  <ul>
+  <li>in folder <tt>[repository folder]/LoKI-GM_26.07/Code/RateCoeffFunctions/Nitrogen</tt>, evaluating:
+    (i) atomic and molecular VV and VT rate coefficients between nitrogen molecules and atoms, including
+    mechanisms leading to N<sub>2</sub> dissociation [<a href="References.html#R37">37</a>,
+    <a href="References.html#R56">56</a>]; (ii) rate coefficients for EV mechanisms in nitrogen
+    [<a href="References.html#R37">37</a>, <a href="References.html#R57">57</a>].<br>
+  <b>NOTE THAT THESE FUNCTIONS ARE PROVIDED FOR DEMONSTRATION PURPOSES ONLY, WHEN RUNNING THE SIMPLIFIED
+  NITROGEN CHEMISTRY WITH THE DEFAULT SETUP OF LoKI-GM</b>;</li>
+  <li> in folder <tt>[repository folder]/LoKI-GM_26.07/Code/RateCoeffFunctions/Oxygen</tt>, evaluating:
+    (i) atomic and molecular VV and VT rate coefficients between oxygen molecules and atoms, including
+    mechanisms leading to O<sub>2</sub> dissociation [<a href="References.html#R58">58</a>,
+    <a href="References.html#R59">59</a>]; (ii) rate coefficients for electron-impact dissociation and
+    dissociative electron attachment [<a href="References.html#R58">58</a>,
+    <a href="References.html#R59">59</a>].</li>
+  </ul>
 
-  <h2 id="3">Other auxiliary functions</h2>
+  <p>
+  <table id="t6">
+  <caption>Table 6: List of some model-based rate coefficient functions distributed with LoKI-GM_26.07 in folder
+  <tt>[repository folder]/LoKI-GM_26.07/Code/RateCoeffFunctions/SurfaceKinetics</tt>
+  </caption>
+  <thead>
+  <tr>
+  <th>Function name</th>
+  <th>Model</th>
+  <th>Comments</th>
+  </tr>
+  </thead>
+  <tbody>
+  <tr>
+  <td><tt>arrheniusSurf</tt></td>
+  <td><math><mfrac><mrow><mi>a</mi><mrow><mspace width="0.1667em"></mspace><mi>exp</mi><mo>⁡</mo><mspace width="0.1667em"></mspace></mrow><mrow><mo fence="true" form="prefix" stretchy="false">(</mo><mi>b</mi><mi>/</mi><msub><mi>T</mi><mi>g</mi></msub><mo fence="true" form="postfix" stretchy="false">)</mo></mrow></mrow><mrow><mrow><mo fence="true" form="prefix" stretchy="false">(</mo><msub><mrow><mo fence="true" form="prefix" stretchy="false">[</mo><mi>S</mi><mo fence="true" form="postfix" stretchy="false">]</mo></mrow><mpadded lspace="0"><mi>surface</mi></mpadded></msub><mo>+</mo><msub><mrow><mo fence="true" form="prefix" stretchy="false">[</mo><mi>F</mi><mo fence="true" form="postfix" stretchy="false">]</mo></mrow><mpadded lspace="0"><mi>surface</mi></mpadded></msub><mo fence="true" form="postfix" stretchy="false">)</mo></mrow><mrow><mo fence="true" form="prefix" stretchy="false">(</mo><mi>A</mi><mi>/</mi><mi>V</mi><mo fence="true" form="postfix" stretchy="false">)</mo></mrow></mrow></mfrac></math><br><br>
+  The rate coefficient is converted to the equivalent of a volume binary-reaction for use in a surface chemistry model.</td>
+  <td><ul>
+  <li>Parameters (in order) <i>a</i> [s<sup>−1</sup>], <i>b</i> [K]</li>
+  <li><tt>surfaceSiteDensity</tt> must be provided in <tt>workingConditions</tt>.</li>
+  </ul></td>
+  </tr>
+  <tr>
+  <td><tt>binaryTransportChantrySurface</tt></td>
+  <td>Similar to <tt>binaryTransportChantry</tt> [<a href="References.html#R36">36</a>] (see table <a href="#t8">8</a>)<br>
+  The rate coefficient is converted to the equivalent of a volume binary-reaction for use in a surface chemistry model.</td>
+  <td><ul>
+  <li>Parameters (in order): (i) the wall recombination probability; (ii) the temperature <i>T</i> used to calculate the
+  thermal velocity &#60;v&#62; , <i>e.g.</i> <tt>wallTemperature</tt>, <tt>nearWallTemperature</tt>, <tt>gasTemperature</tt>,
+  ...; see Reference Manual [<a href="References.html#R11">11</a>]<br>
+  Note: all the wall reactions for the same species (if applicable) have to be consistent, ensuring a maximum total
+  probability of 1 for the losses at the wall.</li>
+  <li>The corresponding reduced diffusion coefficients must be provided in the setup file</li>
+  <li><tt>surfaceSiteDensity</tt> must be provided in <tt>workingConditions</tt>.</li>
+  </ul></td>
+  </tr>
+  <tr>
+  <td><tt>binaryTransportSurface</tt></td>
+  <td>Similar to <tt>binaryTransport</tt> [<a href="References.html#R36">36</a>] (see table <a href="#t8">8</a>)<br>
+  The rate coefficient is converted to the equivalent of a volume binary-reaction for use in a surface chemistry model.</td>
+  <td><ul>
+  <li>Parameters (in order): (i) the wall recombination probability; (ii) the temperature <i>T</i> used to calculate the
+  thermal velocity &#60;v&#62; , <i>e.g.</i> <tt>wallTemperature</tt>, <tt>nearWallTemperature</tt>, <tt>gasTemperature</tt>,
+  ...; see Reference Manual [<a href="References.html#R11">11</a>]<br>
+  Note: all the wall reactions for the same species (if applicable) have to be consistent, ensuring a maximum total
+  probability of 1 for the losses at the wall.</li>
+  <li>The corresponding reduced diffusion coefficients must be provided in the setup file</li>
+  <li><tt>surfaceSiteDensity</tt> must be provided in <tt>workingConditions</tt>.</li>
+  </ul></td>
+  </tr>
+  <tr>
+  <td><tt>multicomponentTransportChantrySurface</tt></td>
+  <td>Similar to <tt>multicomponentTransportChantry</tt> [<a href="References.html#R36">36</a>] (see table <a href="#t8">8</a>)<br>
+  The rate coefficient is converted to the equivalent of a volume binary-reaction for use in a surface chemistry model.</td>
+  <td><ul>
+  <li>Parameters (in order): (i) the wall recombination probability; (ii) the temperature <i>T</i> used to calculate the
+  thermal velocity &#60;v&#62; , <i>e.g.</i> <tt>wallTemperature</tt>, <tt>nearWallTemperature</tt>, <tt>gasTemperature</tt>,
+  ...; see Reference Manual [<a href="References.html#R11">11</a>]<br>
+  Note: all the wall reactions for the same species (if applicable) have to be consistent, ensuring a maximum total
+  probability of 1 for the losses at the wall.</li>
+  <li>The corresponding Lennard-Jones parameters must be provided in the setup file</li>
+  <li><tt>surfaceSiteDensity</tt> must be provided in <tt>workingConditions</tt>.</li>
+  </ul></td>
+  </tr>
+  <tr>
+  <td><tt>multicomponentTransportSurface</tt></td>
+  <td>Similar to <tt>multicomponentTransport</tt> [<a href="References.html#R36">36</a>] (see table <a href="#t8">8</a>)<br>
+  The rate coefficient is converted to the equivalent of a volume binary-reaction for use in a surface chemistry model.</td>
+  <td><ul>
+  <li>Parameters (in order): (i) the wall recombination probability; (ii) the temperature <i>T</i> used to calculate the
+  thermal velocity &#60;v&#62; , <i>e.g.</i> <tt>wallTemperature</tt>, <tt>nearWallTemperature</tt>, <tt>gasTemperature</tt>,
+  ...; see Reference Manual [<a href="References.html#R11">11</a>]<br>
+  Note: all the wall reactions for the same species (if applicable) have to be consistent, ensuring a maximum total
+  probability of 1 for the losses at the wall.</li>
+  <li>The corresponding Lennard-Jones parameters must be provided in the setup file</li>
+  <li><tt>surfaceSiteDensity</tt> must be provided in <tt>workingConditions</tt>.</li>
+  </ul></td>
+  </tr>
+  <tr>
+  <td><tt>surfaceTransport</tt></td>
+  <td>
+  <math><mrow><mfrac><mrow><msubsup><mi>k</mi><msub><mi>r</mi><mi scriptlevel="2">j</mi></msub><mn>0</mn></msubsup><mrow><mi>exp</mi><mo>⁡</mo><mspace width="0.1667em"></mspace></mrow><mrow><mo fence="true" form="prefix" stretchy="true">(</mo><mo form="prefix" stretchy="false">−</mo><mfrac><msub scriptlevel="2" style="math-depth:2;"><mi>E</mi><msub scriptlevel="2"><mi>r</mi><mi scriptlevel="2">j</mi></msub></msub><mrow scriptlevel="2" style="math-depth:2;"><mi>R</mi><msub><mi>T</mi><mi scriptlevel="2">w</mi></msub></mrow></mfrac><mo fence="true" form="postfix" stretchy="true">)</mo></mrow></mrow><mrow><mrow><mo fence="true" form="prefix" stretchy="false">(</mo><msub><mrow><mo fence="true" form="prefix" stretchy="false">[</mo><mi>F</mi><mo fence="true" form="postfix" stretchy="false">]</mo></mrow><mpadded lspace="0"><mi>surface</mi></mpadded></msub><mo>+</mo><msub><mrow><mo fence="true" form="prefix" stretchy="false">[</mo><mi>S</mi><mo fence="true" form="postfix" stretchy="false">]</mo></mrow><mpadded lspace="0"><mi>surface</mi></mpadded></msub><mo fence="true" form="postfix" stretchy="false">)</mo></mrow><mrow><mo fence="true" form="prefix" stretchy="false">(</mo><mi>A</mi><mi>/</mi><mi>V</mi><mo fence="true" form="postfix" stretchy="false">)</mo></mrow></mrow></mfrac><mo>×</mo><mfrac><mn>3</mn><mn>4</mn></mfrac><msub><mi>ν</mi><msub><mi>D</mi><mi>j</mi></msub></msub><mrow><mi>exp</mi><mo>⁡</mo><mspace width="0.1667em"></mspace></mrow><mrow><mo fence="true" form="prefix" stretchy="true">(</mo><mo form="prefix" stretchy="false">−</mo><mfrac><msub><mi>E</mi><msub><mi>D</mi><mi scriptlevel="2">j</mi></msub></msub><mrow><mi>R</mi><msub><mi>T</mi><mi>w</mi></msub></mrow></mfrac><mo fence="true" form="postfix" stretchy="true">)</mo></mrow></mrow></math><br><br>
+  Surface-diffusion rate coefficient for use in a mesoscopic surface chemistry model [<a href="References.html#R37">37</a>
+  - <a href="References.html#R39">39</a>] (see Reference Manual [<a href="References.html#R11">11</a>]).
+  </td>
+  <td>
+  <ul>
+  <li>Parameters (in order): <i>ν<sub>Dj</sub></i> [s<sup>−1</sup> ], E<sub>Dj</sub> [J mol<sup>−1</sup>],
+  k<sup>0</sup><sub>rj</sub> [ ], E<sub>rj</sub> [J mol<sup>−1</sup>], and a Boolean parameter to choose
+  the 3/4 back-diffusion correction</li>
+  <li><tt>surfaceSiteDensity</tt> must be provided in <tt>workingConditions</tt>.</li>
+  </ul>
+  </td>
+  </tr>
+  <tr>
+  <td><tt>thermalDesorption</tt></td>
+  <td>
+  <math><mrow><msub><mi>ν</mi><msub><mrow><mi>d</mi><mi>r</mi></mrow><mi>j</mi></msub></msub><mrow><mi>exp</mi><mo>⁡</mo><mspace width="0.1667em"></mspace></mrow><mrow><mo fence="true" form="prefix" stretchy="true">(</mo><mo form="prefix" stretchy="false">−</mo><mfrac><msub><mi>E</mi><msub><mrow><mi>d</mi><mi>r</mi></mrow><mi scriptlevel="2">j</mi></msub></msub><mrow><mi>R</mi><msub><mi>T</mi><mi>w</mi></msub></mrow></mfrac><mo fence="true" form="postfix" stretchy="true">)</mo></mrow></mrow></math><br><br>
+  Surface-diffusion rate coefficient for use in a mesoscopic surface chemistry model
+  [<a href="References.html#37">37</a>-<a href="References.html#39">39</a>]
+  (see Reference Manual [<a href="References.html#11">11</a>]).
+  </td>
+  <td><ul>
+  <li>Parameters (in order): ν<sub>drj</sub> [s<sup>−1</sup>], E<sub>drj</sub> [J mol<sup>−1</sup>]</li>
+  </ul></td>
+  </tr>
+  <tr>
+  <td><tt>thermalEffusionSurface</tt></td>
+  <td>
+  <math><mrow><mfrac><mrow><msubsup><mi>k</mi><msub><mi>r</mi><mi scriptlevel="2">j</mi></msub><mn>0</mn></msubsup><mrow><mi>exp</mi><mo>⁡</mo><mspace width="0.1667em"></mspace></mrow><mrow><mo fence="true" form="prefix" stretchy="true">(</mo><mo form="prefix" stretchy="false">−</mo><mfrac><msub scriptlevel="2" style="math-depth:2;"><mi>E</mi><msub scriptlevel="2"><mi>r</mi><mi scriptlevel="2">j</mi></msub></msub><mrow scriptlevel="2" style="math-depth:2;"><mi>R</mi><mi>T</mi></mrow></mfrac><mo fence="true" form="postfix" stretchy="true">)</mo></mrow></mrow><mrow><mrow><mo fence="true" form="prefix" stretchy="false">(</mo><msub><mrow><mo fence="true" form="prefix" stretchy="false">[</mo><mi>F</mi><mo fence="true" form="postfix" stretchy="false">]</mo></mrow><mpadded lspace="0"><mi>surface</mi></mpadded></msub><mo>+</mo><msub><mrow><mo fence="true" form="prefix" stretchy="false">[</mo><mi>S</mi><mo fence="true" form="postfix" stretchy="false">]</mo></mrow><mpadded lspace="0"><mi>surface</mi></mpadded></msub><mo fence="true" form="postfix" stretchy="false">)</mo></mrow><mrow><mo fence="true" form="prefix" stretchy="false">(</mo><mi>A</mi><mi>/</mi><mi>V</mi><mo fence="true" form="postfix" stretchy="false">)</mo></mrow></mrow></mfrac><mfrac><mn>1</mn><msub><mi>τ</mi><msub><mi>r</mi><mi scriptlevel="2">j</mi></msub></msub></mfrac></mrow></math><br><br>
+  Adsorption rate coefficient for use in a mesoscopic surface chemistry model
+  [<a href="References.html#37">37</a>-<a href="References.html#39">39</a>]
+  (see Reference Manual [<a href="References.html#11">11</a>]).</td>
+  <td><ul>
+  <li>Parameters (in order): k<sup>0</sup><sub>rj</sub> [ ], E<sub>rj</sub> [J jmol<sup>−1</sup>], T [K]</li>
+  <li>The current version of this function adopts the <i>wall recombination model</i>,
+  with <i>τ<sub>rj</sub> = τ<sub>wallj</sub> ≃ (4/&#60;v<sub>j</sub>&#62;)(V/A)</i></li>
+  <li>The temperature <i>T</i> is used to calculate the thermal velocity &#60;v<sub>j</sub>&#62; and can
+  be set equal to <tt>wallTemperature, nearWallTemperature, gasTemperature</tt>, ...</li>
+  <li><tt>surfaceSiteDensity</tt> must be provided in <tt>workingConditions</tt>.</li>
+  </ul></td>
+  </tr>
+  <tr>
+  <td><tt>thermalEffusionSurface_SKO</tt></td>
+  <td>
+  <math><mrow><mfrac><mrow><msubsup><mi>k</mi><msub><mi>r</mi><mi scriptlevel="2">j</mi></msub><mn>0</mn></msubsup><mrow><mi>exp</mi><mo>⁡</mo><mspace width="0.1667em"></mspace></mrow><mrow><mo fence="true" form="prefix" stretchy="true">(</mo><mo form="prefix" stretchy="false">−</mo><mfrac><msub scriptlevel="2" style="math-depth:2;"><mi>E</mi><msub scriptlevel="2"><mi>r</mi><mi scriptlevel="2">j</mi></msub></msub><mrow scriptlevel="2" style="math-depth:2;"><mi>R</mi><mi>T</mi></mrow></mfrac><mo fence="true" form="postfix" stretchy="true">)</mo></mrow></mrow><mrow><mrow><mo fence="true" form="prefix" stretchy="false">(</mo><msub><mrow><mo fence="true" form="prefix" stretchy="false">[</mo><mi>F</mi><mo fence="true" form="postfix" stretchy="false">]</mo></mrow><mpadded lspace="0"><mi>surface</mi></mpadded></msub><mo>+</mo><msub><mrow><mo fence="true" form="prefix" stretchy="false">[</mo><mi>S</mi><mo fence="true" form="postfix" stretchy="false">]</mo></mrow><mpadded lspace="0"><mi>surface</mi></mpadded></msub><mo fence="true" form="postfix" stretchy="false">)</mo></mrow><mrow><mo fence="true" form="prefix" stretchy="false">(</mo><mi>A</mi><mi>/</mi><mi>V</mi><mo fence="true" form="postfix" stretchy="false">)</mo></mrow></mrow></mfrac><mfrac><mn>1</mn><msub><mi>τ</mi><msub><mi>r</mi><mi scriptlevel="2">j</mi></msub></msub></mfrac></mrow></math><br><br>
+  Adsorption rate coefficient for use in a mesoscopic surface chemistry model
+  [<a href="References.html#37">37</a>-<a href="References.html#39">39</a>]
+  (see Reference Manual [<a href="References.html#11">11</a>]), when activating a Surface Kinetics Only (SKO)</td>
+  <td><ul>
+  <li>Parameters (in order): k<sup>0</sup><sub>rj</sub> [ ], E<sub>rj</sub> [J jmol<sup>−1</sup>], T [K]</li>
+  <li>The current version of this function adopts the <i>wall recombination model</i>,
+  with <i>τ<sub>rj</sub> = τ<sub>wallj</sub> ≃ (4/&#60;v<sub>j</sub>&#62;)(V/A)</i></li>
+  <li>The temperature <i>T</i> is used to calculate the thermal velocity &#60;v<sub>j</sub>&#62; and can
+  be set equal to <tt>wallTemperature, nearWallTemperature, gasTemperature</tt>, ...</li>
+  <li><tt>surfaceSiteDensity</tt> must be provided in <tt>workingConditions</tt>.</li>
+  </ul>
+  <p>The surface reactions calling this function should add a <tt>volume catalyst</tt> to the right- and left-hand sides, <i>e.g.</i>
+  <pre class="codeinput">
+  O(3P) + wall_empty(F) -> wall_O(F) + O(3P)
+  O(3P) + wall_empty(S) -> wall_O(S) + O(3P)
+  O(3P) + wall_O(S) -> wall_empty(S) + O(3P)</pre>
+  For [<i>F<sub>v</sub></i>] = 0.90, [<i>S<sub>v</sub></i>] = 0.05 and [<i>O<sub>s</sub></i>] = 0.05, the setup file should be configured by setting
+  <pre class="codeinput">
+  gasProperties:
+    fraction:
+      - wall_empty=0.90+0.05
+      - wall_O=0.05
+      stateProperties:
+        population:
+          - wall_empty(F)=0.90/0.95
+          - wall_empty(S)=0.05/0.95
+          - wall_O(S)=1.0</pre>
+  </td>
+  </tr>
+  <tr>
+  <td><tt>wallReactionSurface</tt></td>
+  <td>Similar to <tt>wallReaction</tt> [<a href="References.html#R36">36</a>] (see table <a href="#t8">8</a>)<br>
+  The rate coefficient is converted to the equivalent of a volume binary-reaction for use in a surface chemistry model.</td>
+  <td><ul>
+  <li>Parameters (in order): (i) the wall recombination probability; (ii) the temperature <i>T</i> used to calculate the
+  thermal velocity &#60;v<sub>j</sub>&#62; <i>e.g.</i> <tt>wallTemperature, nearWallTemperature, gasTemperature</tt>, ...;
+  See Reference Manual [<a href="References.html#R11">11</a>].<br>
+  Note: all the wall reactions for the same species (if applicable) have to be consistent, ensuring a maximum total
+  probability of 1 for the losses at the wall.</li>
+  <li><tt>surfaceSiteDensity</tt> must be provided in <tt>workingConditions</tt>.</li>
+  </ul></td>
+  </tr>
+  </tbody>
+  </table>
+  </p>
 
-In OtherAuxFunctions the user can find <tt>*.m</tt> functions
+  <p>
+  <table id="t7">
+  <caption>Table 7: List of model-based rate coefficient functions distributed with LoKI-GM_26.07 in folder
+  <tt>[repository folder]/LoKI-GM_26.07/Code/RateCoeffFunctions/TransportIons</tt>
+  </caption>
+  <thead>
+  <tr>
+  <th>Function name</th>
+  <th>Model</th>
+  <th>Comments</th>
+  </tr>
+  </thead>
+  <tbody>
+  <tr>
+  <td><tt>analyticalHFactorTransport</tt></td>
+  <td>Evaluates the transport rate coefficient of a single type of positive ions, adopting an h-factor
+  drift-dominated model, solved analytically for plane-parallel electropositive discharges [<a href="References.html#R40">40</a>,
+  <a href="References.html#R43">43</a>] (see Reference Manual [[<a href="References.html#R11">11</a>])</td>
+  <td><ul>
+  <li>Parameter: total ion collision cross section (constant value), σ (m<sup>2</sup>)</li>
+  <li>The electron temperature must be provided in the setup file</li>
+  </ul></td>
+  </tr>
+  <tr>
+  <td><tt>classicalAmbipolarDiff</tt></td>
+  <td>Evaluates the diffusion rate coefficient of positive ions, under the classical ambipolar diffusion
+  approximation [<a href="References.html#R40">40</a>-<a href="References.html#R42">42</a>]
+  (see Reference Manual [[<a href="References.html#R11">11</a>])</td>
+  <td><ul>
+  <li>Parameter:  wall recombination probability (between 0 and 1), γ [ ]</li>
+  <li>The corresponding reduced diffusion coefficient and reduced mobility must be provided in the setup file</li>
+  </ul></td>
+  </tr>
+  <tr>
+  <td><tt>classicalAmbipolarDiffNegIon</tt></td>
+  <td>Evaluates the diffusion rate coefficient of positive ions, under the classical ambipolar diffusion
+  approximation, considering the effect of several negative ions [<a href="References.html#R40">40</a>,
+  <a href="References.html#R42">42</a>, <a href="References.html#R44">44</a>, <a href="References.html#R45">45</a>]
+  (see Reference Manual [[<a href="References.html#R11">11</a>])</td>
+  <td><ul><li>The corresponding reduced diffusion coefficient and reduced mobility must be provided in the setup file.</li></ul></td>
+  </tr>
+  <tr>
+  <td><tt>effectiveAmbipolarDiff</tt></td>
+  <td>Evaluates the diffusion rate coefficient of positive ions, for a plasma with multiple positive ions,
+  for a plasma with multiple positive ions and a single negative ion with low density [<a href="References.html#R40">40</a>,
+  <a href="References.html#R41">41</a>] (see Reference Manual [[<a href="References.html#R11">11</a>])</td>
+  <td><ul>
+  <li>Parameter: a Boolean parameter to include/exclude the influence of the negative ion density</li>
+  <li>The corresponding reduced diffusion coefficient and reduced mobility must be provided in the setup file</li>
+  </ul></td>
+  </tr>
+  <tr>
+  <td><tt>hFactorTransport</tt></td>
+  <td>Evaluates the transport rate coefficient of positive ions, adopting h-factor models for drift-dominated scenarios in
+  electropositive plasmas, solved numerically at low-pressure, and for drift-diffusion scenarios, featuring the transition
+  from electropositive to moderate or strong electronegative plasmas [<a href="References.html#R40">40</a>,
+  <a href="References.html#R46">46</a>-<a href="References.html#R52">52</a>]
+  (see Reference Manual [<a href="References.html#R11">11</a>])</td>
+  <td><ul>
+  <li>Parameters (in order): (i) the total ion collision cross section (constant value), σ (m<sup>2</sup>); (ii) a Boolean
+  parameter to include/exclude a low pressure correction for <i>h<sub>L</sub></i>; (iii) a Boolean parameter to
+  include/exclude a fit for <i>α<sub>S</sub></i> from Thorsteinsson and Gudmundsson [<a href="References.html#R50">50</a>]</li>
+  <li>The electron and the gas temperatures must be provided in the setup file</li>
+  </ul></td>
+  </tr>
+  <tr>
+  <td><tt>QGMTransport</tt></td>
+  <td>Evaluates the transport rate coefficient of positive ions, for a plasma with multiple positive and negative ions
+  (assumed singly-charged) with similar temperatures (<i>T<sub>+</sub> ≃ T<sub>−</sub></i>), moderate electronegativities
+  and very low mobilities (<i>μ<sub>+</sub> ≃ μ<sub>-</sub> ≪ μ<sub>e</sub></i>). This transport model is described
+  in [<a href="References.html#R53">53</a>] and is adopted by the Quantemol Global Model (QGM) [<a href="References.html#R40">40</a>,
+  <a href="References.html#R54">54</a>]; (see Reference Manual [<a href="References.html#R11">11</a>]).</td>
+  <td><ul>
+  <li>Parameters (in order): (i) the wall recombination probability (between 0 and 1) of the positive ion, <i>γ<sub>j</sub></i> [ ];
+  (ii) a Boolean parameter to include/exclude the influence of the ions (positive and negative) in the calculation
+  of the multi-component diffusion coefficient; (iii) a string (transport / diffusion) to select the full/simplified
+  version of the model, considering the effects of the multicomponent ambipolar transport and the thermal losses
+  at the wall or considering only the effects of the ambipolar transport, using the binary diffusion coefficient as free
+  diffusion coefficient of the positive ion species</li>
+  <li>The electron and the gas temperatures must be provided in the setup file</li>
+  </ul></td>
+  </tr>
+  </tbody>
+  </table>
+  </p>
+
+  <p>
+  <table id="t8">
+  <caption>Table 8: List of model-based rate coefficient functions distributed with LoKI-GM_26.07 in folder
+  <tt>[repository folder]/LoKI-GM_26.07/Code/RateCoeffFunctions/TransportNeutrals</tt>
+  </caption>
+  <thead>
+  <tr>
+  <th>Function name</th>
+  <th>Model</th>
+  <th>Comments</th>
+  </tr>
+  </thead>
+  <tbody>
+  <tr>
+  <td><tt>binaryDiff</tt></td>
+  <td>Evaluates the diffusion rate coefficient of neutral species interacting with the wall, adopting a binary
+  diffusion model where the species diffuse in the gas (neglecting the effects of multicomponent transport),
+  assuming a density profile that is zero at the walls with a certain wall-recombination probability
+  [<a href="References.html#R40">40</a>]; (see Reference Manual [<a href="References.html#R11">11</a>]).</td>
+  <td><ul>
+  <li>Parameter: wall recombination probability (between 0 and 1), γ [ ]</li>
+  <li>The corresponding reduced diffusion coefficients must be provided in the setup file.</li>
+  </ul></td>
+  </tr>
+  <tr>
+  <td><tt>binaryDiffusion</tt></td>
+  <td>Evaluates the diffusion rate coefficient of neutral species interacting with the wall, adopting a binary
+  diffusion model where the species diffuse in the gas (neglecting the effects of multicomponent transport),
+  assuming a density profile that is zero at the walls and equal probability for each wall recombination
+  channel [<a href="References.html#R40">40</a>]; (see Reference Manual [<a href="References.html#R11">11</a>]).</td>
+  <td><ul><li>The corresponding reduced diffusion coefficients must be provided in the setup file.</li></ul></td>
+  </tr>
+  <tr>
+  <td><tt>binaryTransport</tt></td>
+  <td>Evaluates the diffusion rate coefficient of a particular neutral species interacting with the wall, adopting
+  a binary diffusion model where the species diffuse in the gas (neglecting the effects of multicomponent transport),
+  taking into account both the binary diffusion time and the wall reaction time assuming a flux reaching the wall with
+  a certain wall recombination/deactivation probability [<a href="References.html#R40">40</a>]; (see Reference Manual
+  [<a href="References.html#R11">11</a>]).</td>
+  <td><ul>
+  <li>Parameters (in order): (i) the wall recombination probability; (ii) the temperature <i>T</i> used to calculate the
+  thermal velocity &#60;v<sub>j</sub>&#62; <i>e.g.</i> <tt>wallTemperature, nearWallTemperature, gasTemperature</tt>, ...;
+  See Reference Manual [<a href="References.html#R11">11</a>].<br>
+  Note: all the wall reactions for the same species (if applicable) have to be consistent, ensuring a maximum total
+  probability of 1 for the losses at the wall.</li>
+  <li>The corresponding reduced diffusion coefficients must be provided in the setup file.</li>
+  </ul></td>
+  </tr>
+  <tr>
+  <td><tt>binaryTransportChantry</tt></td>
+  <td>Evaluates the diffusion rate coefficient of a particular neutral species interacting with the wall, adopting
+  a binary diffusion model where the species diffuse in the gas (neglecting the effects of multicomponent transport),
+  taking into account both the binary diffusion time and the wall reaction time assuming a flux reaching the wall with
+  a certain wall recombination/deactivation probability [<a href="References.html#R40">40</a>]. This implementation
+  of the binary transport uses the "heuristic" formula provided by Chantry [<a href="References.html#R36">36</a>] for
+  the effective diffusion length (see Reference Manual [<a href="References.html#R11">11</a>]).</td>
+  <td><ul>
+  <li>Parameters (in order): (i) the wall recombination probability; (ii) the temperature <i>T</i> used to calculate the
+  thermal velocity &#60;v<sub>j</sub>&#62; <i>e.g.</i> <tt>wallTemperature, nearWallTemperature, gasTemperature</tt>, ...;
+  See Reference Manual [<a href="References.html#R11">11</a>].<br>
+  Note: all the wall reactions for the same species (if applicable) have to be consistent, ensuring a maximum total
+  probability of 1 for the losses at the wall.</li>
+  <li>The corresponding reduced diffusion coefficients must be provided in the setup file.</li>
+  </ul></td>
+  </tr>
+  <tr>
+  <td><tt>multicomponentDiffusion</tt></td>
+  <td>Evaluates the diffusion rate coefficient of neutral species interacting with the wall, adopting multicomponent
+  diffusion (using Wilke's formula [<a href="References.html#R55">55</a>]) and neglecting the wall reaction time,
+  assuming a density profile that is zero at the walls and equal probability for each wall-recombination
+  channel [<a href="References.html#R36">36</a>, <a href="References.html#R40">40</a>]; (see Reference Manual
+  [<a href="References.html#R11">11</a>]).</td>
+  <td><ul><li>The corresponding Lennard-Jones parameters should be provided in the setup file.</li></ul></td>
+  </tr>
+  <tr>
+  <td><tt>multicomponentTransport</tt></td>
+  <td>Evaluates the transport rate coefficient of a particular neutral species interacting with the wall, taking
+  into account both the multicomponent diffusion time (using Wilke's formula [<a href="References.html#R55">55</a>])
+  and the wall reaction time, assuming a flux reaching the wall with a certain wall recombination/deactivation
+  probability [<a href="References.html#R36">36</a>, <a href="References.html#R40">40</a>]; (see Reference Manual
+  [<a href="References.html#R11">11</a>]).</td>
+  <td><ul>
+  <li>Parameters (in order): (i) the wall recombination probability; (ii) the temperature <i>T</i> used to calculate the
+  thermal velocity &#60;v<sub>j</sub>&#62; <i>e.g.</i> <tt>wallTemperature, nearWallTemperature, gasTemperature</tt>, ...;
+  See Reference Manual [<a href="References.html#R11">11</a>].<br>
+  Note: all the wall reactions for the same species (if applicable) have to be consistent, ensuring a maximum total
+  probability of 1 for the losses at the wall.</li>
+  <li>The corresponding Lennard-Jones parameters should be provided in the setup file.</li>
+  </ul></td>
+  </tr>
+  <tr>
+  <td><tt>multicomponentTransportChantry</tt></td>
+  <td>Evaluates the transport rate coefficient of a particular neutral species interacting with the wall, taking
+  into account both the multicomponent diffusion time (using Wilke's formula [<a href="References.html#R55">55</a>])
+  and the wall reaction time, assuming a flux reaching the wall with a certain wall recombination/deactivation
+  probability [<a href="References.html#R36">36</a>, <a href="References.html#R40">40</a>]. This implementation
+  of the binary transport uses the "heuristic" formula provided by Chantry [<a href="References.html#R36">36</a>] for
+  the effective diffusion length (see Reference Manual [<a href="References.html#R11">11</a>]).</td>
+  <td><ul>
+  <li>Parameters (in order): (i) the wall recombination probability; (ii) the temperature <i>T</i> used to calculate the
+  thermal velocity &#60;v<sub>j</sub>&#62; <i>e.g.</i> <tt>wallTemperature, nearWallTemperature, gasTemperature</tt>, ...;
+  See Reference Manual [<a href="References.html#R11">11</a>].<br>
+  Note: all the wall reactions for the same species (if applicable) have to be consistent, ensuring a maximum total
+  probability of 1 for the losses at the wall.</li>
+  <li>The corresponding Lennard-Jones parameters should be provided in the setup file.</li>
+  </ul></td>
+  </tr>
+  <tr>
+  <td><tt>wallReaction</tt></td>
+  <td>Evaluates the transport rate coefficient of a particular species interacting with the wall, assuming a flux
+  reaching the wall with a certain wall recombination/deactivation probability, and neglecting the diffusion
+  transport [<a href="References.html#R36">36</a>, <a href="References.html#R40">40</a>]
+  (see Reference Manual [<a href="References.html#R11">11</a>]).</td>
+  <td><ul>
+  <li>Parameters (in order): (i) the wall recombination probability; (ii) the temperature <i>T</i> used to calculate the
+  thermal velocity &#60;v<sub>j</sub>&#62; <i>e.g.</i> <tt>wallTemperature, nearWallTemperature, gasTemperature</tt>, ...;
+  See Reference Manual [<a href="References.html#R11">11</a>].<br>
+  Note: all the wall reactions for the same species (if applicable) have to be consistent, ensuring a maximum total
+  probability of 1 for the losses at the wall.</li>
+  </ul></td>
+  </tr>
+  </tbody>
+  </table>
+  </p>
+
+  <p>
+  <table id="t9">
+  <caption>Table 9: List of model-based rate coefficient functions distributed with LoKI-GM_26.07 in folder
+  <tt>[repository folder]/LoKI-GM_26.07/Code/RateCoeffFunctions/Others</tt>
+  </caption>
+  <thead>
+  <tr>
+  <th>Function name</th>
+  <th>Model</th>
+  <th>Comments</th>
+  </tr>
+  </thead>
+  <tbody>
+  <tr>
+  <td><tt>inFlow</tt></td>
+  <td>Evaluates the (generalized) rate coefficient (in m<sup>−3</sup> s<sup>−1</sup>) for the inlet flow of
+  species assuming conservation of atoms in the gas/plasma mixture.<br>
+  The inlet flow of species <i>j</i> is calculated as
+  <math display="block" class="tml-display" style="display:block math;"><mrow><msub><mi>ν</mi><mpadded lspace="0"><mi>inflow</mi></mpadded></msub><msub><mi>n</mi><mi>j</mi></msub><mrow><mo fence="true" form="prefix" stretchy="false">(</mo><msup><mrow><mi mathvariant="normal">m</mi><mspace></mspace></mrow><mrow><mo form="prefix" stretchy="false" lspace="0em" rspace="0em">−</mo><mn>3</mn></mrow></msup><msup><mrow><mi mathvariant="normal">s</mi><mspace></mspace></mrow><mrow><mo form="prefix" stretchy="false" lspace="0em" rspace="0em">−</mo><mn>1</mn></mrow></msup><mo fence="true" form="postfix" stretchy="false">)</mo></mrow><mo>=</mo><mfrac><msub><mrow><mo fence="true" form="prefix" stretchy="false">(</mo><mi>d</mi><mi>V</mi><mi>/</mi><mi>d</mi><mi>t</mi><mo fence="true" form="postfix" stretchy="false">)</mo></mrow><mi>j</mi></msub><msub><mi>V</mi><mpadded lspace="0"><mi>chamber</mi></mpadded></msub></mfrac><msub><mi>n</mi><mi>j</mi></msub></mrow></math>
+  with
+  <math><mrow><msub><mrow><mo fence="true" form="prefix" stretchy="true">(</mo><mfrac><mrow><mi>d</mi><mi>V</mi></mrow><mrow><mi>d</mi><mi>t</mi></mrow></mfrac><mo fence="true" form="postfix" stretchy="true">)</mo></mrow><mi>j</mi></msub><mrow><mo fence="true" form="prefix" stretchy="false">(</mo><msup><mrow><mi mathvariant="normal">m</mi><mspace></mspace></mrow><mn>3</mn></msup><msup><mrow><mi mathvariant="normal">s</mi><mspace></mspace></mrow><mrow><mo form="prefix" stretchy="false" lspace="0em" rspace="0em">−</mo><mn>1</mn></mrow></msup><mo fence="true" form="postfix" stretchy="false">)</mo></mrow><mo>=</mo><mfrac><mrow><mi>Q</mi><mrow><mo fence="true" form="prefix" stretchy="false">(</mo><mpadded lspace="0"><mi>sccm</mi></mpadded><mo fence="true" form="postfix" stretchy="false">)</mo></mrow><msup><mn>10</mn><mrow><mo form="prefix" stretchy="false" lspace="0em" rspace="0em">−</mo><mn>6</mn></mrow></msup></mrow><mn>60</mn></mfrac><mfrac><msub><mi>p</mi><mpadded lspace="0"><mi>PTN</mi></mpadded></msub><mi>p</mi></mfrac><mfrac><msub><mi>T</mi><mi>g</mi></msub><msub><mi>T</mi><mpadded lspace="0"><mi>PTN</mi></mpadded></msub></mfrac></mrow></math>
+  and
+  <math><mrow><msub><mi>T</mi><mpadded lspace="0"><mi>PTN</mi></mpadded></msub><mo>=</mo><mn>273.15</mn><mspace width="0.2778em"></mspace><mrow><mi mathvariant="normal">K</mi><mspace></mspace></mrow><mo separator="true">,</mo><mspace width="0.2778em"></mspace><mspace width="0.2778em"></mspace><msub><mi>p</mi><mpadded lspace="0"><mi>PTN</mi></mpadded></msub><mo>=</mo><mn>1.013</mn><mo>×</mo><msup><mn>10</mn><mn>5</mn></msup><mspace width="0.2778em"></mspace><mpadded lspace="0"><mi>Pa</mi></mpadded></mrow></math><br>
+  (see Reference Manual [<a href="References.html#R11">11</a>]).
+  </td>
+  <td><ul>
+  <li>The inlet flow, <i>Q</i> [sccm], must be provided in the setup file</li>
+  <li>The dimensions of the reactor chamber, <i>R</i> [m] and <i>L</i> [m], must be provided in the setup file</li>
+  <li>The populations of the <i>j</i>-species, <i>δ<sub>j</sub> = n<sub>j</sub> /N</i> [ ], must be provided in the setup file</li>
+  </ul></td>
+  </tr>
+  <tr>
+  <td><tt>outFlow</tt></td>
+  <td>Evaluates the rate coefficient (in s<sup>−1</sup>) for the outlet flow of species assuming conservation of atoms in
+  the gas/-plasma mixture.<br>
+  When chosen the <tv>ensureIsobaric</tv> model, the rate coefficient <i>ν</i><sub>outflow</sub>, assumed equal for all
+  volume states, is calculated by imposing the isobaric condition <i>dp/dt</i> = 0 to the particle conservation equation,
+  yielding
+  <math display="block" class="tml-display" style="display:block math;"><mrow><msub><mi>ν</mi><mpadded lspace="0"><mi>outflow</mi></mpadded></msub><mrow><mo fence="true" form="prefix" stretchy="false">(</mo><msup><mrow><mi mathvariant="normal">s</mi><mspace></mspace></mrow><mrow><mo form="prefix" stretchy="false" lspace="0em" rspace="0em">−</mo><mn>1</mn></mrow></msup><mo fence="true" form="postfix" stretchy="false">)</mo></mrow><mo>=</mo><mfrac><mn>1</mn><mi>N</mi></mfrac><mrow><munder><mo movablelimits="false">∑</mo><mi>j</mi></munder></mrow><mrow><mo fence="true" form="prefix" stretchy="true">(</mo><msubsup><mi>S</mi><mi>j</mi><mpadded lspace="0" class="tml-med-pad"><mi>chem</mi></mpadded></msubsup><mo>+</mo><msubsup><mi>S</mi><mi>j</mi><mpadded lspace="0" class="tml-med-pad"><mi>transp</mi></mpadded></msubsup><mo fence="true" form="postfix" stretchy="true">)</mo></mrow><mo>+</mo><mfrac><mn>1</mn><msub><mi>T</mi><mi>g</mi></msub></mfrac><mfrac><mrow><mi>d</mi><msub><mi>T</mi><mi>g</mi></msub></mrow><mrow><mi>d</mi><mi>t</mi></mrow></mfrac></mrow></math>
+  with <i>S<sub>j</sub></i><sup>chem</sup> and <i>S<sub>j</sub></i><sup>transp</sup> the source terms due to chemical
+  reactions and transport losses, respectively.<br>
+  For other flow models, the rate coefficient, assumed equal for all volume states, is calculated as
+  <math display="block" class="tml-display" style="display:block math;"><mrow><msub><mi>ν</mi><mpadded lspace="0"><mi>outflow</mi></mpadded></msub><mrow><mo fence="true" form="prefix" stretchy="false">(</mo><msup><mrow><mi mathvariant="normal">s</mi><mspace></mspace></mrow><mrow><mo form="prefix" stretchy="false" lspace="0em" rspace="0em">−</mo><mn>1</mn></mrow></msup><mo fence="true" form="postfix" stretchy="false">)</mo></mrow><mo>=</mo><mfrac><mrow><msub><mi>Q</mi><mpadded lspace="0"><mi>outflow</mi></mpadded></msub><mrow><mo fence="true" form="prefix" stretchy="false">(</mo><mpadded lspace="0"><mi>sccm</mi></mpadded><mo fence="true" form="postfix" stretchy="false">)</mo></mrow><msup><mn>10</mn><mrow><mo form="prefix" stretchy="false" lspace="0em" rspace="0em">−</mo><mn>6</mn></mrow></msup></mrow><mn>60</mn></mfrac><mfrac><mrow><msub><mi>p</mi><mpadded lspace="0"><mi>PTN</mi></mpadded></msub><mrow><mo fence="true" form="prefix" stretchy="false">(</mo><mpadded lspace="0"><mi>Pa</mi></mpadded><mo fence="true" form="postfix" stretchy="false">)</mo></mrow></mrow><mrow><msub><mi>k</mi><mi>B</mi></msub><msub><mi>T</mi><mpadded lspace="0"><mi>PTN</mi></mpadded></msub><mrow><mo fence="true" form="prefix" stretchy="false">(</mo><mrow><mi mathvariant="normal">K</mi><mspace></mspace></mrow><mo fence="true" form="postfix" stretchy="false">)</mo></mrow></mrow></mfrac><mfrac><mn>1</mn><mrow><msub><mi>V</mi><mpadded lspace="0"><mi>chamber</mi></mpadded></msub><mrow><mo fence="true" form="prefix" stretchy="false">(</mo><mi>p</mi><mrow><mo fence="true" form="prefix" stretchy="false">(</mo><mi>t</mi><mo fence="true" form="postfix" stretchy="false">)</mo></mrow><mi>/</mi><msub><mi>k</mi><mi>B</mi></msub><msub><mi>T</mi><mi>g</mi></msub><mrow><mo fence="true" form="prefix" stretchy="false">(</mo><mi>t</mi><mo fence="true" form="postfix" stretchy="false">)</mo></mrow><mo fence="true" form="postfix" stretchy="false">)</mo></mrow></mrow></mfrac></mrow></math>
+  with <i>p(t)</i> and <i>Tg(t)</i> the time-dependent gas pressure and temperature, respectively.<br>
+  (see Reference Manual [<a href="References.html#R11">11</a>]).</td>
+  <td><ul>
+  <li>The outlet flow, <i>Q</i> [sccm], or the corresponding outflow model, must be provided in the setup file</li>
+  <li>The dimensions of the reactor chamber, <i>R</i> [m] and <i>L</i> [m], must be provided in the setup file</li>
+  <li>The time-dependent total gas density <i>N(t)</i>, must be provided as input to the function.</li>
+  </ul></td>
+  </tr>
+  </tbody>
+  </table>
+  </p>
+
+
+  <h2 id="3">5.3 Other auxiliary functions</h2>
+
+<p>In <tt>OtherAuxFunctions</tt> the user can find <tt>*.m</tt> functions
 <ul>
-<li> for interactively assist the modification of LXCat files, for compliance with the LoKI-B parser. In the current distribution of LoKI, this function is <tt>LXCat2LoKI.m</tt>;</li>
-<li> for plotting two different EEDFs in the same MATLAB graph. In the current distribution of LoKI-B, this function is <tt>compareEEDFs.m</tt>;</li>
-<li> for calculating working conditions that can evolve during the simulations. In the current distribution of LoKI, this functionality is for calculating the <tt>reducedField</tt> in the case of LoKI-B calculations for step electric fields (function <tt>reducedFieldRamp.m</tt>) or electric field pulses (function <tt>reducedFieldPulse.m</tt>).</li>
+<li>for evaluating the time derivative of the EEDF at a given time t. In the current distribution of LoKI, this
+function is <tt>eedfTimeDerivative.m</tt> and is not optimized for standalone LoKI-B calculations;</li>
+<li>for calculating working conditions that can evolve during the simulations. In the current distribution of
+LoKI, this functionality is for calculating the <tt>reducedField</tt> in the case of LoKI-B calculations for step
+electric fields (function <tt>reducedFieldRamp.m</tt>) or electric field pulses (function <tt>reducedFieldPulse.m</tt>);</li>
+<li>for obtaining the reduced electric field resulting from the imposition of a time-dependent discharge current
+(functions <tt>reducedFieldFromCurrentFile.m</tt> and <tt>getEoNFromCurrent.m</tt>)</li>
 </ul>
-In general these functions can be prepared by the user, according to the needs for new functionalities. In this case, the user is advised to mimic the structure of any auxiliary function already provided with the code.
+In general these functions can be prepared by the user, according to the needs for new functionalities. In this case, the user is advised to mimic the structure of any auxiliary function already provided with the code.</p>
+
+
+  <h2 id="4">5.4 Utilities</h2>
+
+<p>In folder <tt>Utilities</tt> the user can find scripts
+<ul>
+<li>for plotting two different EEDFs in the same MATLAB&reg; graph. In the current distribution
+of LoKI, this function is <tt>compareEEDFs.m</tt>;</li>
+<li>for plotting the errors associated with the convergence cycles from the log-file. In the
+current distribution of LoKI, this function is <tt>graphical_log.m</tt>;</li>
+<li>for interactively assist the modification of LXCat text-files, for compliance with the
+LoKI-B parser. In the current distribution of LoKI, this function is <tt>LXCat2LoKI.m</tt>.</li>
+</ul>
+</p>
+
 
   <p class="footer">
   <br>

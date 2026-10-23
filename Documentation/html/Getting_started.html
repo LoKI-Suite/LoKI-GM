@@ -27,7 +27,7 @@ LoKI-GM for the first time.<sup><a href='#footnote-1'>1</a></sup></p>
 <li>2.1 <a href="#1">Requirements and installation</a>
   <ul>
     <li>2.1.1 <a href="#1.1">GitHub</a></li>
-    <!-- <li>2.1.2 <a href="#1.2">MATLAB&reg; Toolbox</a></li> -->
+    <li>2.1.2 <a href="#1.2">MATLAB&reg; Toolbox</a></li>
   </ul></li>
 <li>2.2 <a href="#2">Directory Structure and Data organization</a></li>
 <li>2.3 <a href="#3">Ontology</a>
@@ -76,18 +76,6 @@ select it, and proceed with the installation.</p>
 <i>Note</i>: MATLAB&reg; will automatically create a <b>Toolboxes</b> folder within
 the MATLAB&reg; Add-Ons directory and install LoKI in that location.</p>-->
 
-<!--<h3 id="2.3">3. Shared files</h3>
-<p>Finally you can get the <b>LoKI</b> files from a colleague. In this case, you
-have to take care of the installation and be sure that the files are in the
-correct places. In this way, you may customize your installation and explore
-<i>"that new function that adds a new, undocumented feature and publish a paper
-some new results"</i>. However, without a full battery of regression tests, it is
-also possible that some part of the code will no longer function properly... In
-general, we don't advise to do this type of installation and only if you
-<i>really</i> know what you are doing.</p>
-<p>As LoKI is open-source code, we also expect that you report back any changes
-done on the code, with proper documentation and preferably with an example.</p>-->
-
 <h2 id="2">2.2 Directory Structure and Data Organization</h2>
 <p>The <tt>LoKI-GM_26.07</tt> folder contains</p>
 <div>
@@ -98,7 +86,8 @@ reference manual and relevant publications;</li>
 <li>A subfolder <tt>Code</tt> containing
   <ol type="a">
   <li>Several <tv>'*.m'</tv> files corresponding to the MATLAB&reg; code, of which
-  <tv>'loki.m'</tv> is the main file of the LoKI-GM;</li>
+  <tv>'loki.m'</tv> is the main file of the LoKI-GM and <tv>'lokibcl.m'</tv>
+  is the main file of LoKI-GM;</li>
   <li>Two files to launch the GUI-based input for LoKI-B:  the MATLAB&reg; file
   <tv>'InputGUILokib.m'</tv>, which provides a user-friendly graphical user interface
   for LoKI-B setup and run; and the batch file <tv>'InputGUILokib.bat'</tv>, which
@@ -113,14 +102,15 @@ reference manual and relevant publications;</li>
     file, for <i>steady-state simulations</i> and <i>quasi-stationary simulations</i>,
     respectively) and for LoKI-B as standalone tool (the later two, for <i>electron
     kinetics stationary simulations</i> and for <i>electron kinetics time-dependent
-    simulations</i>, respectively) (see sections <a href="#3">2.4</a>, <a href="#3">2.5</a>
-    and <a href="setup_file.html">3</a>);</li>
-    <li>Default configuration files in json format <tv>'default_lokibc_setup.json'</tv>,
-    <tv>'default_lokic_pulse_setup.json'</tv>, <tv>'default_lokib_setup.json'</tv> and
-    <tv>'default_lokib_pulse_setup.json'</tv>, respectively, for LoKI-GM (the first two
-    file, for <i>steady-state simulations</i> and <i>quasi-stationary simulations</i>,
-    respectively) and for LoKI-B as standalone tool (the later two, for <i>electron
-    kinetics stationary simulations</i> and for <i>electron kinetics time-dependent                                                                                                                         simulations</i>, respectively) (see sections <a href="#3">2.4</a>, <a href="#3">2.5</a>                                                                                                                                                                                                                                        and <a href="setup_file.html">3</a>);</li>                                                                                                                         <li>A subfolder <tt>Databases</tt> with <tv>'*.txt'</tv> files, containing different
+    simulations</i>, respectively) (see sections <a href="#4">2.4</a>, <a href="#5">2.5</a>
+    and <a href="The_setup_file.html">3</a>);</li>
+    <li>Default configuration files in JSON format (only for simulations using LoKI-B as standalone
+    tool) <tv>'default_lokibc_setup.json'</tv>, <tv>'default_lokic_pulse_setup.json'</tv>, <tv>'default_lokib_setup.json'</tv> and <tv>'default_lokib_pulse_setup.json'</tv>,
+    respectively, for LoKI-GM (the first two file, for <i>steady-state simulations</i> and
+    <i>quasi-stationary simulations</i>, respectively) and for LoKI-B as standalone tool
+    (the later two, for <i>electron kinetics stationary simulations</i> and for
+     <i>electron kinetics time-dependent simulations</i>, respectively)
+    (see sections <a href="#4">2.4</a>, <a href="#5">2.5</a> and <a href="The_setup_file.html">3</a>);</li>                                                                                                                         <li>A subfolder <tt>Databases</tt> with <tv>'*.txt'</tv> files, containing different
     properties (masses, energies of states, atomic/molecular constants, &hellip;) for
     the gases used in the simulations;</li>
     <li>Several subfolders <tt>Argon</tt>, <tt>CO</tt>, &hellip; <tt>Nitrogen</tt>,
@@ -129,7 +119,7 @@ reference manual and relevant publications;</li>
       <li>the data needed to perform simulations in different gases or gaseous mixtures:
       electron-scattering cross sections, usually obtained from the open-access website
       LXCat [<a href="References.html#R12">13</a>]; kinetics schemes; etc; (see section
-      <a href="aux_files.html">4</a>);</li>
+      <a href="Auxiliary_input_files.html">4</a>);</li>
       <li>setup input files to run swarm simulations;</li>
       <li>setup input files to run chemistry simulations.</li>
     </ul>
@@ -141,18 +131,18 @@ reference manual and relevant publications;</li>
   functions for calculating some predefined distribution of states (Boltzmann, Treanor,
   &hellip;), the statistical weights of states due to their degeneracy, the energy of
   the states according to some models, transport parameters and thermal conductivities
-  of different species, etc. (see section <a href="functions.html#1">5.1</a>);</li>
+  of different species, etc. (see section <a href="Auxiliary_functions.html#1">5.1</a>);</li>
   <li>A subfolder <tt>RateCoeffFunctions</tt>, organized into one-level subfolders
   with self-explanatory names, with several <tv>'*.m'</tv> auxiliary functions for
   calculating the values of the different rate coefficients used in LoKI-C
-  (see section <a href="functions.html#2">5.2</a>).</li>
+  (see section <a href="Auxiliary_functions.html#2">5.2</a>).</li>
   <li>A subfolder <tt>OtherAuxFunctions</tt>, with several <tv>'*.m'</tv> auxiliary
   functions, <i>e.g.</i> to calculate some working conditions (see section <a
-  href="functions.html#3">5.3</a>);</li>
+  href="Auxiliary_functions.html#3">5.3</a>);</li>
   <li>A A subfolder <tt>Utilities</tt>, with several scripts to help process or
-  parse data, etc. (see section <a href="functions.html#4">5.4</a>);</li>
+  parse data, etc. (see section <a href="Auxiliary_functions.html#4">5.4</a>);</li>
   <li>A subfolder <tt>Output</tt> (eventually), where LoKI will write the output files
-  resulting from the simulations (see section <a href="output.html">3.5</a>).</li>
+  resulting from the simulations (see section <a href="Output_files.html">3.5</a>).</li>
   </ol>
 </ol>
 </div>
@@ -166,8 +156,8 @@ the gaseous systems considered in the simulations.
 <h3 id="3.1">2.3.1 Species description</h3>
 
 <p>The ontology for species description in LoKI corresponds essentially to the one currently
-adopted in LXCat [<a href="References.html#R12">12</a>]. Note, however, that LoKI now
-supports the new ontology adopted in the <i>demo</i> version of LXCat 3.0 [<a href="References.html#R13">13</a>]
+adopted in LXCat [<a href="References.html#R13">13</a>]. Note, however, that LoKI now
+supports the new ontology adopted in the <i>demo</i> version of LXCat 3.0 [<a href="References.html#R14">14</a>]
 for describing species and reactions when using JSON files. This parsing scheme is expected to
 continue evolving. Work is in progress to consolidate the transcription of LXCat data between
 versions 2.0 and 3.0, and the corresponding data parsing in numerical codes.</p>
@@ -244,7 +234,7 @@ The representation of these species follows the syntax rules below:
     <code>wall_state(species)</code>,<br>
     but these can limit compatibility with utility scripts such as <tt>checkChemFilesStoichiometry</tt>,
     which performs stoichiometric consistency checks on chemistry files describing the kinetic
-    scheme (see section <a href="The_setup_file.html#3">3.3</a>)
+    scheme (see section <a href="Chemistry.html#3">3.3</a>)
     </ul>
   </dd>
   </dl>
@@ -256,10 +246,10 @@ The representation of these species follows the syntax rules below:
 target states featuring internal degrees of freedom (electronic, vibrational and rotational),
 organized as a system of "Russian puppets"<sup><a href='#footnote-2'>2</a></sup>. The populations
 of these states are self-consistently calculated when using the LoKI simulation tool, and are
-prescribed by the user when running LoKI-B as standalone tool. Table 1 exemplifies the system
-of states for a N<sub>2</sub>-N-He gas mixture.</p>
+prescribed by the user when running LoKI-B as standalone tool. Table <a href="#t1">1</a>
+exemplifies the system of states for a N<sub>2</sub>-N-He gas mixture.</p>
 
-<figure>
+<figure id="t1">
 <figcaption>Table 1:  Example of a gas mixture (childless states are displayed in <ins style="color:red;">red</ins>).
 </figcaption>
 <img src="gasMixture.webp" alt="Gas Mixture ontology" style="width:60%">
@@ -342,7 +332,7 @@ are expressed in sccm (standard cubic centimeter per minute).</p>
 The end user interacts with the code by specifying a particular "setup" for the
 simulation. This setup is sent to the <samp>loki()</samp> function through the
 <em>required</em> input argument <samp>setupFile</samp>. As mentioned in section <a href="#2">2.2</a>,
-the setup files should be located in <samp>[repository folder]/LoKI_26.07/Code/Input/</samp> with
+the setup files should be located in <samp>[repository folder]/LoKI-GM_26.07/Code/Input/</samp> with
 <ul>
   <li><tv>.in</tv> extension (this is just a recommendation in order to keep the input
       folder organised; the <tv>.in</tv> setup files are just plain text files);</li>
@@ -359,14 +349,14 @@ of the code, just following the sequence of steps below. For example, using the
   <ol type="numeric">
   <li>Open MATLAB&reg;</li>
   <li>Navigate to the Code folder of your local copy of the repository:
-    <pre class="codeinput">>> cd [repository folder]/LoKI_26.07/Code/);</pre></li>
+    <pre class="codeinput">>> cd [repository folder]/LoKI-GM_26.07/Code/);</pre></li>
   <li>Execute the following command in the MATLAB&reg; command window:
     <pre class="codeinput">&#8811; loki(<span class="string">'default_lokibc_setup.in'</span>)</pre></li>
     <li>The graphical user interface (GUI) should appear showing the solution(s) for
-    the default setup file, represented in the figure 1</li>
+    the default setup file, represented in figure <a href="#f1">1</a></li>
   </ol>
 </p>
-<figure>
+<figure id="f1">
 <img src="lokigm-GUI-output.webp" alt="LoKI-GM GUI" style="width:90%">
 <figcaption>Figure 1: Graphical user interface output, for the default setup-file
 of LoKI-GM (stationary coupling between LoKI-B and LoKI-C).</figcaption>
@@ -376,24 +366,28 @@ of LoKI-GM (stationary coupling between LoKI-B and LoKI-C).</figcaption>
 
 <div>
 <p>To run LoKI-B, a similar procedure should be followed, for example using the
-<tv>'default_lokib_setup.in'</tv> setup file, to obtain the GUI represented in figure 2.</p>
-<figure>
+<tv>'default_lokib_setup.in'</tv> setup file, to obtain the GUI represented in
+figure <a href="#f2">2</a>.</p>
+<figure id="f2">
 <!-- <img src="missing.jpg" alt="LoKI-GM" style="width:100%"> -->
 <img vspace="5" hspace="5" src="lokib-GUI-output.webp" alt="loki-B_GUI" style="width:90%">
 <figcaption>Figure 2: Graphical user interface output, for the default setup-file
 of LoKI-B (stationary simulations).</figcaption>
 </figure>
 
+<!--<p>To run LoKI-B, users can alternatively call the <samp>lokibcl.m</samp> function, by executing
+the following command in the MATLAB&reg; command window:
+  <pre class="codeinput">>> lokibcl(<tv>'default_lokib_setup.in'</tv>)</pre>-->
 Additionaly, LoKI-B can be <b>configured and executed</b> through a GUI-based input by
 using one of the following options:
   <ul>
   <li>from the MATLAB&reg; command window:
-  <pre class="codeinput">>> InputGUILokib</tv>)</pre></li>
+  <pre class="codeinput">>> InputGUILokib</tv></pre></li>
   <li>from a <samp>cmd</samp> window (or by double-clicking the corresponding *.bat file)
-  <pre class="codeinput">>> InputGUILokib.bat</tv>)</pre></li>
+  <pre class="codeinput">>> InputGUILokib.bat</tv></pre></li>
 </p>
-<p>In both cases, the input-GUI opens as shown in figure 3.</p>
-<figure>
+<p>In both cases, the input-GUI opens as shown in figure <a href="#f3">3</a>.</p>
+<figure id="f3">
 <!-- <img src="lokigm-GUI-output.webp" alt="LoKI-GM GUI" style="width:90%"> -->
 <img src="LoKI-B_GUI_H.png" alt="LoKI-B GUI" style="width:90%">
 <figcaption>Figure 3: Graphical user interface to configure and execute LoKI-B.</figcaption>
@@ -404,7 +398,7 @@ will extend this capability to LoKI-GM.</p>
 <p>In order to run the code for different simulations, users just have to call
 the <samp>loki()</samp> function with a different setup file, or a modified version
 of the default ones. The details on how to configure the setup file according to your
-needs are given in section <a href="setup_file.html">3</a>.</p>
+needs are given in section <a href="The_setup_file.html">3</a>.</p>
 </div>
 
 <h2 id="5">2.5 Simulation types available in LoKI-GM</h2>
@@ -516,7 +510,7 @@ the simulations (see <samp>Chemistry.m</samp> function):
   At present, <tt>imposeQuasiNeutrality</tt>=<tv>true</tv> is applied at every time-step
   in <i>quasi-stationary simulations</i> and <i>post-discharge simulations</i>.
   (in the latter case, only between <tt>dischargeTime</tt> and <tt>postDischargeTime</tt>;
-   see section <a href="The_setup_file.html#3">3.3</a>) In contrast, quasi-neutrality is
+   see section <a href="Chemistry.html">3.3</a>) In contrast, quasi-neutrality is
   not enforced during the temporal integration of <i>steady-state simulations</i>; in
   this case, charge neutrality is only guaranteed upon convergence
   to steady-state (see Reference Manual [<a href="References.html#R11">11</a>]).</li>
@@ -525,13 +519,12 @@ the simulations (see <samp>Chemistry.m</samp> function):
   The available options are <tv>steadyState</tv>, <tv>quasiStationary</tv> and
   <tv>postDischarge</tv>.</li>
   <li><samp>solveEedf</samp>, a Boolean property that specifies whether the EEDF is
-  solved self-consistently when updating the electron density during the temporal
+  solved self-consistently when solving the rate balance equations during the temporal
   integration of <i>post-discharge simulations</i>.<br>
-  Currently, only <tt>solveEedf</tt>=<tv>false</tv> is supported; support for
-  <tt>solveEedf</tt>=<tv>true</tv> is planned for future releases of LoKI-GM.
+  Currently, <tt>solveEedf</tt>=<tv>true</tv> is only supported when
+  <tt>electronKineticsDependence</tt>=<tv>postDischarge</tv>.
 </ul>
 </p>
-
 
 <hr>
 <p id="footnote-1"><sup>1</sup><small>This user guide refers to the MATLAB-based LoKI-GM,

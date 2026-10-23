@@ -11,7 +11,7 @@
 <body>
 <div class="content">
 <h1><center>The LisbOn KInetics Global Model User Guide</center></h1>
-<h3><center>Current version: LoKI_26.07</center></h3>
+<h3><center>Current version: LoKI-GM_26.07</center></h3>
 <h4; font-weight:normal;><center>L L Alves<sup>1</sup>, A Tejero-del-Caz<sup>2</sup> and N Pinhão<sup>1</sup></center></h4>
 <center><sup>1</sup>Instituto de Plasmas e Fusão Nuclear, Instituto Superior Técnico, Universidade de Lisboa, Portugal<br>
 <sup>2</sup>Departamento de Física, Facultad de Ciencias, Universidad de Córdoba, Campus de Rabanales, Spain<br>
@@ -123,94 +123,47 @@ spatial growth of the electron density.</p>
 <p>LoKI-C solves the system of zero-dimensional (volume average) rate balance
 equations for the most relevant charged and neutral species in the plasma,
 receiving as input data the kinetic schemes for the gas/plasma system
-under study via an intuitive parser-file, and giving as output the particle densities
-of the different gas/plasma species. LoKI-C uses several modules to describe
-the mechanisms (collisional, radiative and transport) controlling the creation /
-destruction of species, namely various transport models for the charged particles
-(ambipolar diffusion, effective diffusion, and Liberman and Lee's low-pressure
-model) and for the neutral particles (multi-component diffusion of species
-following Wilke's approach, and considering wall recombination). LoKI-C includes
-also a gas/plasma thermal model, for the self-consistent calculation of the gas
-temperature, and supports multi-component mean-field microkinetic mesoscopic models
-to handle surface kinetics in a fully coupled way with volume kinetics.</p>
-<p>The class of problem addressed by LoKI-GM, the physical models and the algorithms
-used are discribed in the Reference Manual [<a href="References.html#R11">11</a>].</p>
-
-<!--<p>LoKI is developed with flexible and upgradable object-oriented programming
-under MATLAB&reg; [<a href="References.html#R4">4</a>], to benefit from its
-matrix-based architecture, adopting an ontology that privileges the separation
-between tool and data.-->
-<!--On input, LoKI-B defines the operating work conditions (e.g. the applied
-reduced electric field and frequency, the gas pressure and temperature, the
-electron density, and the fractions of the different gases in the case of
-mixtures), the distribution of populations for the electronic, vibrational and
-rotational states of the atomic/molecular gases considered, and the relevant sets
-of electron-scattering cross sections obtained from the open-access website
-<a href="https://www.lxcat.net">LXCat</a>. On output, it yields the isotropic
-and the anisotropic parts of the electron distribution function (the former
-usually termed the electron energy distribution function, <i>EEDF</i>), the
-electron swarm parameters, and the electron power absorbed from the electric
-field and transferred to the different collisional channels. The latter
-parameters can be calculated using either the distribution function obtained
-from the solution to the EBE or some other form prescribed by the user, e.g. a
-generalized Maxwellian <i>EEDF</i>.</p>-->
-<!--LoKI-B leverages on the scientific heritage in the field of non-equilibrium
-plasma kinetics of the Portuguese group <i>N-Plasmas Reactive: Modeling and
-Engineering</i> (N-PRiME) [<a href="References.html#R5">5</a>], and it was
-developed resorting to well-grounded scientific foundations established years
-ago [<a href="References.html#R6">6</a>, <a href="references.html#R7">7</a>].</p>-->
-
-<!--LoKI-B is an open-source tool, licensed under the <i>GNU general public license.</i>
-LoKI-B is freely available at MATLAB&reg; add-ons repository and in Github:
-<a href="https://github.com/IST-Lisbon/LoKI">IST-Lisbon/LoKI</a>, for users to
-perform electron kinetics calculations, and for modellers who are invited to
-continue testing the tool and/or to contribute for its development and improvement.<br>-->
-<!--<p><b>You are much welcome to report any problem or bug you may find using the code,
-or to send any feedback with suggestions for further developments.</b></p>-->
+under study via an intuitive csv-like input file, and gives as output the particle densities of the different gas/plasma/surface species, the corresponding creation/destruction reaction rates, and the reduced electric field (and any related quantity, such as the discharge current or the discharge power-density). The tool
+uses several modules to describe the mechanisms (collisional, radiative and transport) controlling the creation/destruction of species, namely various transport models for the charged particles (ambipolar diffusion, effective diffusion, and Liberman and Lee's low-pressure model) and for the neutral particles (multi-component diffusion of species following Wilke's approach, and considering wall recombination). LoKI-C includes also a gas/plasma thermal model, for the self-consistent calculation of the gas temperature, and supports multi-component mean-field microkinetic mesoscopic models to handle surface kinetics in a fully coupled way with volume kinetics. The inclusion of several transport models and support for surface kinetics models are distinguishing features of LoKI-C compared with other global chemistry models.</p>
+<p>The class of problem addressed by LoKI-GM, the physical models and the algorithms used are discribed in the Reference Manual
+[<a href="References.html#R11">11</a>].</p>
 
 <h2 id="2">1.2. This user guide</h2>
 <p>The distribution of LoKI-GM includes MATLAB&reg; <tt>*.m</tt> files together with data files
 required to define the problem under study and the physical properties of the gases.</p>
 <p>This user guide begins with essential information for quickly obtaining and running
-LoKI-GM (see <a href="Getting_started.html">Section 2</a>). It then describes the files included in
+LoKI-GM (see section <a href="Getting_started.html">2</a>). It then describes the files included in
 the LoKI-GM distribution, provides guidance on preparing the input file, and explains how the
 output data are structured.</p>
 <p>The main components of the distribution are summarized below.</p>
 <ul>
-<li>The <tt>Setup file</tt> (see <a href="The_setup_file.html">Section 3</a>) is the main input
+<li>The <tt>Setup file</tt> (see section <a href="The_setup_file.html">3</a>) is the main input
 to LoKI-GM and serves as the primary user interface (UI) for interacting with the code.</br>
-It contains the specification of the <tt>Working conditions</tt> (see <a href="Working_conditions.html">
-Section 3.1</a>), the configuration of the <tt>Electron kinetics</tt> (see
-<a href="Electron_kinetics.html">section 3.2</a>) and the <tt>Chemistry</tt> (see
-<a href="Chemistry.html">section 3.3</a>), including numerical settings. It also
-defines the data displayed in the <tt>Graphical user interface</tt> (see <a
-href="GUI.html">section 3.4</a>) and the information written to the <tt>Output files</tt>
-(see <a href="Output_files.html">section 3.5</a>). Setup files can be written either in
-plain text or JSON format.
-</li>
-<li><tt>Auxiliary input files</tt> (see <a href="Auxiliary_input_files.html">section 4</a>) provide the
-fundamental data required to run the simulations. These files are organized into three categories:
+It contains the specification of the <tt>Working conditions</tt> (see section
+<a href="Working_conditions.html">3.1</a>), the configuration of the <tt>Electron kinetics</tt> (see section <a href="Electron_kinetics.html">3.2</a>) and the <tt>Chemistry</tt> (see section <a href="Chemistry.html">3.3</a>), including numerical settings. It also defines the data displayed in the <tt>Graphical user interface</tt> (see section <a href="GUI.html">3.4</a>) and the information written to the <tt>Output files</tt> (see section <a href="Output_files.html">3.5</a>). Setup files can be written either in
+plain text or JSON format. Currently, JSON input is supported only for <i>electron kinetics simulations</i> (using LoKI-B as standalone tool). Support for the remaining simulation types available in LoKI-GM is under development.</li>
+<li><tt>Auxiliary input files</tt> (see section <a href="Auxiliary_input_files.html">4</a>) provide the fundamental data required to run the simulations. These files are organized into three categories:
     <ul>
-    <li><tt>LXCat files</tt> (see <a href="Auxiliary_input_files.html#1">section 4.1</a>), which contain
+    <li><tt>LXCat files</tt> (see section <a href="Auxiliary_input_files.html#1">4.1</a>), which contain
     electron-scattering cross sections;</li>
-    <li><tt>Property files</tt> (see <a href="Auxiliary_input_files.html#2">section 4.2</a>), which define
+    <li><tt>Property files</tt> (see section <a href="Auxiliary_input_files.html#2">4.2</a>), which define
     the properties of gases and their states;</li>
-    <li><tt>Chemistry files</tt> (see <a href="Auxiliary_input_files.html#3">section 4.3</a>), which list
+    <li><tt>Chemistry files</tt> (see section <a href="Auxiliary_input_files.html#3">4.3</a>), which list
     the electron and heavy-species reactions that compose a kinetic mechanism.</li>
     </ul>
 These files are either plain text files or JSON files.</li>
-<li><tt>Auxiliary functions</tt> (see <a href="Auxiliary_functions.html">section 5</a>) are MATLAB&reg;
+<li><tt>Auxiliary functions</tt> (see section <a href="Auxiliary_functions.html">5</a>) are MATLAB&reg;
 <tt>*.m</tt> functions used internally by LoKI-GM to perform the simulations. They are organized into:
     <ul>
-    <li><tt>Property functions</tt> (see <a href="Auxiliary_functions.html#1">section 5.1</a>), which define
+    <li><tt>Property functions</tt> (see section <a href="Auxiliary_functions.html#1">5.1</a>), which define
     the properties of gases and states;</li>
-    <li><tt>Rate coefficient functions</tt> (see <a href="Auxiliary_functions.html#2">section 5.2</a>), which
+    <li><tt>Rate coefficient functions</tt> (see section <a href="Auxiliary_functions.html#2">5.2</a>), which
     compute the rate coefficients of reactions included in the kinetic mechanism;</li>
-    <li><tt>Other auxiliary functions</tt> (see <a href="Auxiliary_functions.html#3">section 5.3</a>), which
+    <li><tt>Other auxiliary functions</tt> (see section <a href="Auxiliary_functions.html#3">5.3</a>), which
     provide additional utilities, including tools to calculate working conditions that may evolve
     during the simulations.</li>
     </ul>
-<li><tt>Utilities</tt> (see <a href="Auxiliary_functions.html#4">section 5.4</a>) which contains several
+<li><tt>Utilities</tt> (see section <a href="Auxiliary_functions.html#4">5.4</a>) which contains several
 scripts to support the pre- and post-processing of data used by LoKI-GM, including tools to
 modify of LXCat text files, plot two different EEDFs on the same MATLAB&reg; graph, or plot
 the errors associated with the convergence cycles.</li>
@@ -219,13 +172,11 @@ the errors associated with the convergence cycles.</li>
 
 <p>An HTML version of this user guide is currently under development. The corresponding
 files are located in the folder <samp>[repository folder]/LoKI-GM_26.07/Documentation/html/</samp>
-and can be accessed directly by opening the page <a href="The_setup_file.html">The_setup_file.html</a>.</p>
+and can be accessed directly by opening the page <a href="Index.html">Index.html</a>.</p>
 
 <p>The HTML documentation can also be accessed from the GUI-based input through the <tt>Help</tt> button
-(see <a href="Getting_started.html#4">section 2.4</a>) or from the MATLAB&ref; using the command
-
-<pre class="codeinput">web("../Documentation/html/The_setup_file.html", "-browser")</pre>
-
+(see section <a href="Getting_started.html#4">2.4</a>) or from the MATLAB&reg; using the command
+<pre class="codeinput">web("../Documentation/html/Index.html", "-browser")</pre>
 which opens the corresponding page in the system's default web browser.</p>
 
 <h2 id="3">1.3. How to contact us</h2>
@@ -244,7 +195,7 @@ with <i>Instituto Superior Técnico</i>, the <i>Departamento de Física</i> of
 Elementary Processes in Gas Discharges (EPG) of the Eindhoven University of Technology.
 These groups decided to share the outcome of its research on code development with
 the members of the Low-Temperature Plasmas community.</p>
-<p>When using LoKI-B in your work, please give proper credits to the main developers,
+<p>When using the code in your work, please give proper credits to the main developers,
 by adding the following citations:</p>
 <div>
 For LoKI-B

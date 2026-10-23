@@ -42,7 +42,7 @@ Interface (UI) for interacting with the code.</p>
 <br>
 
 <p>Setup files can be written either in plain text or JSON format. Currently, JSON input
-is supported only for electron kinetics simulations (using LoKI-B as standalone tool).
+is supported only for <i>electron kinetics simulations</i> (using LoKI-B as standalone tool).
 Support for the remaining simulation types available in LoKI-GM is under development.<br>
 In this file, the user can provide / select relevant information, namely
 <ul>
@@ -74,7 +74,7 @@ In this file, the user can provide / select relevant information, namely
 <table border=4>
 <tr><td>
 The setup <b>text</b> file is an <b>indentation structured file</b>, <i>i.e.</i> it
-follows the "Off-side rule" [<a href=references.html#R14>14</a>] like in some programming
+follows the "Off-side rule" [<a href=references.html#R15>15</a>] like in some programming
 languages such as Python.
 This means that it is <b>mandatory</b> that all the subfields within a field share the
 same level of indentation, otherwise the behaviour of the code is undefined.
@@ -120,17 +120,18 @@ rules. The following should be noted:
 specifying an "auxiliary input file" or a "property function".<br>
 All the "auxiliary input files" (<i>i.e.</i> LXCat files, property files or chemistry
 files) specified in the setup file should be located inside the input folder
-(<tt>[repository folder]/LoKI_26.07/Code/Input</tt>), eventually organised in
+(<tt>[repository folder]/LoKI-GM_26.07/Code/Input</tt>), eventually organised in
 subfolders with self-explanatory names (<i>e.g.</i> <tt>Nitrogen, Databases</tt>;
 see section <a href="Getting_started.html#2">2.2</a>). In this case, the name of
 the subfolder should be specified in the setup file (see examples above for
 <tt>mass</tt> and for <tt>LXCatFiles</tt>). For more information about auxiliary
 input files see section <a href="Auxiliary_input_files.html">4</a>.<br>
 All the "property functions" specified in the setup file should be located in the
-property functions folder (<tt>[repository folder]/LoKI_26.07/Code/PropertyFunctions</tt>;
+property functions folder (<tt>[repository folder]/LoKI-GM_26.07/Code/PropertyFunctions</tt>;
 see section <a href="Getting_started.html#2">2.2</a>). For more information about
-property functions see section <a href="functions.html">5.1</a>.</p>
-<p>The setup file is organised into five different main fields, with self-explanatory designations:</p>
+property functions see section <a href="Auxiliary_functions.html">5.1</a>.</p>
+<p>The setup file is organised into five different main fields, with self-explanatory
+designations:</p>
 <div>
 <ul>
 <li><tt><a href="Working_conditions.html">workingConditions</a></tt></li>
