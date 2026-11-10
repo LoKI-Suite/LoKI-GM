@@ -2,18 +2,23 @@
 
 Interactive explorer for simulation results stored in HDF5 (.h5) files.
 
-The script:
-1) asks the user to select the folder where the simulations are stored
+The window has a menu on the left and the figure on the right. In the menu:
+1) "Open folder..." selects the folder where the simulations are stored
    (the .h5 files can be directly inside it or spread over subfolders);
-2) walks through every folder and reads the attributes of each .h5 file;
-3) lists the attributes common to all files and asks in function of which
-   parameter the results should be represented;
-4) asks what to plot (Reduced Field, Final Densities or Particle Balance) and,
-   for densities/balance, which subspecies to plot in the same figure.
+2) "Parameter" chooses, among the attributes common to all files, in function
+   of which one the results are represented;
+3) "Plot" chooses what to plot (Reduced Field, Final Densities or Particle Balance)
+   and, for densities/balance, which subspecies to plot in the same figure.
+The figure is drawn as soon as everything is selected; its toolbar allows to zoom,
+edit the title, labels and axis scales, and save it.
+
+The same questions can also be answered in the terminal (e.g. over ssh, without a
+display); the figure is then shown in a window or saved to a file.
 
 Run with:
 
-python simulation_explorer.py
+python simulation_explorer.py          (window)
+python simulation_explorer.py --cli    (terminal)
 
 """
 
@@ -22,6 +27,7 @@ __maintainer__ = 'Pedro Pereira <pedro.t.pereira@tecnico.ulisboa.pt>'
 __date__ = '9 November 2026'
 __version__ = 'Revision: 0.2.0'
 
+import argparse
 import os
 import re
 import sys
@@ -43,31 +49,6 @@ BALANCE_PATH = '/chemistry/particleBalance'
 EXCLUDED_BALANCE_SUBSPECIES = {'N2(X)'}
 
 
-def select_folder():
-    # Opens a dialog to choose the simulations folder; falls back to typing the path
-    path = ''
-    try:
-        import tkinter as tk
-        from tkinter import filedialog
-
-        root = tk.Tk()
-        root.withdraw()
-        root.attributes('-topmost', True)
-        path = filedialog.askdirectory(title='Select the folder with the simulations')
-        root.destroy()
-    except Exception as e:
-        print(f"Could not open the folder dialog ({e}).")
-
-    if not path:
-        path = input("Path to simulations folder: ").strip().strip('"')
-
-    if not os.path.isdir(path):
-        print(f"Error: The specified path '{path}' does not exist.")
-        sys.exit(1)
-
-    return path
-
-
 def find_h5_files(path):
     # Walks through every folder inside path and collects the .h5 files
     h5_files = []
@@ -75,11 +56,6 @@ def find_h5_files(path):
         for filename in filenames:
             if filename.endswith('.h5'):
                 h5_files.append(os.path.join(dirpath, filename))
-
-    if not h5_files:
-        print(f"No .h5 files found in '{path}'.")
-        sys.exit(1)
-
     return sorted(h5_files)
 
 
@@ -102,6 +78,21 @@ def read_file_info(file_path):
         attrs = {name: to_python_value(f.attrs[name]) for name in f.attrs}
         groups = {name for name, path in PLOT_OPTIONS if path in f}
     return attrs, groups
+
+
+def read_folder(path):
+    # Reads the info of every .h5 file inside path, skipping the ones that cannot be opened
+    files, all_attrs, all_groups = [], [], []
+    for file_path in find_h5_files(path):
+        try:
+            attrs, groups = read_file_info(file_path)
+        except OSError as e:
+            print(f"Warning: could not read '{file_path}' ({e}). Skipping.")
+            continue
+        files.append(file_path)
+        all_attrs.append(attrs)
+        all_groups.append(groups)
+    return files, all_attrs, all_groups
 
 
 def common_attributes(all_attrs):
@@ -218,9 +209,9 @@ def ask_multiple_choice(question, pairs):
         print(f"Invalid selection, please use numbers between 1 and {len(pairs)}.")
 
 
-def plot_reduced_field(h5_files, all_attrs, parameter, path_fig):
+def plot_reduced_field(ax, h5_files, all_attrs, parameter):
     # Plots the reduced electric field E/N [Td] in function of the chosen parameter
-    # (as in field_analyser of densities_field_cases.py)
+    # (as in field_analyser of densities_field_cases.py); returns a message if there is nothing to plot
     x_values = []
     y_values = []
     for file_path, attrs in zip(h5_files, all_attrs):
@@ -232,21 +223,14 @@ def plot_reduced_field(h5_files, all_attrs, parameter, path_fig):
             y_values.append(float(field[0, 0]))
 
     if not x_values:
-        print("No reduced field information found in the dataset.")
-        return
+        return "No reduced field information found in the dataset."
 
     order = np.argsort(x_values)
-    x_values = np.asarray(x_values)[order]
-    y_values = np.asarray(y_values)[order]
-
-    fig, ax = plt.subplots()
-    ax.plot(x_values, y_values, marker='o')
+    ax.plot(np.asarray(x_values)[order], np.asarray(y_values)[order], marker='o')
     ax.set_xlabel(parameter, fontsize=12)
     ax.set_ylabel("E/N (Td)", fontsize=12)
     ax.tick_params(labelsize=12)
-    fig.tight_layout()
-
-    show_figure(fig, path_fig, "field", parameter)
+    return ""
 
 
 def figure_filename(kind, parameter, extra=()):
@@ -256,149 +240,6 @@ def figure_filename(kind, parameter, extra=()):
     parts = [re.sub(r'[^\w\-.]+', '_', part).strip('_')
              for part in ("sim", kind, parameter_tag, *extra)]
     return "_".join(part for part in parts if part) + ".png"
-
-
-def show_figure(fig, path_fig, kind, parameter, extra=()):
-    # Shows the figure in a Tk window (TkAgg, no extra install needed) with a side panel
-    # to change the title and axis labels, the axis scales, show/hide the grid and save the figure
-    import tkinter as tk
-    from tkinter import ttk, filedialog
-    from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
-
-    ax = fig.axes[0]
-
-    root = tk.Tk()
-    root.title("Simulation explorer")
-
-    canvas = FigureCanvasTkAgg(fig, master=root)
-    canvas.draw()
-    canvas.get_tk_widget().pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
-
-    panel = ttk.Frame(root, padding=10)
-    panel.pack(side=tk.RIGHT, fill=tk.Y)
-    status = tk.StringVar(master=root)
-
-    # --- Labels (the figure updates while typing; an empty title means no title) ---
-    labels_frame = ttk.LabelFrame(panel, text="Labels", padding=8)
-    labels_frame.pack(fill=tk.X)
-    label_setters = (('Title', ax.get_title(), ax.set_title),
-                     ('x label', ax.get_xlabel(), ax.set_xlabel),
-                     ('y label', ax.get_ylabel(), ax.set_ylabel))
-
-    for row, (text, initial, setter) in enumerate(label_setters):
-        ttk.Label(labels_frame, text=text).grid(row=2 * row, column=0, sticky='w')
-        variable = tk.StringVar(master=root, value=initial)
-        ttk.Entry(labels_frame, textvariable=variable, width=40).grid(row=2 * row + 1, column=0,
-                                                                      sticky='we', pady=(0, 6))
-
-        def apply_label(*_args, variable=variable, setter=setter):
-            setter(variable.get(), fontsize=12)
-            try:
-                fig.tight_layout()
-                canvas.draw()
-                status.set("")
-            except ValueError:  # e.g. unfinished LaTeX ($...$) while typing
-                status.set("The label can't be rendered yet (incomplete LaTeX?).")
-
-        variable.trace_add('write', apply_label)
-
-    # --- Axis scales ---
-    scales_frame = ttk.LabelFrame(panel, text="Axis scales", padding=8)
-    scales_frame.pack(fill=tk.X, pady=(10, 0))
-    x_scale = tk.StringVar(master=root, value=ax.get_xscale())
-    y_scale = tk.StringVar(master=root, value=ax.get_yscale())
-
-    def apply_scales(_event=None):
-        ax.set_xscale(x_scale.get())
-        ax.set_yscale(y_scale.get())
-        ax.tick_params(which='both', labelsize=12)  # log scale adds minor tick labels
-        # Values <= 0 cannot be drawn on a log axis (e.g. losses in the particle balance)
-        hidden = []
-        for axis, scale in (('x', x_scale.get()), ('y', y_scale.get())):
-            values = [line.get_xdata() if axis == 'x' else line.get_ydata() for line in ax.get_lines()]
-            if scale == 'log' and any(np.any(np.asarray(v) <= 0) for v in values):
-                hidden.append(axis)
-        status.set(f"Values <= 0 on the {' and '.join(hidden)} axis are not shown in log scale."
-                   if hidden else "")
-        fig.tight_layout()
-        canvas.draw_idle()
-
-    for row, (axis, variable) in enumerate((('x axis', x_scale), ('y axis', y_scale))):
-        ttk.Label(scales_frame, text=axis).grid(row=row, column=0, sticky='w', padx=(0, 8), pady=2)
-        box = ttk.Combobox(scales_frame, textvariable=variable, values=('linear', 'log'),
-                           state='readonly', width=8)
-        box.grid(row=row, column=1, sticky='w', pady=2)
-        box.bind('<<ComboboxSelected>>', apply_scales)
-
-    # --- Grid ---
-    grid_frame = ttk.LabelFrame(panel, text="Grid", padding=8)
-    grid_frame.pack(fill=tk.X, pady=(10, 0))
-    show_grid = tk.BooleanVar(master=root, value=False)
-
-    def apply_grid():
-        ax.grid(show_grid.get())
-        canvas.draw_idle()
-
-    ttk.Checkbutton(grid_frame, text="Show grid", variable=show_grid,
-                    command=apply_grid).pack(anchor='w')
-
-    # --- Save ---
-    save_frame = ttk.LabelFrame(panel, text="Save", padding=8)
-    save_frame.pack(fill=tk.X, pady=(10, 0))
-    file_name = tk.StringVar(master=root, value=figure_filename(kind, parameter, extra))
-    dpi = tk.StringVar(master=root, value='300')
-    last_folder = [path_fig]
-
-    ttk.Label(save_frame, text="File name").grid(row=0, column=0, columnspan=2, sticky='w')
-    ttk.Entry(save_frame, textvariable=file_name, width=40).grid(row=1, column=0, columnspan=2,
-                                                                  sticky='we', pady=(0, 6))
-    ttk.Label(save_frame, text="DPI").grid(row=2, column=0, sticky='w', padx=(0, 8))
-    ttk.Entry(save_frame, textvariable=dpi, width=8).grid(row=2, column=1, sticky='w')
-
-    def save():
-        name = file_name.get().strip()
-        if not name:
-            status.set("Write a file name.")
-            return
-        try:
-            dpi_value = float(dpi.get())
-            if dpi_value <= 0:
-                raise ValueError
-        except ValueError:
-            status.set("DPI must be a positive number.")
-            return
-        if not os.path.splitext(name)[1]:
-            name += '.png'
-        # Window to choose where to save; it starts in the last folder used
-        # (the simulations folder the first time) with the name written above
-        output_path = filedialog.asksaveasfilename(
-            parent=root, title="Save figure", initialdir=last_folder[0], initialfile=name,
-            defaultextension='.png',
-            filetypes=[('PNG', '*.png'), ('PDF', '*.pdf'), ('SVG', '*.svg'), ('All files', '*.*')])
-        if not output_path:  # cancelled
-            return
-        try:
-            fig.savefig(output_path, dpi=dpi_value, bbox_inches='tight')
-        except Exception as e:
-            status.set(f"Could not save the figure ({e}).")
-            return
-        last_folder[0] = os.path.dirname(output_path)
-        file_name.set(os.path.basename(output_path))
-        status.set(f"Saved: {output_path}")
-        print(f"\nFigure saved as: {output_path}")
-
-    ttk.Button(save_frame, text="Save", command=save).grid(row=3, column=0, columnspan=2,
-                                                           sticky='we', pady=(8, 0))
-
-    ttk.Label(panel, textvariable=status, wraplength=260).pack(fill=tk.X, pady=(10, 0))
-
-    def on_close():
-        root.quit()
-        root.destroy()
-
-    root.protocol("WM_DELETE_WINDOW", on_close)
-    root.mainloop()
-    plt.close(fig)
 
 
 def read_density(f, parent, name):
@@ -415,7 +256,7 @@ def read_density(f, parent, name):
     return None
 
 
-def plot_final_densities(h5_files, all_attrs, parameter, subspecies, path_fig):
+def plot_final_densities(ax, h5_files, all_attrs, parameter, subspecies):
     # Plots the absolute density of several subspecies in function of the chosen parameter,
     # all in the same figure (as densities_analyser with -hold in densities_field_cases.py)
     data = {pair: ([], []) for pair in subspecies}
@@ -429,13 +270,12 @@ def plot_final_densities(h5_files, all_attrs, parameter, subspecies, path_fig):
                 data[(parent, name)][1].append(value)
 
     if not any(x for x, _ in data.values()):
-        print("No density information found in the dataset for the selected subspecies.")
-        return
+        return "No density information found in the dataset for the selected subspecies."
 
-    fig, ax = plt.subplots()
+    missing = []
     for (parent, name), (x_values, y_values) in data.items():
         if not x_values:
-            print(f"No density information found for {name}.")
+            missing.append(name)
             continue
         order = np.argsort(x_values)
         ax.plot(np.asarray(x_values)[order], np.asarray(y_values)[order], marker='o', label=name)
@@ -448,9 +288,7 @@ def plot_final_densities(h5_files, all_attrs, parameter, subspecies, path_fig):
     ax.tick_params(labelsize=12)
     ax.yaxis.get_offset_text().set_fontsize(12)  # the "1e22" multiplier
     ax.legend(fontsize=12)
-    fig.tight_layout()
-
-    show_figure(fig, path_fig, "densities", parameter, [name for _, name in subspecies])
+    return f"No density information found for {', '.join(missing)}." if missing else ""
 
 
 def ask_limit():
@@ -491,7 +329,7 @@ def read_balance(f, parent, name):
     return entries
 
 
-def plot_particle_balance(h5_files, all_attrs, parameter, subspecies, limit, path_fig):
+def plot_particle_balance(ax, h5_files, all_attrs, parameter, subspecies, limit):
     # Plots the contribution (%) of the main creation (positive) and destruction (negative)
     # mechanisms of the selected subspecies, in function of the chosen parameter
     # (as in balance_drive_conditions.py: if a reaction is above the limit at any point,
@@ -514,14 +352,12 @@ def plot_particle_balance(h5_files, all_attrs, parameter, subspecies, limit, pat
             if any(abs(value) > limit for value in points[1])}
 
     if not data:
-        print(f"No reactions above {limit}% found for the selected subspecies.")
-        return
+        return f"No reactions above {limit}% found for the selected subspecies."
 
     # The default palette has 10 colours; with more lines use tab20 so they don't repeat
     n_default = len(plt.rcParams['axes.prop_cycle'].by_key()['color'])
     colors = plt.cm.tab20.colors if len(data) > n_default else None
 
-    fig, ax = plt.subplots(figsize=(10, 6))
     for i, ((name, reaction, kind), (x_values, y_values)) in enumerate(data.items()):
         order = np.argsort(x_values)
         label = f"{name}: {reaction}" if multiple else reaction
@@ -533,36 +369,138 @@ def plot_particle_balance(h5_files, all_attrs, parameter, subspecies, limit, pat
     ax.set_xlabel(parameter, fontsize=12)
     ax.set_ylabel(ylabel, fontsize=12)
     ax.tick_params(labelsize=12)
-    ax.legend()  # placed automatically inside the plot, default font size
-    fig.tight_layout()
+    # Placed automatically inside the plot, default font size; it can be moved with the mouse
+    ax.legend().set_draggable(True)
+    return ""
 
-    show_figure(fig, path_fig, "balance", parameter, [name for _, name in subspecies])
+
+def gui():
+    # Window with the menu on the left and the figure on the right; matplotlib's toolbar,
+    # above the figure, allows to zoom, edit the labels and axis scales, and save it.
+    # Qt is imported here so that the command line also works where Qt is not available
+    from matplotlib.backends.qt_compat import QtWidgets
+    from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg, NavigationToolbar2QT
+    from matplotlib.figure import Figure
+
+    app = QtWidgets.QApplication(sys.argv)
+
+    window = QtWidgets.QWidget(windowTitle="Simulation explorer")
+    folder_button = QtWidgets.QPushButton("Open folder...")
+    folder_label = QtWidgets.QLabel("No folder selected")
+    parameter_box = QtWidgets.QComboBox()  # long names are cut with "..." but shown complete when opened
+    parameter_box.setSizeAdjustPolicy(QtWidgets.QComboBox.SizeAdjustPolicy.AdjustToMinimumContentsLengthWithIcon)
+    plot_box = QtWidgets.QComboBox()
+    subspecies_list = QtWidgets.QListWidget()  # several can be selected, one click each
+    subspecies_list.setSelectionMode(QtWidgets.QAbstractItemView.SelectionMode.MultiSelection)
+    limit_box = QtWidgets.QDoubleSpinBox(maximum=100, value=5, suffix=' %')
+    status = QtWidgets.QLabel(wordWrap=True)
+
+    menu_widget = QtWidgets.QWidget()
+    menu_widget.setFixedWidth(300)  # so it does not change when rows are shown or hidden
+    menu = QtWidgets.QFormLayout(menu_widget)
+    menu.setContentsMargins(0, 0, 0, 0)
+    menu.setRowWrapPolicy(QtWidgets.QFormLayout.RowWrapPolicy.WrapAllRows)  # labels above the widgets
+    menu.addRow(folder_button)
+    menu.addRow(folder_label)
+    menu.addRow("Parameter (x axis)", parameter_box)
+    menu.addRow("Plot", plot_box)
+    menu.addRow("Subspecies", subspecies_list)
+    menu.addRow("Show reactions above", limit_box)
+    menu.addRow(status)
+
+    figure = Figure()
+    canvas = FigureCanvasQTAgg(figure)
+    toolbar = NavigationToolbar2QT(canvas, window)
+    plot_area = QtWidgets.QVBoxLayout()
+    plot_area.addWidget(toolbar)
+    plot_area.addWidget(canvas)
+
+    layout = QtWidgets.QHBoxLayout(window)
+    layout.addWidget(menu_widget)
+    layout.addLayout(plot_area, stretch=1)
+
+    data = {'files': [], 'attrs': [], 'pairs': []}
+
+    def open_folder():
+        # Reads the chosen folder and fills the menus with its parameters and plot options
+        path = QtWidgets.QFileDialog.getExistingDirectory(window, "Select the folder with the simulations")
+        if not path:  # cancelled
+            return
+        files, all_attrs, all_groups = read_folder(path)
+        if not files:
+            status.setText(f"No readable .h5 files found in '{path}'.")
+            return
+        names, distinct = common_attributes(all_attrs)
+        data.update(files=files, attrs=all_attrs)
+        folder_label.setText(f"{os.path.basename(path)}: {len(files)} .h5 file(s)")
+        plt.rcParams['savefig.directory'] = path  # where the save dialog starts
+
+        plot_box.clear()  # first, so nothing is plotted while the parameters are refilled
+        parameter_box.clear()
+        for name in names:
+            n_values = len(distinct[name])
+            tag = f"varies: {n_values} values" if n_values > 1 else f"constant = {next(iter(distinct[name]))}"
+            parameter_box.addItem(f"{name}  [{tag}]", name)
+        # Starts with the first parameter that varies
+        parameter_box.setCurrentIndex(next((i for i, n in enumerate(names) if len(distinct[n]) > 1), 0))
+        plot_box.addItems(available_plot_options(all_groups))
+        if not names or not plot_box.count():
+            status.setText("The files have no parameters or plot options in common.")
+
+    def update_subspecies():
+        # Lists the subspecies of the chosen plot and shows only the menu rows it needs
+        plot = plot_box.currentText()
+        subspecies_list.clear()
+        data['pairs'] = list_subspecies(data['files'], plot) if plot in ('Final Densities', 'Particle Balance') else []
+        subspecies_list.addItems([name for _, name in data['pairs']])
+        menu.setRowVisible(subspecies_list, plot in ('Final Densities', 'Particle Balance'))
+        menu.setRowVisible(limit_box, plot == 'Particle Balance')
+        update_plot()
+
+    def update_plot():
+        # Draws the chosen plot as soon as everything it needs is selected
+        parameter, plot = parameter_box.currentData(), plot_box.currentText()
+        subspecies = [data['pairs'][subspecies_list.row(item)] for item in subspecies_list.selectedItems()]
+        message = ""
+        figure.clear()
+        if parameter is not None and plot == 'Reduced Field':
+            message = plot_reduced_field(figure.add_subplot(), data['files'], data['attrs'], parameter)
+        elif parameter is not None and subspecies and plot == 'Final Densities':
+            message = plot_final_densities(figure.add_subplot(), data['files'], data['attrs'], parameter,
+                                           subspecies)
+        elif parameter is not None and subspecies and plot == 'Particle Balance':
+            message = plot_particle_balance(figure.add_subplot(), data['files'], data['attrs'], parameter,
+                                            subspecies, limit_box.value())
+        status.setText(message)
+        figure.tight_layout()
+        canvas.draw()
+        toolbar.update()  # the "Home" button returns to this new plot
+
+    folder_button.clicked.connect(open_folder)
+    parameter_box.currentIndexChanged.connect(update_plot)
+    plot_box.currentIndexChanged.connect(update_subspecies)
+    subspecies_list.itemSelectionChanged.connect(update_plot)
+    limit_box.valueChanged.connect(update_plot)
+
+    update_subspecies()  # hides the subspecies and threshold rows until they are needed
+    window.resize(1200, 700)
+    window.show()
+    sys.exit(app.exec())
 
 
-if __name__ == "__main__":
+def command_line():
+    # Asks the same questions in the terminal (e.g. over ssh, where there is no display)
+    # and then shows the figure in a window or saves it to a file
+    path_data = input("Path to simulations folder: ").strip().strip('"')
+    if not os.path.isdir(path_data):
+        print(f"Error: The specified path '{path_data}' does not exist.")
+        sys.exit(1)
 
-    path_data = select_folder()
-    print(f"Simulations folder: {path_data}")
-
-    h5_files = find_h5_files(path_data)
-    print(f"Found {len(h5_files)} .h5 file(s).")
-
-    readable_files = []
-    all_attrs = []
-    all_groups = []
-    for file_path in h5_files:
-        try:
-            attrs, groups = read_file_info(file_path)
-        except OSError as e:
-            print(f"Warning: could not read '{file_path}' ({e}). Skipping.")
-            continue
-        readable_files.append(file_path)
-        all_attrs.append(attrs)
-        all_groups.append(groups)
-
-    if not all_attrs:
+    readable_files, all_attrs, all_groups = read_folder(path_data)
+    if not readable_files:
         print("No readable .h5 files found.")
         sys.exit(1)
+    print(f"Found {len(readable_files)} .h5 file(s).")
 
     # --- Parameter for the x-axis ---
     names, distinct = common_attributes(all_attrs)
@@ -607,9 +545,46 @@ if __name__ == "__main__":
         limit = ask_limit()
 
     # --- Plotting ---
+    fig, ax = plt.subplots(figsize=(10, 6) if plot == 'Particle Balance' else None)
     if plot == 'Reduced Field':
-        plot_reduced_field(readable_files, all_attrs, parameter, path_data)
+        message = plot_reduced_field(ax, readable_files, all_attrs, parameter)
     elif plot == 'Final Densities':
-        plot_final_densities(readable_files, all_attrs, parameter, selected_subspecies, path_data)
+        message = plot_final_densities(ax, readable_files, all_attrs, parameter, selected_subspecies)
     elif plot == 'Particle Balance':
-        plot_particle_balance(readable_files, all_attrs, parameter, selected_subspecies, limit, path_data)
+        message = plot_particle_balance(ax, readable_files, all_attrs, parameter, selected_subspecies, limit)
+    if message:
+        print(message)
+    if not ax.has_data():
+        sys.exit(1)
+    fig.tight_layout()
+
+    # --- Show or save (without a display, e.g. over ssh, matplotlib uses 'agg' and can only save) ---
+    if plt.get_backend().lower() == 'agg':
+        print("\nNo display available: the figure will be saved.")
+    elif ask_choice("Show the figure or save it?", ["Show", "Save"]) == 0:
+        plt.show()
+        return
+
+    kind = {'Reduced Field': 'field', 'Final Densities': 'densities', 'Particle Balance': 'balance'}[plot]
+    default = figure_filename(kind, parameter, [name for _, name in selected_subspecies])
+    name = input(f"\nFile name, in the simulations folder unless a full path is given "
+                 f"(Enter for {default}): ").strip().strip('"') or default
+    if not os.path.splitext(name)[1]:
+        name += '.png'
+    output_path = os.path.join(path_data, name)
+    fig.savefig(output_path)
+    print(f"\nFigure saved as: {output_path}")
+
+
+if __name__ == "__main__":
+
+    parser = argparse.ArgumentParser(description="Explorer for simulation results stored in HDF5 (.h5) files.")
+    parser.add_argument('--cli', action='store_true',
+                        help="ask the questions in the terminal instead of opening a window (e.g. over ssh)")
+    args = parser.parse_args()
+
+    plt.rcParams.update({'savefig.dpi': 300, 'savefig.bbox': 'tight'})  # used by both save options
+    if args.cli:
+        command_line()
+    else:
+        gui()

@@ -1,6 +1,7 @@
 # Dependencies of simulation_explorer.py
 # Install with: pip install -r requirements.txt
-# (tkinter, used for the windows, comes with the standard Python installer on Windows)
+# (the windows use Qt through PySide6; PyQt6 also works if that is the one installed)
 numpy>=1.26.4
 h5py>=3.11.0
 matplotlib>=3.9.0
+PySide6-Essentials>=6.7.0
