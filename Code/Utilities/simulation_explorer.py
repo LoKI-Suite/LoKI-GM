@@ -12,6 +12,10 @@ The window has a menu on the left and the figure on the right. In the menu:
 The figure is drawn as soon as everything is selected; its toolbar allows to zoom,
 edit the title, labels and axis scales, and save it.
 
+For Final Densities, "Animate in time" shows instead how the densities evolve in time,
+read from '/chemistry/chemSolutionTime' at a chosen number of instants (evenly spaced
+between a start and an end time; each file uses its nearest time step). The animation plays in the figure and "Save GIF..." saves it.
+
 The same questions can also be answered in the terminal (e.g. over ssh, without a
 display); the figure is then shown in a window or saved to a file.
 
@@ -24,8 +28,8 @@ python simulation_explorer.py --cli    (terminal)
 
 __author__ = 'Pedro Pereira <pedro.t.pereira@tecnico.ulisboa.pt>'
 __maintainer__ = 'Pedro Pereira <pedro.t.pereira@tecnico.ulisboa.pt>'
-__date__ = '9 November 2026'
-__version__ = 'Revision: 0.2.0'
+__date__ = '12 November 2026'
+__version__ = 'Revision: 0.3.0'
 
 import argparse
 import os
@@ -35,6 +39,7 @@ import sys
 import numpy as np
 import h5py
 import matplotlib.pyplot as plt
+from matplotlib import animation
 
 
 PLOT_OPTIONS = [
@@ -47,6 +52,7 @@ PLOT_OPTIONS = [
 FIELD_PATH = '/electronKinetics/reducedField'
 DENSITIES_PATH = '/chemistry/finalDensities'
 BALANCE_PATH = '/chemistry/particleBalance'
+TIME_PATH = '/chemistry/chemSolutionTime'
 EXCLUDED_BALANCE_SUBSPECIES = {'N2(X)'}
 SUBSPECIES_PLOTS = ('Final Densities', 'Populations', 'Particle Balance')
 
@@ -259,6 +265,13 @@ def read_density(f, parent, name, column='Abs.Density'):
     return None
 
 
+def density_ylabel(subspecies):
+    # Wall species are surface densities (m-2), the others volume densities (m-3)
+    units = {'m$^{-2}$' if parent.lower().startswith('wall') else 'm$^{-3}$'
+             for parent, _ in subspecies}
+    return f"Absolute density ({' / '.join(sorted(units))})"
+
+
 def plot_final_densities(ax, h5_files, all_attrs, parameter, subspecies, populations=False):
     # Plots the absolute density (or, with populations=True, the population relative to the
     # parent species) of several subspecies in function of the chosen parameter, all in the
@@ -286,17 +299,115 @@ def plot_final_densities(ax, h5_files, all_attrs, parameter, subspecies, populat
         ax.plot(np.asarray(x_values)[order], np.asarray(y_values)[order], marker='o', label=name)
 
     ax.set_xlabel(parameter, fontsize=12)
-    if populations:
-        ax.set_ylabel("Population", fontsize=12)
-    else:
-        # Wall species are surface densities (m-2), the others volume densities (m-3)
-        units = {'m$^{-2}$' if parent.lower().startswith('wall') else 'm$^{-3}$'
-                 for parent, _ in subspecies}
-        ax.set_ylabel(f"Absolute density ({' / '.join(sorted(units))})", fontsize=12)
+    ax.set_ylabel("Population" if populations else density_ylabel(subspecies), fontsize=12)
     ax.tick_params(labelsize=12)
     ax.yaxis.get_offset_text().set_fontsize(12)  # the "1e22" multiplier
     ax.legend(fontsize=12)
     return f"No {quantity} information found for {', '.join(missing)}." if missing else ""
+
+
+def time_range(h5_files):
+    # Returns the smallest and the largest time in chemSolutionTime over all the files
+    # (None if no file has it), to suggest the limits of the animation
+    t_min, t_max = np.inf, -np.inf
+    for file_path in h5_files:
+        with h5py.File(file_path, 'r') as f:
+            if TIME_PATH not in f or f[TIME_PATH].shape[-1] == 0:
+                continue
+            times = f[TIME_PATH].fields('Time')[0]
+            t_min, t_max = min(t_min, times.min()), max(t_max, times.max())
+    return (t_min, t_max) if t_max > t_min else None
+
+
+def time_instants(t_start, t_end, n_frames):
+    # Evenly spaced time instants of the animation; returns (instants, "") or (None, error message)
+    if not t_end > t_start:
+        return None, "The end time must be larger than the start time."
+    if n_frames < 2:
+        return None, "The animation needs at least 2 frames."
+    return np.linspace(t_start, t_end, n_frames), ""
+
+
+def read_time_densities(h5_files, all_attrs, parameter, subspecies, instants):
+    # Reads the densities of the subspecies from chemSolutionTime at each instant (each file
+    # uses its time step nearest to the instant); every file is opened only once.
+    # Returns frames[k][(parent, name)] = (x values, y values), sorted by x
+    frames = [{pair: ([], []) for pair in subspecies} for _ in instants]
+    for file_path, attrs in zip(h5_files, all_attrs):
+        with h5py.File(file_path, 'r') as f:
+            if TIME_PATH not in f or f[TIME_PATH].shape[-1] == 0:
+                continue
+            dataset = f[TIME_PATH]
+            pairs = [pair for pair in subspecies if pair[1] in dataset.dtype.names]
+            if not pairs:
+                continue
+            table = dataset.fields(['Time'] + list(dict.fromkeys(name for _, name in pairs)))[0]
+            steps = np.abs(table['Time'][None, :] - np.asarray(instants)[:, None]).argmin(axis=1)
+            for frame, step in zip(frames, steps):
+                for pair in pairs:
+                    frame[pair][0].append(attrs[parameter])
+                    frame[pair][1].append(float(table[step][pair[1]]))
+
+    for frame in frames:
+        for pair, (x_values, y_values) in frame.items():
+            order = np.argsort(x_values)
+            frame[pair] = (np.asarray(x_values)[order], np.asarray(y_values)[order])
+    return frames
+
+
+def make_density_animation(fig, ax, frames, instants, parameter, subspecies):
+    # Animates the densities of several subspecies in function of the chosen parameter, one
+    # frame per time instant (as densities_cases_time_animation.py). The axes limits cover
+    # all the frames, so they don't jump. Returns (animation, message); the animation must
+    # be kept in a variable, otherwise it is deleted and stops.
+    all_x = np.concatenate([x for frame in frames for x, _ in frame.values()])
+    all_y = np.concatenate([y for frame in frames for _, y in frame.values()])
+    if all_x.size == 0:
+        return None, "No density information found in chemSolutionTime for the selected subspecies."
+
+    missing = [name for parent, name in subspecies
+               if not any(frame[(parent, name)][0].size for frame in frames)]
+    lines = {pair: ax.plot([], [], marker='o', label=pair[1])[0] for pair in subspecies}
+    ax.update_datalim(np.column_stack([all_x, all_y]))
+    ax.autoscale_view()
+    ax.set_xlabel(parameter, fontsize=12)
+    ax.set_ylabel(density_ylabel(subspecies), fontsize=12)
+    ax.tick_params(labelsize=12)
+    ax.yaxis.get_offset_text().set_fontsize(12)  # the "1e22" multiplier
+    ax.legend(fontsize=12)
+
+    def update(k):
+        for pair, line in lines.items():
+            line.set_data(*frames[k][pair])
+        ax.set_title(f"t = {instants[k]:.3g} s", fontsize=12)
+        return list(lines.values())
+
+    update(0)
+    anim = animation.FuncAnimation(fig, update, frames=len(instants), interval=500, repeat=True)
+    message = f"No density information found in chemSolutionTime for {', '.join(missing)}." if missing else ""
+    return anim, message
+
+
+def save_animation(anim, path, fps=2):
+    # Saves the animation as a GIF; the 'tight' bounding box used for the figures would give
+    # frames of different sizes, so the standard one is used here
+    with plt.rc_context({'savefig.bbox': 'standard'}):
+        anim.save(path, writer='pillow', fps=fps, dpi=100)
+
+
+def ask_number(question, minimum=None, integer=False):
+    # Asks for a number (re-asks if invalid or below minimum)
+    while True:
+        text = input(question).strip()
+        try:
+            value = int(text) if integer else float(text)
+        except ValueError:
+            print("Please enter " + ("an integer." if integer else "a number."))
+            continue
+        if minimum is not None and value < minimum:
+            print(f"Please enter a number not smaller than {minimum}.")
+            continue
+        return value
 
 
 def ask_limit():
@@ -386,7 +497,7 @@ def gui():
     # Window with the menu on the left and the figure on the right; matplotlib's toolbar,
     # above the figure, allows to zoom, edit the labels and axis scales, and save it.
     # Qt is imported here so that the command line also works where Qt is not available
-    from matplotlib.backends.qt_compat import QtWidgets
+    from matplotlib.backends.qt_compat import QtCore, QtGui, QtWidgets
     from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg, NavigationToolbar2QT
     from matplotlib.figure import Figure
 
@@ -401,6 +512,21 @@ def gui():
     subspecies_list = QtWidgets.QListWidget()  # several can be selected, one click each
     subspecies_list.setSelectionMode(QtWidgets.QAbstractItemView.SelectionMode.MultiSelection)
     limit_box = QtWidgets.QDoubleSpinBox(maximum=100, value=5, suffix=' %')
+    animate_check = QtWidgets.QCheckBox("Animate in time")
+    # Time settings of the animation, grouped so they can be shown or hidden together
+    time_validator = QtGui.QDoubleValidator(bottom=0)
+    time_validator.setLocale(QtCore.QLocale.c())  # "." as decimal separator, as float() expects
+    t_start_box = QtWidgets.QLineEdit(validator=time_validator)
+    t_end_box = QtWidgets.QLineEdit(validator=time_validator)
+    n_frames_box = QtWidgets.QSpinBox(minimum=2, maximum=500, value=20)
+    n_frames_box.setKeyboardTracking(False)  # redraws when the number is complete, not per digit
+    time_widget = QtWidgets.QWidget()
+    time_form = QtWidgets.QFormLayout(time_widget)
+    time_form.setContentsMargins(0, 0, 0, 0)
+    time_form.addRow("Start time (s)", t_start_box)
+    time_form.addRow("End time (s)", t_end_box)
+    time_form.addRow("Number of frames", n_frames_box)
+    save_gif_button = QtWidgets.QPushButton("Save GIF...", enabled=False)
     clear_button = QtWidgets.QPushButton("Clear plot")
     status = QtWidgets.QLabel(wordWrap=True)
 
@@ -415,6 +541,9 @@ def gui():
     menu.addRow("Plot", plot_box)
     menu.addRow("Subspecies", subspecies_list)
     menu.addRow("Show reactions above", limit_box)
+    menu.addRow(animate_check)
+    menu.addRow(time_widget)
+    menu.addRow(save_gif_button)
     menu.addRow(clear_button)
     menu.addRow(status)
 
@@ -429,7 +558,7 @@ def gui():
     layout.addWidget(menu_widget)
     layout.addLayout(plot_area, stretch=1)
 
-    data = {'files': [], 'attrs': [], 'pairs': []}
+    data = {'files': [], 'attrs': [], 'pairs': [], 'path': '', 'anim': None}
 
     def open_folder():
         # Reads the chosen folder and fills the menus with its parameters and plot options
@@ -441,12 +570,23 @@ def gui():
             status.setText(f"No readable .h5 files found in '{path}'.")
             return
         names, distinct = common_attributes(all_attrs)
-        data.update(files=files, attrs=all_attrs)
+        data.update(files=files, attrs=all_attrs, path=path)
         folder_label.setText(f"{os.path.basename(path)}: {len(files)} .h5 file(s)")
         plt.rcParams['savefig.directory'] = path  # where the save dialog starts
 
         plot_box.clear()  # first, so nothing is plotted while the parameters are refilled
         parameter_box.clear()
+
+        # Suggests the whole simulated time for the animation
+        times = time_range(files)
+        animate_check.setEnabled(times is not None)
+        animate_check.setToolTip("" if times else "The files have no chemSolutionTime data.")
+        if times is None:
+            animate_check.setChecked(False)
+        else:
+            t_start_box.setText(f"{times[0]:.3g}")
+            t_end_box.setText(f"{times[1]:.3g}")
+
         for name in names:
             n_values = len(distinct[name])
             tag = f"varies: {n_values} values" if n_values > 1 else f"constant = {next(iter(distinct[name]))}"
@@ -465,15 +605,72 @@ def gui():
         subspecies_list.addItems([name for _, name in data['pairs']])
         menu.setRowVisible(subspecies_list, plot in SUBSPECIES_PLOTS)
         menu.setRowVisible(limit_box, plot == 'Particle Balance')
+        update_time_rows()
         update_plot()
+
+    def update_time_rows():
+        # The animation options exist only for Final Densities; the time settings and the
+        # save button only while animating
+        densities = plot_box.currentText() == 'Final Densities'
+        menu.setRowVisible(animate_check, densities)
+        menu.setRowVisible(time_widget, densities and animate_check.isChecked())
+        menu.setRowVisible(save_gif_button, densities and animate_check.isChecked())
+
+    def stop_animation():
+        # Stops the animation being played, if any (before the figure is cleared)
+        anim = data['anim']
+        if anim is not None and anim.event_source is not None:
+            anim.pause()
+        data['anim'] = None
+        save_gif_button.setEnabled(False)
+
+    def animate_densities(parameter, subspecies):
+        # Builds the animation of the densities with the chosen time settings
+        try:
+            t_start, t_end = float(t_start_box.text()), float(t_end_box.text())
+        except ValueError:
+            return "Please give valid start and end times."
+        instants, message = time_instants(t_start, t_end, n_frames_box.value())
+        if instants is None:
+            return message
+        frames = read_time_densities(data['files'], data['attrs'], parameter, subspecies, instants)
+        data['anim'], message = make_density_animation(figure, figure.add_subplot(), frames, instants,
+                                                       parameter, subspecies)
+        save_gif_button.setEnabled(data['anim'] is not None)
+        return message
+
+    def save_gif():
+        # Asks where to save the animation (by default in the simulations folder) and saves it
+        parameter = parameter_box.currentData()
+        names = [name for _, name in (data['pairs'][subspecies_list.row(item)]
+                                      for item in subspecies_list.selectedItems())]
+        name = os.path.splitext(figure_filename('densities_anim', parameter, names))[0] + '.gif'
+        default = os.path.join(data['path'], name)
+        path, _ = QtWidgets.QFileDialog.getSaveFileName(window, "Save animation", default, "GIF (*.gif)")
+        if not path or data['anim'] is None:  # cancelled
+            return
+        if not path.lower().endswith('.gif'):
+            path += '.gif'
+        status.setText("Saving the animation...")
+        QtWidgets.QApplication.setOverrideCursor(QtCore.Qt.CursorShape.WaitCursor)
+        try:
+            save_animation(data['anim'], path)
+            status.setText(f"Animation saved as {path}")
+        except Exception as e:
+            status.setText(f"Could not save the animation: {e}")
+        finally:
+            QtWidgets.QApplication.restoreOverrideCursor()
 
     def update_plot():
         # Draws the chosen plot as soon as everything it needs is selected
         parameter, plot = parameter_box.currentData(), plot_box.currentText()
         subspecies = [data['pairs'][subspecies_list.row(item)] for item in subspecies_list.selectedItems()]
         message = ""
+        stop_animation()
         figure.clear()
-        if parameter is not None and plot == 'Reduced Field':
+        if parameter is not None and subspecies and plot == 'Final Densities' and animate_check.isChecked():
+            message = animate_densities(parameter, subspecies)
+        elif parameter is not None and plot == 'Reduced Field':
             message = plot_reduced_field(figure.add_subplot(), data['files'], data['attrs'], parameter)
         elif parameter is not None and subspecies and plot in ('Final Densities', 'Populations'):
             message = plot_final_densities(figure.add_subplot(), data['files'], data['attrs'], parameter,
@@ -491,6 +688,7 @@ def gui():
         subspecies_list.blockSignals(True)  # so unselecting does not redraw
         subspecies_list.clearSelection()
         subspecies_list.blockSignals(False)
+        stop_animation()
         figure.clear()
         status.setText("")
         canvas.draw()
@@ -498,6 +696,19 @@ def gui():
 
     folder_button.clicked.connect(open_folder)
     clear_button.clicked.connect(clear_plot)
+    save_gif_button.clicked.connect(save_gif)
+    animate_check.toggled.connect(update_time_rows)
+    animate_check.toggled.connect(update_plot)
+
+    def time_edited(box):
+        # Redraws when Enter is pressed or the box is left, only if its text was changed
+        if box.isModified():
+            box.setModified(False)
+            update_plot()
+
+    t_start_box.editingFinished.connect(lambda: time_edited(t_start_box))
+    t_end_box.editingFinished.connect(lambda: time_edited(t_end_box))
+    n_frames_box.valueChanged.connect(update_plot)
     parameter_box.currentIndexChanged.connect(update_plot)
     plot_box.currentIndexChanged.connect(update_subspecies)
     subspecies_list.itemSelectionChanged.connect(update_plot)
@@ -565,9 +776,30 @@ def command_line():
     if plot == 'Particle Balance':
         limit = ask_limit()
 
+    # --- Animation in time (Final Densities only) ---
+    instants = None
+    times = time_range(readable_files) if plot == 'Final Densities' else None
+    if times is not None and ask_choice("Plot the final state or an animation in time?",
+                                        ["Final state", "Animation in time"]) == 1:
+        print(f"\nThe simulated times go from {times[0]:.3g} s to {times[1]:.3g} s.")
+        while instants is None:
+            t_start = ask_number("Start time (s): ", minimum=0)
+            t_end = ask_number("End time (s): ", minimum=0)
+            n_frames = ask_number("Number of frames: ", minimum=2, integer=True)
+            instants, error = time_instants(t_start, t_end, n_frames)
+            if instants is None:
+                print(error)
+
     # --- Plotting ---
     fig, ax = plt.subplots(figsize=(10, 6) if plot == 'Particle Balance' else None)
-    if plot == 'Reduced Field':
+    anim = None
+    if instants is not None:
+        frames = read_time_densities(readable_files, all_attrs, parameter, selected_subspecies, instants)
+        anim, message = make_density_animation(fig, ax, frames, instants, parameter, selected_subspecies)
+        if anim is None:
+            print(message)
+            sys.exit(1)
+    elif plot == 'Reduced Field':
         message = plot_reduced_field(ax, readable_files, all_attrs, parameter)
     elif plot in ('Final Densities', 'Populations'):
         message = plot_final_densities(ax, readable_files, all_attrs, parameter, selected_subspecies,
@@ -583,20 +815,28 @@ def command_line():
     # --- Show or save (without a display, e.g. over ssh, matplotlib uses 'agg' and can only save) ---
     if plt.get_backend().lower() == 'agg':
         print("\nNo display available: the figure will be saved.")
-    elif ask_choice("Show the figure or save it?", ["Show", "Save"]) == 0:
+    elif ask_choice(f"Show the {'animation' if anim else 'figure'} or save it?", ["Show", "Save"]) == 0:
         plt.show()
         return
 
     kind = {'Reduced Field': 'field', 'Final Densities': 'densities', 'Populations': 'populations',
             'Particle Balance': 'balance'}[plot]
-    default = figure_filename(kind, parameter, [name for _, name in selected_subspecies])
+    if anim:
+        kind += '_anim'
+    extension = '.gif' if anim else '.png'
+    default = os.path.splitext(figure_filename(kind, parameter, [name for _, name in selected_subspecies]))[0]
+    default += extension
     name = input(f"\nFile name, in the simulations folder unless a full path is given "
                  f"(Enter for {default}): ").strip().strip('"') or default
     if not os.path.splitext(name)[1]:
-        name += '.png'
+        name += extension
     output_path = os.path.join(path_data, name)
-    fig.savefig(output_path)
-    print(f"\nFigure saved as: {output_path}")
+    if anim:
+        print("Saving the animation...")
+        save_animation(anim, output_path)
+    else:
+        fig.savefig(output_path)
+    print(f"\n{'Animation' if anim else 'Figure'} saved as: {output_path}")
 
 
 if __name__ == "__main__":
