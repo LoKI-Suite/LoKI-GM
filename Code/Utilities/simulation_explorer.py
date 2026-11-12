@@ -7,8 +7,8 @@ The window has a menu on the left and the figure on the right. In the menu:
    (the .h5 files can be directly inside it or spread over subfolders);
 2) "Parameter" chooses, among the attributes common to all files, in function
    of which one the results are represented;
-3) "Plot" chooses what to plot (Reduced Field, Final Densities or Particle Balance)
-   and, for densities/balance, which subspecies to plot in the same figure.
+3) "Plot" chooses what to plot (Reduced Field, Final Densities, Populations or
+   Particle Balance) and, for densities/populations/balance, which subspecies to plot in the same figure.
 The figure is drawn as soon as everything is selected; its toolbar allows to zoom,
 edit the title, labels and axis scales, and save it.
 
@@ -40,6 +40,7 @@ import matplotlib.pyplot as plt
 PLOT_OPTIONS = [
     ('Reduced Field', '/electronKinetics/reducedField'),
     ('Final Densities', '/chemistry/finalDensities'),
+    ('Populations', '/chemistry/finalDensities'),
     ('Particle Balance', '/chemistry/particleBalance'),
 ]
 
@@ -47,6 +48,7 @@ FIELD_PATH = '/electronKinetics/reducedField'
 DENSITIES_PATH = '/chemistry/finalDensities'
 BALANCE_PATH = '/chemistry/particleBalance'
 EXCLUDED_BALANCE_SUBSPECIES = {'N2(X)'}
+SUBSPECIES_PLOTS = ('Final Densities', 'Populations', 'Particle Balance')
 
 
 def find_h5_files(path):
@@ -242,8 +244,9 @@ def figure_filename(kind, parameter, extra=()):
     return "_".join(part for part in parts if part) + ".png"
 
 
-def read_density(f, parent, name):
-    # Absolute density of a subspecies, found by name (None if not in this file)
+def read_density(f, parent, name, column='Abs.Density'):
+    # Absolute density ('Abs.Density') or population ('Population') of a subspecies,
+    # found by name (None if not in this file)
     if parent not in f[DENSITIES_PATH]:
         return None
     dataset = f[DENSITIES_PATH][parent]
@@ -252,25 +255,27 @@ def read_density(f, parent, name):
     for i in range(dataset.shape[1]):
         row = dataset[0, i]
         if row['Species'].decode('utf-8') == name:
-            return float(row['Abs.Density'])
+            return float(row[column])
     return None
 
 
-def plot_final_densities(ax, h5_files, all_attrs, parameter, subspecies):
-    # Plots the absolute density of several subspecies in function of the chosen parameter,
-    # all in the same figure (as densities_analyser with -hold in densities_field_cases.py)
+def plot_final_densities(ax, h5_files, all_attrs, parameter, subspecies, populations=False):
+    # Plots the absolute density (or, with populations=True, the population relative to the
+    # parent species) of several subspecies in function of the chosen parameter, all in the
+    # same figure (as densities_analyser with -hold in densities_field_cases.py)
+    column, quantity = ('Population', 'population') if populations else ('Abs.Density', 'density')
     data = {pair: ([], []) for pair in subspecies}
     for file_path, attrs in zip(h5_files, all_attrs):
         with h5py.File(file_path, 'r') as f:
             for parent, name in subspecies:
-                value = read_density(f, parent, name)
+                value = read_density(f, parent, name, column)
                 if value is None:
                     continue
                 data[(parent, name)][0].append(attrs[parameter])
                 data[(parent, name)][1].append(value)
 
     if not any(x for x, _ in data.values()):
-        return "No density information found in the dataset for the selected subspecies."
+        return f"No {quantity} information found in the dataset for the selected subspecies."
 
     missing = []
     for (parent, name), (x_values, y_values) in data.items():
@@ -280,15 +285,18 @@ def plot_final_densities(ax, h5_files, all_attrs, parameter, subspecies):
         order = np.argsort(x_values)
         ax.plot(np.asarray(x_values)[order], np.asarray(y_values)[order], marker='o', label=name)
 
-    # Wall species are surface densities (m-2), the others volume densities (m-3)
-    units = {'m$^{-2}$' if parent.lower().startswith('wall') else 'm$^{-3}$'
-             for parent, _ in subspecies}
     ax.set_xlabel(parameter, fontsize=12)
-    ax.set_ylabel(f"Absolute density ({' / '.join(sorted(units))})", fontsize=12)
+    if populations:
+        ax.set_ylabel("Population", fontsize=12)
+    else:
+        # Wall species are surface densities (m-2), the others volume densities (m-3)
+        units = {'m$^{-2}$' if parent.lower().startswith('wall') else 'm$^{-3}$'
+                 for parent, _ in subspecies}
+        ax.set_ylabel(f"Absolute density ({' / '.join(sorted(units))})", fontsize=12)
     ax.tick_params(labelsize=12)
     ax.yaxis.get_offset_text().set_fontsize(12)  # the "1e22" multiplier
     ax.legend(fontsize=12)
-    return f"No density information found for {', '.join(missing)}." if missing else ""
+    return f"No {quantity} information found for {', '.join(missing)}." if missing else ""
 
 
 def ask_limit():
@@ -393,6 +401,7 @@ def gui():
     subspecies_list = QtWidgets.QListWidget()  # several can be selected, one click each
     subspecies_list.setSelectionMode(QtWidgets.QAbstractItemView.SelectionMode.MultiSelection)
     limit_box = QtWidgets.QDoubleSpinBox(maximum=100, value=5, suffix=' %')
+    clear_button = QtWidgets.QPushButton("Clear plot")
     status = QtWidgets.QLabel(wordWrap=True)
 
     menu_widget = QtWidgets.QWidget()
@@ -406,6 +415,7 @@ def gui():
     menu.addRow("Plot", plot_box)
     menu.addRow("Subspecies", subspecies_list)
     menu.addRow("Show reactions above", limit_box)
+    menu.addRow(clear_button)
     menu.addRow(status)
 
     figure = Figure()
@@ -451,9 +461,9 @@ def gui():
         # Lists the subspecies of the chosen plot and shows only the menu rows it needs
         plot = plot_box.currentText()
         subspecies_list.clear()
-        data['pairs'] = list_subspecies(data['files'], plot) if plot in ('Final Densities', 'Particle Balance') else []
+        data['pairs'] = list_subspecies(data['files'], plot) if plot in SUBSPECIES_PLOTS else []
         subspecies_list.addItems([name for _, name in data['pairs']])
-        menu.setRowVisible(subspecies_list, plot in ('Final Densities', 'Particle Balance'))
+        menu.setRowVisible(subspecies_list, plot in SUBSPECIES_PLOTS)
         menu.setRowVisible(limit_box, plot == 'Particle Balance')
         update_plot()
 
@@ -465,9 +475,9 @@ def gui():
         figure.clear()
         if parameter is not None and plot == 'Reduced Field':
             message = plot_reduced_field(figure.add_subplot(), data['files'], data['attrs'], parameter)
-        elif parameter is not None and subspecies and plot == 'Final Densities':
+        elif parameter is not None and subspecies and plot in ('Final Densities', 'Populations'):
             message = plot_final_densities(figure.add_subplot(), data['files'], data['attrs'], parameter,
-                                           subspecies)
+                                           subspecies, populations=(plot == 'Populations'))
         elif parameter is not None and subspecies and plot == 'Particle Balance':
             message = plot_particle_balance(figure.add_subplot(), data['files'], data['attrs'], parameter,
                                             subspecies, limit_box.value())
@@ -476,7 +486,18 @@ def gui():
         canvas.draw()
         toolbar.update()  # the "Home" button returns to this new plot
 
+    def clear_plot():
+        # Empties the figure and unselects the subspecies; changing any option draws again
+        subspecies_list.blockSignals(True)  # so unselecting does not redraw
+        subspecies_list.clearSelection()
+        subspecies_list.blockSignals(False)
+        figure.clear()
+        status.setText("")
+        canvas.draw()
+        toolbar.update()
+
     folder_button.clicked.connect(open_folder)
+    clear_button.clicked.connect(clear_plot)
     parameter_box.currentIndexChanged.connect(update_plot)
     plot_box.currentIndexChanged.connect(update_subspecies)
     subspecies_list.itemSelectionChanged.connect(update_plot)
@@ -520,7 +541,7 @@ def command_line():
     # --- What to plot ---
     plot_options = available_plot_options(all_groups)
     if not plot_options:
-        print("None of the plot options (Reduced Field, Final Densities, Particle Balance) "
+        print("None of the plot options (Reduced Field, Final Densities, Populations, Particle Balance) "
               "is available in all the files.")
         sys.exit(1)
 
@@ -528,7 +549,7 @@ def command_line():
     print(f"\nSelected plot: {plot}")
 
     selected_subspecies = []
-    if plot in ('Final Densities', 'Particle Balance'):
+    if plot in SUBSPECIES_PLOTS:
         pairs = list_subspecies(readable_files, plot)
         if not pairs:
             print(f"No subspecies found for {plot}.")
@@ -548,8 +569,9 @@ def command_line():
     fig, ax = plt.subplots(figsize=(10, 6) if plot == 'Particle Balance' else None)
     if plot == 'Reduced Field':
         message = plot_reduced_field(ax, readable_files, all_attrs, parameter)
-    elif plot == 'Final Densities':
-        message = plot_final_densities(ax, readable_files, all_attrs, parameter, selected_subspecies)
+    elif plot in ('Final Densities', 'Populations'):
+        message = plot_final_densities(ax, readable_files, all_attrs, parameter, selected_subspecies,
+                                       populations=(plot == 'Populations'))
     elif plot == 'Particle Balance':
         message = plot_particle_balance(ax, readable_files, all_attrs, parameter, selected_subspecies, limit)
     if message:
@@ -565,7 +587,8 @@ def command_line():
         plt.show()
         return
 
-    kind = {'Reduced Field': 'field', 'Final Densities': 'densities', 'Particle Balance': 'balance'}[plot]
+    kind = {'Reduced Field': 'field', 'Final Densities': 'densities', 'Populations': 'populations',
+            'Particle Balance': 'balance'}[plot]
     default = figure_filename(kind, parameter, [name for _, name in selected_subspecies])
     name = input(f"\nFile name, in the simulations folder unless a full path is given "
                  f"(Enter for {default}): ").strip().strip('"') or default
