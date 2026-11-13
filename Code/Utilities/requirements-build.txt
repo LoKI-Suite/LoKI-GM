@@ -1,0 +1,4 @@
+# To build the simulation_explorer executables (see simulation_explorer.spec)
+# Install with: pip install -r requirements-build.txt
+-r requirements.txt
+pyinstaller==6.22.3

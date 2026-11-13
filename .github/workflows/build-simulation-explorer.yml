@@ -1,0 +1,134 @@
+# Builds the executables of Code/Utilities/simulation_explorer.py for Windows, Linux and macOS with
+# PyInstaller (Code/Utilities/simulation_explorer.spec), so that users don't need to install Python:
+#  - push / pull request changing the tool: builds them and keeps them as artifacts of the run, to check the build;
+#  - LoKI-GM release published: also attaches them to the release;
+#  - run manually with a release tag: rebuilds that tag and attaches them to its release (e.g. after a failed build).
+name: Simulation explorer
+
+on:
+  push:
+    paths:
+      - Code/Utilities/simulation_explorer.py
+      - Code/Utilities/simulation_explorer.spec
+      - Code/Utilities/requirements*.txt
+      - .github/workflows/build-simulation-explorer.yml
+  pull_request:
+    paths:
+      - Code/Utilities/simulation_explorer.py
+      - Code/Utilities/simulation_explorer.spec
+      - Code/Utilities/requirements*.txt
+      - .github/workflows/build-simulation-explorer.yml
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Release tag to build and attach the executables to (empty to only build the selected branch)
+        required: false
+        default: ''
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build (${{ matrix.platform }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            platform: windows-x64
+          # The oldest Ubuntu available: the executable works on systems whose glibc is at least as recent
+          - os: ubuntu-22.04
+            platform: linux-x64
+          # Apple silicon
+          - os: macos-latest
+            platform: macos-arm64
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    defaults:
+      run:
+        shell: bash
+        working-directory: Code/Utilities
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.tag }}
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: Code/Utilities/requirements*.txt
+
+      # Libraries that Qt needs on Linux and are not always installed (so that they are bundled), and a
+      # virtual display for the check below
+      - name: Install Qt system libraries
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends libegl1 libxkbcommon-x11-0 libxcb-cursor0 \
+            libxcb-icccm4 libxcb-keysyms1 libxcb-shape0 xvfb
+
+      - name: Install Python dependencies
+        run: python -m pip install -r requirements-build.txt
+
+      - name: Build
+        run: pyinstaller --noconfirm --clean simulation_explorer.spec
+
+      # Opens the window and closes it after a second (see SIMULATION_EXPLORER_SMOKE_TEST in the script).
+      # If the Windows executable fails, it shows the error in a dialog that waits forever: hence the timeout
+      - name: Check that the executable starts
+        timeout-minutes: 5
+        env:
+          SIMULATION_EXPLORER_SMOKE_TEST: '1'
+        run: |
+          case "$RUNNER_OS" in
+            Windows) run="dist/simulation_explorer.exe" ;;
+            macOS)   run="dist/simulation_explorer.app/Contents/MacOS/simulation_explorer" ;;
+            Linux)   run="xvfb-run -a dist/simulation_explorer" ;;
+          esac
+          $run --help
+          $run
+
+      - name: Package
+        id: package
+        env:
+          TAG: ${{ inputs.tag || github.event.release.tag_name }}
+        run: |
+          name="simulation_explorer-${TAG:-${GITHUB_SHA::7}}-${{ matrix.platform }}"
+          case "$RUNNER_OS" in
+            Windows) file="$name.exe"; cp dist/simulation_explorer.exe "$file" ;;
+            # tar keeps the permission to execute it
+            Linux)   file="$name.tar.gz"; tar -czf "$file" -C dist simulation_explorer ;;
+            # ditto keeps the symbolic links and signature of the app bundle
+            macOS)   file="$name.zip"; ditto -c -k --keepParent dist/simulation_explorer.app "$file" ;;
+          esac
+          echo "file=Code/Utilities/$file" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: simulation_explorer-${{ matrix.platform }}
+          path: ${{ steps.package.outputs.file }}
+          if-no-files-found: error
+
+  release:
+    name: Attach to the release
+    needs: build
+    if: github.event_name == 'release' || (github.event_name == 'workflow_dispatch' && inputs.tag != '')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: simulation_explorer-*
+          path: dist
+          merge-multiple: true
+
+      - name: Upload the executables to the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ inputs.tag || github.event.release.tag_name }}
+        run: gh release upload "$TAG" dist/* --clobber --repo "$GITHUB_REPOSITORY"

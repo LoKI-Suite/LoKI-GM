@@ -35,6 +35,10 @@ Run with:
 python simulation_explorer.py          (window)
 python simulation_explorer.py --cli    (terminal)
 
+Each LoKI-GM release also includes executables for Windows, Linux and macOS that don't need
+Python (built from simulation_explorer.spec by .github/workflows/build-simulation-explorer.yml).
+The Windows one only opens the window: there, --cli needs Python.
+
 """
 
 __author__ = 'Pedro Pereira <pedro.t.pereira@tecnico.ulisboa.pt>'
@@ -908,6 +912,9 @@ def gui():
     update_subspecies()  # hides the subspecies and threshold rows until they are needed
     window.resize(1200, 700)
     window.show()
+    if os.environ.get('SIMULATION_EXPLORER_SMOKE_TEST'):
+        # Used by .github/workflows/build-simulation-explorer.yml to check that the executables open the window
+        QtCore.QTimer.singleShot(1000, app.quit)
     sys.exit(app.exec())
 
 
@@ -1038,8 +1045,20 @@ def command_line():
     print(f"\n{'Animation' if anim else 'Figure'} saved as: {output_path}")
 
 
+def attach_parent_console():
+    # The Windows executable has no console of its own (so that double-clicking it doesn't open
+    # a black window behind the window); when it is started from a terminal, it writes there
+    # instead, e.g. --help
+    if sys.platform == 'win32' and sys.stdout is None:
+        import ctypes
+        if ctypes.windll.kernel32.AttachConsole(-1):  # -1: ATTACH_PARENT_PROCESS
+            sys.stdout = open('CONOUT$', 'w')
+            sys.stderr = open('CONOUT$', 'w')
+
+
 if __name__ == "__main__":
 
+    attach_parent_console()
     parser = argparse.ArgumentParser(description=INTRO_TEXT)
     parser.add_argument('--cli', action='store_true',
                         help="ask the questions in the terminal instead of opening a window (e.g. over ssh)")
@@ -1047,6 +1066,12 @@ if __name__ == "__main__":
 
     plt.rcParams.update({'savefig.dpi': 300, 'savefig.bbox': 'tight'})  # used by both save options
     if args.cli:
+        if sys.stdin is None:
+            # Windows executable: without a console of its own it cannot read the answers
+            print("\nThe terminal mode (--cli) is not available in the Windows executable. Open it "
+                  "without --cli to use the window, or run the script with Python:\n"
+                  "    python simulation_explorer.py --cli")
+            sys.exit(1)
         command_line()
     else:
         gui()

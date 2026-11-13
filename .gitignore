@@ -14,3 +14,9 @@
 
 *.code-workspace
 /Utilities/__pycache__
+
+# simulation_explorer executables: built by .github/workflows/build-simulation-explorer.yml and
+# attached to the LoKI-GM releases (see Code/Utilities/simulation_explorer.spec)
+/Code/Utilities/build/
+/Code/Utilities/dist/
+/Code/Utilities/*.exe
