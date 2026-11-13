@@ -2,19 +2,30 @@
 
 Interactive explorer for simulation results stored in HDF5 (.h5) files.
 
-The window has a menu on the left and the figure on the right. In the menu:
+The window has a menu on the left and the figure on the right. 
+
+In the menu:
+
 1) "Open folder..." selects the folder where the simulations are stored
    (the .h5 files can be directly inside it or spread over subfolders);
-2) "Parameter" chooses, among the attributes common to all files, in function
+   Only chemistry simulations (files with a '/chemistry' group) are considered;
+   "Simulations" then shows its subfolders as a tree, all ticked: unticking a folder
+   leaves its simulations out of everything below (parameters, plots and subspecies);
+
+2) "Parameter" chooses, among the attributes common to all of them, in function
    of which one the results are represented;
+
 3) "Plot" chooses what to plot (Reduced Field, Final Densities, Populations or
    Particle Balance) and, for densities/populations/balance, which subspecies to plot in the same figure.
+   An option is offered if at least one file has its data, and it uses only those files.
+
 The figure is drawn as soon as everything is selected; its toolbar allows to zoom,
 edit the title, labels and axis scales, and save it.
 
 For Final Densities, "Animate in time" shows instead how the densities evolve in time,
 read from '/chemistry/chemSolutionTime' at a chosen number of instants (evenly spaced
-between a start and an end time; each file uses its nearest time step). The animation plays in the figure and "Save GIF..." saves it.
+between a start and an end time; each file uses its nearest time step). 
+The animation plays in the figure and "Save GIF..." saves it.
 
 The same questions can also be answered in the terminal (e.g. over ssh, without a
 display); the figure is then shown in a window or saved to a file.
@@ -28,8 +39,8 @@ python simulation_explorer.py --cli    (terminal)
 
 __author__ = 'Pedro Pereira <pedro.t.pereira@tecnico.ulisboa.pt>'
 __maintainer__ = 'Pedro Pereira <pedro.t.pereira@tecnico.ulisboa.pt>'
-__date__ = '12 November 2026'
-__version__ = 'Revision: 0.3.0'
+__date__ = '13 November 2026'
+__version__ = 'Revision: 0.4.0'
 
 import argparse
 import os
@@ -61,6 +72,7 @@ FIELD_PATH = '/electronKinetics/reducedField'
 DENSITIES_PATH = '/chemistry/finalDensities'
 BALANCE_PATH = '/chemistry/particleBalance'
 TIME_PATH = '/chemistry/chemSolutionTime'
+CHEMISTRY_PATH = '/chemistry'
 EXCLUDED_BALANCE_SUBSPECIES = {'N2(X)'}
 SUBSPECIES_PLOTS = ('Final Densities', 'Populations', 'Particle Balance')
 
@@ -73,6 +85,27 @@ def find_h5_files(path):
             if filename.endswith('.h5'):
                 h5_files.append(os.path.join(dirpath, filename))
     return sorted(h5_files)
+
+
+def tree_branches(path, h5_files):
+    # For each file, the labels of its branch in the "Simulations" tree, below the opened folder
+    # (e.g. ['Test_Run', 'sim_1']). A folder with a single .h5 file and no simulations in its
+    # subfolders stands for that file; otherwise the file names are shown under the folder
+    folders = [os.path.normpath(os.path.relpath(os.path.dirname(f), path)) for f in h5_files]
+    folders = ['' if folder == '.' else folder for folder in folders]
+    n_files = {folder: folders.count(folder) for folder in folders}
+
+    def has_subfolders(folder):
+        prefix = folder + os.sep if folder else ''
+        return any(other != folder and other.startswith(prefix) for other in n_files)
+
+    branches = []
+    for file_path, folder in zip(h5_files, folders):
+        parts = folder.split(os.sep) if folder else []
+        if not parts or n_files[folder] > 1 or has_subfolders(folder):
+            parts.append(os.path.basename(file_path))
+        branches.append(parts)
+    return branches
 
 
 def to_python_value(value):
@@ -89,26 +122,41 @@ def to_python_value(value):
 
 
 def read_file_info(file_path):
-    # Reads the root attributes of an .h5 file and which plot groups it contains
+    # Reads the root attributes of an .h5 file and which plot groups it contains;
+    # returns None if it is not a chemistry simulation (LoKI-GM creates the /chemistry group
+    # at the start of the run only when the chemistry is enabled)
     with h5py.File(file_path, 'r') as f:
+        if CHEMISTRY_PATH not in f:
+            return None
         attrs = {name: to_python_value(f.attrs[name]) for name in f.attrs}
         groups = {name for name, path in PLOT_OPTIONS if path in f}
     return attrs, groups
 
 
 def read_folder(path):
-    # Reads the info of every .h5 file inside path, skipping the ones that cannot be opened
-    files, all_attrs, all_groups = [], [], []
+    # Reads the info of the chemistry simulations inside path, skipping the files that cannot
+    # be opened; also returns how many .h5 files were ignored for having no chemistry
+    files, all_attrs, all_groups, n_without_chemistry = [], [], [], 0
     for file_path in find_h5_files(path):
         try:
-            attrs, groups = read_file_info(file_path)
+            info = read_file_info(file_path)
         except OSError as e:
             print(f"Warning: could not read '{file_path}' ({e}). Skipping.")
             continue
+        if info is None:
+            n_without_chemistry += 1
+            continue
         files.append(file_path)
-        all_attrs.append(attrs)
-        all_groups.append(groups)
-    return files, all_attrs, all_groups
+        all_attrs.append(info[0])
+        all_groups.append(info[1])
+    return files, all_attrs, all_groups, n_without_chemistry
+
+
+def folder_summary(n_files):
+    # e.g. "14 chemistry simulation(s)"
+    text = f"{n_files} chemistry simulation(s)"
+
+    return text
 
 
 def common_attributes(all_attrs):
@@ -124,9 +172,17 @@ def common_attributes(all_attrs):
 
 
 def available_plot_options(all_groups):
-    # Keeps only the plot options whose group exists in every file
-    common = set.intersection(*all_groups)
-    return [name for name, _ in PLOT_OPTIONS if name in common]
+    # The plot options whose group exists in at least one file
+    return [name for name, _ in PLOT_OPTIONS if any(name in groups for groups in all_groups)]
+
+
+def files_for_plot(plot, h5_files, all_attrs, all_groups):
+    # Keeps only the files (and their attributes) that have the data of the chosen plot,
+    # plus a message saying how many were left out ("" if none)
+    keep = [i for i, groups in enumerate(all_groups) if plot in groups]
+    n_out = len(h5_files) - len(keep)
+    message = (f"{n_out} of {len(h5_files)} simulation(s) not used, for having no {plot} data." if n_out else "")
+    return [h5_files[i] for i in keep], [all_attrs[i] for i in keep], message
 
 
 def list_subspecies(h5_files, plot):
@@ -514,6 +570,17 @@ def gui():
     window = QtWidgets.QWidget(windowTitle="Simulation explorer")
     folder_button = QtWidgets.QPushButton("Open folder...")
     folder_label = QtWidgets.QLabel("No folder selected")
+    # Subfolders of the opened folder, with a tick box each: only the ticked simulations are used
+    folder_tree = QtWidgets.QTreeWidget(headerHidden=True)
+    folder_tree.setMaximumHeight(180)  # so the subspecies list keeps most of the space
+    all_button = QtWidgets.QPushButton("All")
+    none_button = QtWidgets.QPushButton("None")
+    tree_widget = QtWidgets.QWidget()
+    tree_layout = QtWidgets.QGridLayout(tree_widget)
+    tree_layout.setContentsMargins(0, 0, 0, 0)
+    tree_layout.addWidget(folder_tree, 0, 0, 1, 2)
+    tree_layout.addWidget(all_button, 1, 0)
+    tree_layout.addWidget(none_button, 1, 1)
     parameter_box = QtWidgets.QComboBox()  # long names are cut with "..." but shown complete when opened
     parameter_box.setSizeAdjustPolicy(QtWidgets.QComboBox.SizeAdjustPolicy.AdjustToMinimumContentsLengthWithIcon)
     plot_box = QtWidgets.QComboBox()
@@ -545,6 +612,7 @@ def gui():
     menu.setRowWrapPolicy(QtWidgets.QFormLayout.RowWrapPolicy.WrapAllRows)  # labels above the widgets
     menu.addRow(folder_button)
     menu.addRow(folder_label)
+    menu.addRow("Simulations", tree_widget)
     menu.addRow("Parameter (x axis)", parameter_box)
     menu.addRow("Plot (y axis)", plot_box)
     menu.addRow("Subspecies", subspecies_list)
@@ -574,7 +642,13 @@ def gui():
     layout.addWidget(menu_widget)
     layout.addLayout(plot_area, stretch=1)
 
-    data = {'files': [], 'attrs': [], 'pairs': [], 'path': '', 'anim': None}
+    # all_*: every chemistry simulation of the opened folder; files/attrs/groups: the ticked ones
+    data = {'all_files': [], 'all_attrs': [], 'all_groups': [], 'files': [], 'attrs': [], 'groups': [],
+            'pairs': [], 'path': '', 'anim': None}
+
+    def plot_files(plot):
+        # Files with the data of the chosen plot, their attributes and a note on the others
+        return files_for_plot(plot, data['files'], data['attrs'], data['groups'])
 
     def show_options(loaded):
         # The options are shown only once a folder is read and there are files to plot
@@ -582,22 +656,22 @@ def gui():
             menu.setRowVisible(widget, loaded)
 
     def open_folder():
-        # Reads the chosen folder and fills the menus with its parameters and plot options
+        # Reads the chosen folder, lists its simulations in the tree (all ticked) and fills the menus
         path = QtWidgets.QFileDialog.getExistingDirectory(window, "Select the folder with the simulations")
         if not path:  # cancelled
             return
-        files, all_attrs, all_groups = read_folder(path)
+        files, all_attrs, all_groups, _ = read_folder(path)
         if not files:
-            status.setText(f"No readable .h5 files found in '{path}'.")
+            # The folder that was open (if any) stays, so the message says which one is shown
+            message = f"No chemistry simulations with .h5 files found in '{path}'."
+            if data['all_files']:
+                message += f" Still showing '{os.path.basename(os.path.normpath(data['path']))}'."
+            status.setText(message)
             return
-        names, distinct = common_attributes(all_attrs)
-        data.update(files=files, attrs=all_attrs, path=path)
-        folder_label.setText(f"{os.path.basename(path)}: {len(files)} .h5 file(s)")
-        show_options(True)
+        data.update(all_files=files, all_attrs=all_attrs, all_groups=all_groups, path=path)
         plt.rcParams['savefig.directory'] = path  # where the save dialog starts
-
-        plot_box.clear()  # first, so nothing is plotted while the parameters are refilled
-        parameter_box.clear()
+        build_tree(path, files)
+        menu.setRowVisible(tree_widget, True)
 
         # Suggests the whole simulated time for the animation
         times = time_range(files)
@@ -609,22 +683,109 @@ def gui():
             t_start_box.setText(f"{times[0]:.3g}")
             t_end_box.setText(f"{times[1]:.3g}")
 
-        for name in names:
-            n_values = len(distinct[name])
-            tag = f"varies: {n_values} values" if n_values > 1 else f"constant = {next(iter(distinct[name]))}"
-            parameter_box.addItem(f"{name}  [{tag}]", name)
-        # Starts with the first parameter that varies
-        parameter_box.setCurrentIndex(next((i for i, n in enumerate(names) if len(distinct[n]) > 1), 0))
-        plot_box.addItems(available_plot_options(all_groups))
-        if not names or not plot_box.count():
-            status.setText("The files have no parameters or plot options in common.")
+        apply_selection()
 
-    def update_subspecies():
-        # Lists the subspecies of the chosen plot and shows only the menu rows it needs
-        plot = plot_box.currentText()
+    def build_tree(path, files):
+        # One item per folder; the items of the simulations keep the index of their file
+        folder_tree.blockSignals(True)  # so building it does not update the plot at each item
+        folder_tree.clear()
+        root = QtWidgets.QTreeWidgetItem(folder_tree, [os.path.basename(os.path.normpath(path))])
+        items = {(): root}
+        for index, branch in enumerate(tree_branches(path, files)):
+            for depth in range(1, len(branch) + 1):
+                key = tuple(branch[:depth])
+                if key not in items:
+                    items[key] = QtWidgets.QTreeWidgetItem(items[key[:-1]], [branch[depth - 1]])
+            items[tuple(branch)].setData(0, QtCore.Qt.ItemDataRole.UserRole, index)
+            items[tuple(branch)].setToolTip(0, files[index])
+        for item in items.values():
+            # A folder is ticked when all inside it are, and ticking it ticks (or unticks) them all
+            item.setFlags(item.flags() | QtCore.Qt.ItemFlag.ItemIsUserCheckable
+                          | QtCore.Qt.ItemFlag.ItemIsAutoTristate)
+            item.setCheckState(0, QtCore.Qt.CheckState.Checked)
+        folder_tree.expandAll()
+        folder_tree.blockSignals(False)
+
+    def ticked_indices():
+        # Indices (in data['all_files']) of the ticked simulations
+        indices = []
+        iterator = QtWidgets.QTreeWidgetItemIterator(folder_tree)
+        while iterator.value():
+            item = iterator.value()
+            index = item.data(0, QtCore.Qt.ItemDataRole.UserRole)
+            if index is not None and item.checkState(0) == QtCore.Qt.CheckState.Checked:
+                indices.append(index)
+            iterator += 1
+        return sorted(indices)
+
+    def set_all_ticked(ticked):
+        # The "All" and "None" buttons: ticking the top folder ticks everything inside it
+        root = folder_tree.topLevelItem(0)
+        if root is not None:
+            root.setCheckState(0, QtCore.Qt.CheckState.Checked if ticked else QtCore.Qt.CheckState.Unchecked)
+
+    # Ticking a folder changes the state of every item inside it, one signal each: the selection
+    # is applied once, after all of them (a timer of 0 ms runs when Qt has finished with the click)
+    selection_timer = QtCore.QTimer(singleShot=True, interval=0)
+
+    def apply_selection():
+        # Fills the menus with the parameters and plot options of the ticked simulations,
+        # keeping the chosen parameter, plot and subspecies when they are still available
+        indices = ticked_indices()
+        data.update(files=[data['all_files'][i] for i in indices],
+                    attrs=[data['all_attrs'][i] for i in indices],
+                    groups=[data['all_groups'][i] for i in indices])
+        summary = folder_summary(len(indices))
+        if len(indices) < len(data['all_files']):
+            summary += f" selected, of {len(data['all_files'])}"
+        folder_label.setText(f"{os.path.basename(os.path.normpath(data['path']))}: {summary}")
+
+        # The last parameter and plot chosen (also after "None", when the menus were empty)
+        previous_parameter = parameter_box.currentData() or data.get('last_parameter')
+        previous_plot = plot_box.currentData() or data.get('last_plot')
+        data.update(last_parameter=previous_parameter, last_plot=previous_plot)
+        for box in (parameter_box, plot_box):  # refilled without updating the plot at each step
+            box.blockSignals(True)
+            box.clear()
+
+        if indices:
+            names, distinct = common_attributes(data['attrs'])
+            for name in names:
+                n_values = len(distinct[name])
+                tag = f"varies: {n_values} values" if n_values > 1 else f"constant = {next(iter(distinct[name]))}"
+                parameter_box.addItem(f"{name}  [{tag}]", name)
+            # Keeps the previous parameter, otherwise starts with the first one that varies
+            index = parameter_box.findData(previous_parameter)
+            if index < 0:
+                index = next((i for i, n in enumerate(names) if len(distinct[n]) > 1), 0)
+            parameter_box.setCurrentIndex(index)
+            for name in available_plot_options(data['groups']):
+                plot_box.addItem(name, name)  # the name is also the item's data, read by currentData()
+            plot_box.setCurrentIndex(max(plot_box.findData(previous_plot), 0))
+
+        for box in (parameter_box, plot_box):
+            box.blockSignals(False)
+        show_options(bool(indices))
+        update_subspecies(keep_selection=True)
+        if not indices:
+            status.setText("No simulations selected.")
+        elif not parameter_box.count() or not plot_box.count():
+            status.setText("The selected simulations have no parameters in common or nothing to plot.")
+
+    def update_subspecies(keep_selection=False):
+        # Lists the subspecies of the chosen plot and shows only the menu rows it needs;
+        # with keep_selection, the subspecies that were selected and are still listed stay selected
+        plot = plot_box.currentData()
+        previous = ({data['pairs'][subspecies_list.row(item)] for item in subspecies_list.selectedItems()}
+                    if keep_selection else set())
+        subspecies_list.blockSignals(True)  # the plot is updated once, at the end
         subspecies_list.clear()
-        data['pairs'] = list_subspecies(data['files'], plot) if plot in SUBSPECIES_PLOTS else []
+        data['pairs'] = list_subspecies(plot_files(plot)[0], plot) if plot in SUBSPECIES_PLOTS else []
         subspecies_list.addItems([name for _, name in data['pairs']])
+        for row, pair in enumerate(data['pairs']):
+            if pair in previous:
+                subspecies_list.item(row).setSelected(True)
+        subspecies_list.blockSignals(False)
         menu.setRowVisible(subspecies_list, plot in SUBSPECIES_PLOTS)
         menu.setRowVisible(limit_box, plot == 'Particle Balance')
         update_time_rows()
@@ -633,7 +794,7 @@ def gui():
     def update_time_rows():
         # The animation options exist only for Final Densities; the time settings and the
         # save button only while animating
-        densities = plot_box.currentText() == 'Final Densities'
+        densities = plot_box.currentData() == 'Final Densities'
         menu.setRowVisible(animate_check, densities)
         menu.setRowVisible(time_widget, densities and animate_check.isChecked())
         menu.setRowVisible(save_gif_button, densities and animate_check.isChecked())
@@ -646,7 +807,7 @@ def gui():
         data['anim'] = None
         save_gif_button.setEnabled(False)
 
-    def animate_densities(parameter, subspecies):
+    def animate_densities(files, attrs, parameter, subspecies):
         # Builds the animation of the densities with the chosen time settings
         try:
             t_start, t_end = float(t_start_box.text()), float(t_end_box.text())
@@ -655,7 +816,7 @@ def gui():
         instants, message = time_instants(t_start, t_end, n_frames_box.value())
         if instants is None:
             return message
-        frames = read_time_densities(data['files'], data['attrs'], parameter, subspecies, instants)
+        frames = read_time_densities(files, attrs, parameter, subspecies, instants)
         data['anim'], message = make_density_animation(figure, figure.add_subplot(), frames, instants,
                                                        parameter, subspecies)
         save_gif_button.setEnabled(data['anim'] is not None)
@@ -685,22 +846,24 @@ def gui():
 
     def update_plot():
         # Draws the chosen plot as soon as everything it needs is selected
-        parameter, plot = parameter_box.currentData(), plot_box.currentText()
+        parameter, plot = parameter_box.currentData(), plot_box.currentData()
         subspecies = [data['pairs'][subspecies_list.row(item)] for item in subspecies_list.selectedItems()]
-        message = ""
+        message = note = ""
         stop_animation()
         figure.clear()
-        if parameter is not None and subspecies and plot == 'Final Densities' and animate_check.isChecked():
-            message = animate_densities(parameter, subspecies)
-        elif parameter is not None and plot == 'Reduced Field':
-            message = plot_reduced_field(figure.add_subplot(), data['files'], data['attrs'], parameter)
-        elif parameter is not None and subspecies and plot in ('Final Densities', 'Populations'):
-            message = plot_final_densities(figure.add_subplot(), data['files'], data['attrs'], parameter,
-                                           subspecies, populations=(plot == 'Populations'))
-        elif parameter is not None and subspecies and plot == 'Particle Balance':
-            message = plot_particle_balance(figure.add_subplot(), data['files'], data['attrs'], parameter,
-                                            subspecies, limit_box.value())
-        status.setText(message)
+        if parameter is not None and plot is not None and (subspecies or plot == 'Reduced Field'):
+            files, attrs, note = plot_files(plot)
+            if plot == 'Final Densities' and animate_check.isChecked():
+                message = animate_densities(files, attrs, parameter, subspecies)
+            elif plot == 'Reduced Field':
+                message = plot_reduced_field(figure.add_subplot(), files, attrs, parameter)
+            elif plot in ('Final Densities', 'Populations'):
+                message = plot_final_densities(figure.add_subplot(), files, attrs, parameter,
+                                               subspecies, populations=(plot == 'Populations'))
+            elif plot == 'Particle Balance':
+                message = plot_particle_balance(figure.add_subplot(), files, attrs, parameter,
+                                                subspecies, limit_box.value())
+        status.setText(" ".join(text for text in (message, note) if text))
         figure.tight_layout()
         canvas.draw()
         toolbar.update()  # the "Home" button returns to this new plot
@@ -717,6 +880,10 @@ def gui():
         toolbar.update()
 
     folder_button.clicked.connect(open_folder)
+    folder_tree.itemChanged.connect(lambda item, column: selection_timer.start())
+    selection_timer.timeout.connect(apply_selection)
+    all_button.clicked.connect(lambda: set_all_ticked(True))
+    none_button.clicked.connect(lambda: set_all_ticked(False))
     clear_button.clicked.connect(clear_plot)
     save_gif_button.clicked.connect(save_gif)
     animate_check.toggled.connect(update_time_rows)
@@ -732,11 +899,12 @@ def gui():
     t_end_box.editingFinished.connect(lambda: time_edited(t_end_box))
     n_frames_box.valueChanged.connect(update_plot)
     parameter_box.currentIndexChanged.connect(update_plot)
-    plot_box.currentIndexChanged.connect(update_subspecies)
+    plot_box.currentIndexChanged.connect(lambda index: update_subspecies())
     subspecies_list.itemSelectionChanged.connect(update_plot)
     limit_box.valueChanged.connect(update_plot)
 
     show_options(False)  # only the first step until a folder is read
+    menu.setRowVisible(tree_widget, False)
     update_subspecies()  # hides the subspecies and threshold rows until they are needed
     window.resize(1200, 700)
     window.show()
@@ -754,11 +922,11 @@ def command_line():
         print(f"Error: The specified path '{path_data}' does not exist.")
         sys.exit(1)
 
-    readable_files, all_attrs, all_groups = read_folder(path_data)
+    readable_files, all_attrs, all_groups, _ = read_folder(path_data)
     if not readable_files:
-        print("No readable .h5 files found.")
+        print(f"No chemistry simulations with .h5 files found in '{path_data}'.")
         sys.exit(1)
-    print(f"Found {len(readable_files)} .h5 file(s).")
+    print(f"Found {folder_summary(len(readable_files))}.")
 
     # --- Parameter for the x-axis ---
     names, distinct = common_attributes(all_attrs)
@@ -779,11 +947,16 @@ def command_line():
     plot_options = available_plot_options(all_groups)
     if not plot_options:
         print("None of the plot options (Reduced Field, Final Densities, Populations, Particle Balance) "
-              "is available in all the files.")
+              "is available in the files.")
         sys.exit(1)
 
     plot = plot_options[ask_choice("What do you want to plot (y axis)?", plot_options)]
     print(f"\nSelected plot: {plot}")
+
+    # From here on, only the files with the data of the chosen plot are used
+    readable_files, all_attrs, note = files_for_plot(plot, readable_files, all_attrs, all_groups)
+    if note:
+        print(note)
 
     selected_subspecies = []
     if plot in SUBSPECIES_PLOTS:
