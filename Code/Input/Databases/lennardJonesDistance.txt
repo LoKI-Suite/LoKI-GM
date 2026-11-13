@@ -1,38 +1,53 @@
-% Data for neutral transport calculations: Lennard Jones potential distance
+% Data for neutral transport calculations: Lennard-Jones potential distance
 % 
 % Data obtained from:
+% TRANSPORT
 % R. J. Kee, F. M. Rupley, J. A. Miller, M. E. Coltrin, J. F. Grcar, E. Meeks, H. K. Moffat, 
-% A. E. Lutz, G. DixonLewis, M. D. Smooke, J. Warnatz, G. H. Evans, R. S. Larson, 
-% R. E. Mitchell, L. R. Petzold, W. C. Reynolds, M. Caracotsios, W. E. Stewart, P. Glarborg, 
-% C. Wang, and Ola Adigun, CHEMKIN Collection, Release 3.6, 
-% Reaction Design, Inc., San Diego, CA (2000). 
+%  A. E. Lutz, G. Dixon-Lewis, M. D. Smooke, J. Warnatz, G. H. Evans, R. S. Larson, R. E. Mitchell, 
+%  L. R. Petzold, W. C. Reynolds, M. Caracotsios, W. E. Stewart, P. Glarborg, C. Wang, and Ola Adigun
+% CHEMKIN Collection, Release 3.6, Reaction Design, Inc., San Diego, CA (2000). 
 %
-% In order to change to SI units (from angstrom) use:
-%                       sigma(m) = sigma(angstrom)*1e-10
+% The following conversion was used to change from angstrom (A) to SI units (m)
+%   sigma(m) = sigma(angstrom)*1e-10
 
+Ar         3.330*1e-10
+Ar2        3.330*1e-10 % assumed value
+C          3.298*1e-10
+C2	   3.621*1e-10
+CF4	   4.662*1e-10
+CH4	   3.746*1e-10
+CO         3.650*1e-10
+CO2        3.763*1e-10
+F          2.750*1e-10
+F2         3.301*1e-10
+H	   2.050*1e-10
+H2	   2.920*1e-10
+H2O	   2.605*1e-10
+H3	   2.920*1e-10 % assumed value
+He         2.576*1e-10
+He2        2.576*1e-10 % assumed value
 N          3.298*1e-10
 N2         3.621*1e-10
-N3         3.621*1e-10
-N4         3.621*1e-10
-N2H        3.621*1e-10
+N2H        3.798*1e-10
 N2H2       3.798*1e-10
 N2H3       3.900*1e-10
 N2H4       4.230*1e-10
-NH4        2.920*1e-10
-NH3        2.920*1e-10
-NH2        2.650*1e-10
+N2O        3.828*1e-10
+N3         3.621*1e-10 % assumed value
+N4         3.621*1e-10 % assumed value
 NH         2.650*1e-10
+NH2        2.650*1e-10
+NH3        2.920*1e-10
+NH4        2.920*1e-10 % assumed value
 NO         3.621*1e-10
 NO2        3.500*1e-10
 O          2.750*1e-10
 O2         3.458*1e-10
 O3         4.100*1e-10
-C          3.298*1e-10
-CO         3.650*1e-10
-CO2        3.763*1e-10
-He         2.576*1e-10
-Ar         3.330*1e-10
-He2        2.576*1e-10 % assumed value
-H	   2.050*1e-10
-H2	   2.920*1e-10
-H3	   2.920*1e-10
+OH         2.750*1e-10
+Si         2.910*1e-10
+SiH        3.662*1e-10
+SiH2       3.803*1e-10
+SiH3       3.943*1e-10
+SiH4       4.084*1e-10
+
