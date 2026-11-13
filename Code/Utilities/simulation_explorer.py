@@ -34,13 +34,21 @@ __version__ = 'Revision: 0.3.0'
 import argparse
 import os
 import re
+import shutil
 import sys
+import textwrap
 
 import numpy as np
 import h5py
 import matplotlib.pyplot as plt
 from matplotlib import animation
 
+
+# Shown when the tool starts: in the terminal before anything is asked, in the window at the
+# bottom left, and in --help
+INTRO_TEXT = ("This is a tool to plot the outputs of LoKI-GM simulations, representing the results "
+              "as a function of the working condition parameters common to all of them. The selected "
+              "folder should contain chemistry simulations, with their .h5 output files.")
 
 PLOT_OPTIONS = [
     ('Reduced Field', '/electronKinetics/reducedField'),
@@ -532,13 +540,13 @@ def gui():
 
     menu_widget = QtWidgets.QWidget()
     menu_widget.setFixedWidth(300)  # so it does not change when rows are shown or hidden
-    menu = QtWidgets.QFormLayout(menu_widget)
+    menu = QtWidgets.QFormLayout()
     menu.setContentsMargins(0, 0, 0, 0)
     menu.setRowWrapPolicy(QtWidgets.QFormLayout.RowWrapPolicy.WrapAllRows)  # labels above the widgets
     menu.addRow(folder_button)
     menu.addRow(folder_label)
     menu.addRow("Parameter (x axis)", parameter_box)
-    menu.addRow("Plot", plot_box)
+    menu.addRow("Plot (y axis)", plot_box)
     menu.addRow("Subspecies", subspecies_list)
     menu.addRow("Show reactions above", limit_box)
     menu.addRow(animate_check)
@@ -546,6 +554,14 @@ def gui():
     menu.addRow(save_gif_button)
     menu.addRow(clear_button)
     menu.addRow(status)
+
+    # The introduction stays at the bottom of the menu; the menu above takes the free space
+    intro_label = QtWidgets.QLabel(INTRO_TEXT, wordWrap=True)
+    intro_label.setForegroundRole(QtGui.QPalette.ColorRole.PlaceholderText)  # grey, in light and dark themes
+    menu_column = QtWidgets.QVBoxLayout(menu_widget)
+    menu_column.setContentsMargins(0, 0, 0, 0)
+    menu_column.addLayout(menu, stretch=1)
+    menu_column.addWidget(intro_label)
 
     figure = Figure()
     canvas = FigureCanvasQTAgg(figure)
@@ -560,6 +576,11 @@ def gui():
 
     data = {'files': [], 'attrs': [], 'pairs': [], 'path': '', 'anim': None}
 
+    def show_options(loaded):
+        # The options are shown only once a folder is read and there are files to plot
+        for widget in (parameter_box, plot_box, clear_button):
+            menu.setRowVisible(widget, loaded)
+
     def open_folder():
         # Reads the chosen folder and fills the menus with its parameters and plot options
         path = QtWidgets.QFileDialog.getExistingDirectory(window, "Select the folder with the simulations")
@@ -572,6 +593,7 @@ def gui():
         names, distinct = common_attributes(all_attrs)
         data.update(files=files, attrs=all_attrs, path=path)
         folder_label.setText(f"{os.path.basename(path)}: {len(files)} .h5 file(s)")
+        show_options(True)
         plt.rcParams['savefig.directory'] = path  # where the save dialog starts
 
         plot_box.clear()  # first, so nothing is plotted while the parameters are refilled
@@ -714,6 +736,7 @@ def gui():
     subspecies_list.itemSelectionChanged.connect(update_plot)
     limit_box.valueChanged.connect(update_plot)
 
+    show_options(False)  # only the first step until a folder is read
     update_subspecies()  # hides the subspecies and threshold rows until they are needed
     window.resize(1200, 700)
     window.show()
@@ -723,6 +746,9 @@ def gui():
 def command_line():
     # Asks the same questions in the terminal (e.g. over ssh, where there is no display)
     # and then shows the figure in a window or saves it to a file
+    # Wrapped to the terminal width (at most 90 columns; 80 if it cannot be detected, e.g. when piped)
+    width = min(90, shutil.get_terminal_size().columns)
+    print(textwrap.fill(INTRO_TEXT, width=width) + "\n")
     path_data = input("Path to simulations folder: ").strip().strip('"')
     if not os.path.isdir(path_data):
         print(f"Error: The specified path '{path_data}' does not exist.")
@@ -746,7 +772,7 @@ def command_line():
         tag = f"varies: {n_values} values" if n_values > 1 else f"constant = {next(iter(distinct[name]))}"
         labels.append(f"{name}  [{tag}]")
 
-    parameter = names[ask_choice("Should we represent in function of which parameter?", labels)]
+    parameter = names[ask_choice("Which parameter would you like to plot against (x axis)?", labels)]
     print(f"\nSelected parameter: {parameter}")
 
     # --- What to plot ---
@@ -756,7 +782,7 @@ def command_line():
               "is available in all the files.")
         sys.exit(1)
 
-    plot = plot_options[ask_choice("What do you want to plot?", plot_options)]
+    plot = plot_options[ask_choice("What do you want to plot (y axis)?", plot_options)]
     print(f"\nSelected plot: {plot}")
 
     selected_subspecies = []
@@ -841,7 +867,7 @@ def command_line():
 
 if __name__ == "__main__":
 
-    parser = argparse.ArgumentParser(description="Explorer for simulation results stored in HDF5 (.h5) files.")
+    parser = argparse.ArgumentParser(description=INTRO_TEXT)
     parser.add_argument('--cli', action='store_true',
                         help="ask the questions in the terminal instead of opening a window (e.g. over ssh)")
     args = parser.parse_args()
