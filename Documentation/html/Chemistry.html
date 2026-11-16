@@ -1,0 +1,416 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<META http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+<title>Chemistry</title>
+<link rel="schema.DC" href="http://purl.org/dc/elements/1.1/">
+<meta name="DC.date" content="2025-03-16">
+<link rel="stylesheet" type="text/css" href="loki.css">
+</head>
+<body>
+<div class="content">
+<h2 id="3">3.3 Chemistry</h2>
+<p>In this field of the setup file the user can define all the details related
+with the kinetic scheme, <i>i.e.</i> with the configuration of the LoKI-C module. The
+code below shows the section of the <tt>'default_lokibc_setup.in'</tt> file that
+handles this configuration.</p>
+<pre class="codeinput">
+<span class="comment">% --- configuration of the  heavy-species for the kinetic scheme ---</span>
+<span class="typesection">chemistry</span>:
+  <span class="keyword">isOn</span>:  true
+  <span class="keyword">convergenceParameter</span>: <span class="string">electronDensity</span>     <span class="comment">%  electronDensity or dischargeCurrent or dischargePowerDensity</span>
+  <span class="keyword">thermalModel</span>:
+    <span class="keyword">isOn</span>: true                              <span class="comment">% true or false (to activate or deactivate the thermal model)</span>
+    <span class="keyword">boundary</span>: <span class="string">wall</span>                          <span class="comment">% wall or external (location of the model boundary condition)</span>
+    <span class="keyword">wallFraction</span>: 1                         <span class="comment">% fraction of energy released at the wall that returns</span>
+                                            <span class="comment">% to the gas/plasma volume (check fw parameter in the documentation)</span>
+    <span class="keyword">intConvCoeff</span>: 120/1.6021766208e-19      <span class="comment">% in eV s-1 m-2 K-1</span>
+                                            <span class="comment">% (internal convection coefficient of the cylindrical wall)</span>
+    <span class="keyword">extConvCoeff</span>: 15/1.6021766208e-19       <span class="comment">% in eV s-1 m-2 K-1</span>
+                                            <span class="comment">% (external convection coefficient of the cylindrical wall)</span>
+    <span class="keyword">includeJouleHeating</span>: false
+  <span class="keyword">chemFiles</span>:
+    - <span class="string">Nitrogen/nitrogen_mod.chem</span>
+  <span class="keyword">checkChemFilesStoichiometry:</span> true         <span class="comment">% true or false</span>
+                                            <span class="comment">% (to activate or deactivate stoichiometry check in chem files)</span>
+  <span class="keyword">gasProperties</span>:                            <span class="comment">% inherited from the configuration of the electron kinetics</span>
+    <span class="keyword">mass</span>: <span class="string">Databases/masses.txt</span>
+    <span class="keyword">heatCapacity</span>:                           <span class="comment">% in eV K-1 mol-1 (heat capacity functions at constant pressure)</span>
+      - N2 = <span class="function">nitrogenHeatCapacity</span>
+      - N = <span class="function">nitrogenHeatCapacity</span>
+      - N3 = <span class="function">nitrogenHeatCapacity</span>
+      - N4 = <span class="function">nitrogenHeatCapacity</span>
+    <span class="keyword">thermalConductivity</span>:                    <span class="comment">% in eV s-1 m-1 K-1 (thermal conductivity functions)</span>
+      - N2 = <span class="function">nitrogenThermalConductivity</span>
+      - N = <span class="function">nitrogenThermalConductivity</span>
+      - N3 = <span class="function">nitrogenThermalConductivity</span>
+      - N4 = <span class="function">nitrogenThermalConductivity</span>
+    <span class="keyword">inFlowFraction</span>:
+      - N2 = 1
+    <span class="keyword">stateProperties</span>:
+      <span class="keyword">energy</span>:
+        - N2(X,v=*) = <span class="function">morseOscillatorEnergy</span>
+      <span class="keyword">statisticalWeight</span>:
+        - N2(X,v=*) = 1.0
+      <span class="keyword">population</span>:
+        - N2(X) = 1.0
+        - N(4S) = 1.0
+      <span class="keyword">inFlowPopulation</span>:
+        - N2(X) = 1
+        - N2(X,v=0) = 1
+      <span class="keyword">reducedDiffCoeff</span>:
+        - N2(A3Su+) = <span class="function">generalizedTemperatureDependentCoeff</span>@5.0e20/sqrt(300),gasTemperature,0.5
+        - N2(B3Pg) = <span class="function">generalizedTemperatureDependentCoeff</span>@5.0e20/sqrt(300),gasTemperature,0.5
+        - N2(C3Pu) = <span class="function">generalizedTemperatureDependentCoeff</span>@5.0e20/sqrt(300),gasTemperature,0.5
+        - N2(a1Pg) = <span class="function">generalizedTemperatureDependentCoeff</span>@5.0e20/sqrt(300),gasTemperature,0.5
+        - N2(a'1Su-) = <span class="function">generalizedTemperatureDependentCoeff</span>@5.0e20/sqrt(300),gasTemperature,0.5
+        - N2(w1Du) = <span class="function">generalizedTemperatureDependentCoeff</span>@5.0e20/sqrt(300),gasTemperature,0.5
+        - N2(+,X) = <span class="function">generalizedTemperatureDependentCoeff</span>@1.7e20/sqrt(273),gasTemperature,0.5
+        - N2(+,B2Su+) = <span class="function">generalizedTemperatureDependentCoeff</span>@1.7e20/sqrt(273),gasTemperature,0.5
+        - N3(+,X) = <span class="function">generalizedTemperatureDependentCoeff</span>@1.7e20/sqrt(273),gasTemperature,0.5
+        - N4(+,X) = <span class="function">generalizedTemperatureDependentCoeff</span>@1.7e20/sqrt(273),gasTemperature,0.5
+        - N(2D) = <span class="function">generalizedTemperatureDependentCoeff</span>@6.4e20/sqrt(300),gasTemperature,0.5
+        - N(2P) = <span class="function">generalizedTemperatureDependentCoeff</span>@5.2e20/sqrt(300),gasTemperature,0.5
+        - N(+,gnd) = <span class="function">generalizedTemperatureDependentCoeff</span>@1.7e20/sqrt(273),gasTemperature,0.5
+      <span class="keyword">reducedMobility</span>:
+        - N2(+,X) = 1.87e-4*101325/(273*1.38064852e-23)
+        - N2(+,B2Su+) = 1.87e-4*101325/(273*1.38064852e-23)
+        - N3(+,X) = 1.87e-4*101325/(273*1.38064852e-23)
+        - N4(+,X) = 2.33e-4*101325/(273*1.38064852e-23)
+        - N(+,gnd) = 1.87e-4*101325/(273*1.38064852e-23)
+      <span class="comment">% flowBarrier:        % flow barrier (factor between 0-1; by default is set = 1)</span>
+      <span class="comment">%   - N2(A3Su+) = 0.05</span>
+      <span class="comment">%   - N2(X,v=0) = 0.1</span>
+      <span class="keyword">iterationSchemes</span>:
+        <span class="comment">% pressureRelError: 1e-5</span>
+        <span class="keyword">pressureMaxIterations</span>: 1000
+        <span class="comment">% neutralityRelError</span>: 1e-5
+        <span class="keyword">neutralityMaxIterations</span>: 500
+        <span class="comment">% globalRelError</span>: 1e-4
+        <span class="keyword">globalMaxIterations</span>: 100
+      <span class="keyword">timeIntegrationConf</span>:
+        <span class="keyword">odeSolver</span>: <span class="string">ode15s</span>
+        <span class="keyword">dischargeTime</span>: 10
+        <span class="keyword">postDischargeTime</span>: 0
+        <span class="keyword">odeSetParameters:   <span class="comment">% optional parameters that can be sent to the odeSolver</span>
+<span class="keyword">          MaxStep: 0.1
+<span class="keyword">          RelTol: 5e-4
+<span class="comment">%          AbsTol: 1e-10
+</pre>
+<p>
+<b>IMPORTANT NOTES:</b>
+</p>
+<div>
+<ul>
+<li>The <span class="keyword">isOn</span> allows the user to activate (<tv>true</tv>) or deactivate (<tv>false</tv>)
+the chemistry simulations of LoKI-C.</li>
+<li>LoKI-C supports three types of experimental input conditions for <i>steady-state simulations</i>, through
+<span class="keyword">convergenceParameter</span>: <tv>electronDensity</tv>, <tv>dischargeCurrent</tv> and <tv>dischargePowerDensity</tv>.<br>
+<br>
+When selecting <tv>electronDensity</tv>, the quasi-neutrality cycle of the code iterates over <em>E/N</em> to satisfy
+the neutrality condition
+<math><mrow><msub><mo movablelimits="false">∑</mo><mrow><mi>k</mi><mo>=</mo><mpadded lspace="0"><mi>ion</mi></mpadded></mrow></msub><msub><mi>n</mi><mi>k</mi></msub><mo>=</mo><msub><mi>n</mi><mi>e</mi></msub></mrow></math>, for given electron density <i>n<sub>e</sub></i>.<br>
+When selecting <tv>dischargeCurrent</tv>, the quasi-neutrality cycle of the code iterates over <i>E/N</i> and <i>n<sub>e</sub></i> to
+satisfy the neutrality condition
+<math><mrow><msub><mo movablelimits="false">∑</mo><mrow><mi>k</mi><mo>=</mo><mpadded lspace="0"><mi>ion</mi></mpadded></mrow></msub><msub><mi>n</mi><mi>k</mi></msub><mo>=</mo><msub><mi>n</mi><mi>e</mi></msub></mrow></math>, for given electron density <i>n<sub>e</sub></i>, for given discharge current
+<math><mrow><mi>I</mi><mo>=</mo><mi>e</mi><msub><mi>n</mi><mi>e</mi></msub><msub><mi>μ</mi><mi>e</mi></msub><mi>E</mi><mi>π</mi><msup><mi>R</mi><mn class="tml-med-pad">2</mn></msup></mrow></math>.<br>
+When selecting <tv>dischargePowerDensity</tv>, the quasi-neutrality cycle of the code iterates over <i>E/N</i> and <i>n<sub>e</sub></i>
+to satisfy the neutrality condition
+<math><mrow><msub><mo movablelimits="false">∑</mo><mrow><mi>k</mi><mo>=</mo><mpadded lspace="0"><mi>ion</mi></mpadded></mrow></msub><msub><mi>n</mi><mi>k</mi></msub><mo>=</mo><msub><mi>n</mi><mi>e</mi></msub></mrow></math>, for given discharge power density
+<math><mrow><mi>P</mi><mi>/</mi><mi>V</mi><mo>=</mo><mi>e</mi><msub><mrow><mi mathvariant="normal">Θ</mi><mspace></mspace></mrow><mi>E</mi></msub><msub><mi>n</mi><mi>e</mi></msub></mrow></math>.<br>
+<br>
+For <em>steady-state simulations</em>, the user <b>MUST</b> define in the <span class="keyword">workingConditions</span> the values of one of
+the convergence parameters: <tv>electronDensity</tv>, <tv>dischargeCurrent</tv> or <tv>dischargePowerDensity</tv>.<br>
+For <em>quasi-stationary simulations</em> and <em>post-discharge simulations</em>, the user <b>MUST</b> define in the <span class="keyword">Working
+Conditions</span> the value of the <tv>electronDensity</tv>, which is taken as an initial value in these time-dependent simulations.
+(see section <a href="Getting_started.html#5">2.5</a>). For more details please check the Reference Manual [<a href="References.html#R11">11</a>])
+</li>
+<li>In <span class="keyword">thermalModel</span> the user can specify relevant details for the
+configuration of the thermal model:
+  <ul>
+  <li> <span class="keyword">isOn</span> allows the user to activate (<tv>true</tv>) or deactivate (<tv>false</tv>) the
+  thermal model calculations in LoKI-C.<br>
+  When the thermal model is activated the user <b>MUST</b> define in the <span class="keyword">workingConditions</span>
+  the <tt>gasTemperature</tt> and one of the boundary condition parameters:
+  <tt>wallTemperature</tt> for the wall boundary condition or <tt>extTemperature</tt> for the external boundary condition
+  (see section <a href="Working_conditions.html#1">3.1</a>).</li>
+  <li><span class="keyword">boundary</span> allows the user to specify the boundary
+  condition of the thermal model, <span class="string">wall</span> or <span class="string">external</span>
+  (see Reference Manual [<a href="References.html#R11">11</a>]);</li>
+  <li><span class="keyword">wallFraction</span> corresponds to the parameter <i>f<sub>w</sub></i> (see
+  Reference Manual [<a href="References.html#R11">11</a>]), representing the fraction of the enthalpy-exchange in wall-reactions
+  that returns to the gas/plasma volume.<br>
+  Note that this parameter is automatically <b>SET TO ZERO</b> by LoKI, for the
+  external boundary condition.</li>
+  <li><span class="keyword">intConvCoeff</span> corresponds to the convection parameter
+  <i>h<sub>int</sub> > 0</i>, in the inner region near the tube wall.<br>
+  To choose <i>h<sub>int</sub> ≫ 1</i> the user should set <span class="keyword">intConvCoeff</span> = inf.</li>
+  <li><span class="keyword">extConvCoeff</span> corresponds to the convection parameter
+  <i>h<sub>ext</sub> > 0</i>, in the region outside the cylindrical wall (used with
+  the external boundary condition only).<br>
+  To choose <i>h<sub>ext</sub> ≫ 1</i> the user should set <span class="keyword">extConvCoeff</span> = inf.</li>
+  <li>The <span class="keyword">includeJouleHeating</span> allows the user to activate (<tv>true</tv>) or deactivate (<tv>false</tv>)
+  a thermal source term corresponding to the total power transferred from the applied electric field to the electrons, as
+  calculated by LoKI-B.<br>
+  Note that when this option is enabled, all other source terms in the thermal balance equation are
+  automatically <b>SET TO ZERO</b>.</li>
+  </ul>
+</li>
+<li>The <span class="keyword">chemFiles</span> allows the user to specify the text files with the description of the
+kinetic scheme to adopt, namely the reactions, the gases and the states of those gases to be included in the simulations; see
+section <a href="Auxiliary_input_files.html#3">4.3</a> for more information.</li>
+<li> The <span class="keyword">checkChemFilesStoichiometry</span> allows the user to activate (<tv>true</tv>) or
+deactivate (<tv>false</tv>) a stoichiometry check in the chemistry files with the description of the kinetic scheme.</li>
+<li> For <i>quasi-stationary simulations</i>, the chemistry configuration <b>MUST</b> include an extra field
+<span class="keyword">lookUpTables</span>, with several subfields (see section <a href="Getting_started.html#5">2.5</a>)
+  <ul>
+  <li><tt>power</tt>, <tt>swarm</tt>, <tt>rateCoeff</tt>, pointing to the corresponding lookup-table files;</li>
+  <li><tt>lookUpMethod</tt>, which allows the user to choose the <tv>localField</tv> or <tv>localEnergy</tv> method
+  to interpolate the electron parameters from the lookup tables (see more details in Reference Manual [<a href="References.html#R11">11</a>]).</li>
+  </ul>
+The Code shows an example of configuration for the parameter <tt>lookUpTables</tt>.
+<pre class="codeinput">
+<span class="keyword">lookUpTables:</span>
+  <span class="keyword">power:</span> <span class="string">Nitrogen_pulsed/lookUpTablePower.txt</span>
+  <span class="keyword">swarm:</span> <span class="string">Nitrogen_pulsed/lookUpTableSwarm.txt</span>
+  <span class="keyword">rateCoeff:</span> <span class="string">Nitrogen_pulsed/lookUpTableRateCoeff.txt</span>
+  <span class="keyword">lookUpMethod</span> <span class="string">localField</span>  <span class="comment">% localField or localEnergy </span>
+</pre>
+
+Note the following:
+  <ul>
+  <li>the header names in the lookup tables <b>MUST</b> correspond exactly to
+    <ul>
+    <li> RedField(Td) in all lookup tables;</li>
+    <li>EleTemp(eV), RedMob((msV)^-1), RedDiff((ms)^-1) and DriftVelocity(ms^-1) in the
+    lookUpTableSwarm.txt;</li>
+    <li>RID_ine(m^3s^-1) and RID_sup(m^3s^-1), with ID= 1, 2, 3, · · · in the lookUpTableRateCoeff.txt;</li>
+    <li>PowerField(eVm^3s^-1), PwrElaNet(eVm^3s^-1), PwrCARNet(eVm^3s^-1), PwrVibNet(eVm^3s^-1)
+    and PwrRotNet(eVm^3s^-1) in the lookUpTablePower.txt;</li>
+    </ul>
+  </li>
+  <li>the lookup table <span class="string">lookUpTableRateCoeff.txt</span> begins with a
+  header listing the ID and the Description of the reactions associated with the rate coefficients
+  and extra rate coefficients provided in the table. The electron-impact reactions specified
+  in this header <b>MUST</b> correspond exactly to those defined in the chemistry file.</li>
+  <li> the different lookup tables must be generated consistently, <i>i.e.</i>, using the same
+  number and values of the reduced electric field.</li>
+  </ul>
+  </li>
+
+<li>In <span class="keyword">gasProperties</span> the user can specify the relevant properties of the different gases
+contributing with heavy species to the chemistry simulations, such as<br>
+<tt>mass</tt><br>
+<tt>fraction</tt><br>
+<tt>harmonicFrequency</tt><br>
+<tt>anharmonicFrequency</tt><br>
+...<br>
+This field is equivalent, in every aspect, to the one described in section <a href="The_setup_file.html#2">3.2</a>,
+hence all the considerations mentioned there apply here. Note, however, the existence of several specific properties
+in LoKI-C:
+  <ul>
+  <li><span class="keyword">heatCapacity</span> allows defining the molar specific heat at constant pressure
+  (C<sub>k</sub> ; see Reference Manual [<a href="References.html#R11">11</a>]) of the different
+  (atomic/molecular) gases involved in the simulations;</li>
+  <li><span class="keyword">thermalConductivity</span> allows defining the thermal conductivities (λ<sub>k</sub>;
+  see Reference Manual [<a href="References.html#R11">11</a>]) of the different  (atomic/molecular) gases
+  involved in the simulations;</li>
+  <li><span class="keyword">inFlowTraction</span> allows defining the inflow fractions of the different
+  gases in the mixture. This parameter should add to 1, when summed over all gases used in the simulations.</li>
+  </ul>
+The first two properties (to be evaluated in SI units) are <b>mandatory</b> if the thermal model is activated.
+The last property is <b>mandatory</b> if the <span class="keyword">totalSccmInFlow</span> defined in the
+<span class="keyword">workingConditions</span>, is different from zero.<br>
+Please note that, when running both LoKI-B and LoKI-C, the species present in LoKI-C <b>may or may not</b>
+coincide with the species present in LoKI-B. Furthermore, when LoKI-B and LoKI-C share the same
+species, their properties <b>may or may not</b> coincide in both codes. For these reasons, the following rules
+apply to this field:
+  <ul>
+  <li><ins style="text-decoration:underline;">When running both modules (LoKI-B and LoKI-C)</ins> the
+  <span class="keyword">gasProperties</span> subfield of the <span class="keyword">chemistry</span> field is
+  <b>optional</b>. By default, the properties of the gases present in the LoKI-C simulation are inherited from
+  those dened in the <span class="keyword">electronKinetics</span> field. However, the user <b>can</b> fill
+  the <span class="keyword">gasProperties</span> subfield of the chemistry field if they needs to: (i) override
+  the values provided in the <span class="keyword">electronKinetics</span> configuration, for the LoKI-C
+  calculations; and/or (ii) provide values for the properties of gases that are not present in the LoKI-B
+  calculations (e.g., <span class="keyword">heatCapacity</span>, <span class="keyword">thermalConductivity</span>)
+  and <span class="keyword">inFlowFraction</span>.</li>
+  <li><ins style="text-decoration:underline;">When running LoKI-C as standalone tool</ins> the <span class="keyword">gasProperties</span>
+  subfield of the <span class="keyword">chemistry</span> field is <b>mandatory</b>. In particular, it is mandatory
+  to provide the <tt>fraction</tt> property for each gas present in the
+  simulations.</li>
+  </ul>
+</li>
+<li>In <span class="keyword">stateProperties</span> the user can specify the properties of the states of the
+different gases contributing with heavy species to the chemistry simulations. The properties available are<br>
+<tt>energy</tt><br>
+<tt>statisticalWeight</tt><br>
+<tt>population</tt><br>
+<tt>reducedDiffCoeff</tt><br>
+<tt>reducedMobility</tt><br>
+<tt>flowBarrier</tt><br>
+This field is equivalent, in every aspect, to the one described in section <a href="Electron_kinetics.html">3.2</a>,
+hence all the considerations mentioned there apply here. Note, however, the existence of several new properties
+that are important for the implementation in LoKI-C of the transport losses. In particular
+  <ul>
+  <li><span class="keyword">inFlowPopulation</span> allows defining the inflow populations of the different
+  parent-states of the inflow gases in the mixture. The values of the different inflow populations should
+  be properly normalized to 1, when summed over all sibling states.<br>
+  This property is <b>mandatory</b> if the <span class="keyword">totalSccmInFlow</span>, defined in the
+  <span class="keyword">workingConditions</span>, is different from zero;</li>
+  <li><span class="keyword">flowBarrier</span> is a parameter between 0-1 (with default value 1), which allows
+  controlling the outflow of each state of the different gases in the mixture (see Reference Manual
+  [<a href="References.html#R10">10</a>]).<br>
+  This property is used only if the <span class="keyword">totalSccmOutFlow</span> is different from zero, as
+  defined in the working Conditions;</li>
+  <li><span class="keyword">reducedDiffCoeff</span> allows defining the reduced diffusion coefficients
+  (<em>D<sub>k<sub>i</sub></sub></em><sub>, parent of k<sub>i</sub></sub> for neutrals and
+   <em>D<sub>i<sub>p</sub></sub></em> for ions; see Reference Manual [<a href="References.html#R11">11</a>])
+  of the different (atomic/molecular) states involved in the simulations;</li>
+  <li><span class="keyword">reducedMobility</span> allows defining the reduced mobilities (<em>μ<sub>ip</sub></em>
+  for ions; see Reference Manual [<a href="References.html#R11">11</a>]) of the different (atomic/molecular) states
+  involved in the simulations.</li>
+  </ul>
+  The last two properties (to be evaluated in SI units) are <b>mandatory</b> for those states exhibiting transport
+  losses, and can be specified by using the "direct input" method<br>
+  <pre class="codeinput">
+   - N2(+,X) = 1.87e-4*101325/(273*1.38064852e-23)</pre>
+  or the "property function" method
+  <pre class="codeinput">
+   - N2(+,X) = <span class="function">generalizedTemperatureDependentCoeff</span>@1.7e20/sqrt(273),gasTemperature,0.5</pre>
+Note further that, when running both LoKI-B and LoKI-C, the species present in LoKI-C <b>may or may not</b>
+coincide with the species present in LoKI-B. Furthermore, when LoKI-B and LoKI-C share the same
+species, their properties may or may not coincide in both codes. For these reasons, the following rules
+apply to this field:
+  <ul>
+  <li><ins style="text-decoration:underline;">When running both modules (LoKI-B and LoKI-C)</ins> the
+  <span class="keyword">stateProperties</span> subfield of
+  the chemistry field is <b>optional</b>. By default, the properties of the gases present in the LoKI-C simulation
+  are inherited from those defined in the <span class="keyword">electronKinetics</span> field. However, the user
+  can fill the <span class="keyword">stateProperties</span> subfield of the chemistry field if he/she needs to:
+    (i) override the values provided in the <span class="keyword">electronKinetics</span> configuration, for the
+    LoKI-C calculations; and/or (ii) provide values for the properties of gases that are not present in the LoKI-B
+    calculations (e.g., <span class="keyword">reducedDiffCoeff</span>, <span class="keyword">reducedMobility</span>
+  and <span class="keyword">inFlowPopulation</span>).</li>
+    <li><ins style="text-decoration:underline;">When running LoKI-C as standalone tool</ins> the
+    <span class="keyword">stateProperties</span> subfield of the chemistry field is mandatory. In particular, it
+    is mandatory to provide the population property for each state present in the simulations.</li>
+  </ul>
+  <p>Note finally that, in <i>quasi-stationary simulations</i> the user <b>MUST</b> define the <tt>population</tt>
+  of the different ion states consistent with the value used for <tt>electronDensity</tt> in the
+  <span class="keyword">workingConditions</span>, such that
+  <math><mrow><mrow><mo fence="true" form="prefix" stretchy="true">(</mo><msub><mo movablelimits="false">∑</mo><mi>k</mi></msub><msub><mi>χ</mi><mi>k</mi></msub><msub><mo movablelimits="false">∑</mo><mrow><mi>i</mi><mo>=</mo><mpadded lspace="0"><mi>ion</mi></mpadded></mrow></msub><msub><mi>δ</mi><msub><mi>k</mi><mi>i</mi></msub></msub><mo fence="true" form="postfix" stretchy="true">)</mo></mrow><mi>N</mi><mo>=</mo><msub><mi>n</mi><mi>e</mi></msub></mrow></math>
+  (see section <a href="Getting_started.html#5">2.5</a>).
+  </p>
+
+<p>In simulations using the LoKI-GM, the user can define <b>different initial populations</b> for LoKI-B (on
+the <span class="keyword">electronKinetics)</span> and LoKI-C (on the <span class="keyword">chemistry</span>,
+see section <a href="Chemistry.html">3.3</a>). In this case, the following should be noted. At the
+beginning of the simulation, LoKI checks the normalization of the populations of both, the states considered
+as targets of electron-scattering mechanisms (termed <em>LoKI-B states</em>) and the states included in the
+chemistry scheme (termed <em>LoKI-C states</em>). After the evaluation of the densities by the chemistry
+model, and before returning to the electron kinetics calculations, LoKI renormalizes the populations of
+<em>LoKI-B states</em> to the total density of the states that are simultaneously <em>LoKI-B states</em> and
+<em>LoKI-C states</em>. Therefore:
+  <ul>
+  <li>in the <span class="keyword">electronKinetics</span>, all <em>LoKI-B states</em> with non-zero populations
+  should be also <em>LoKI-C states</em>. The exception are <em>complete distributions of sibling states</em>
+  (<i>e.g.</i> the rotational distribution of a vibrational ground-state), which can be targets of
+  electron-scattering mechanisms, being absent from the chemistry scheme;</li>
+  <li>in the <span class="keyword">electronKinetics</span>, non-zero populations are allowed for
+  <em>LoKI-B states</em> only. In response to this requirement, the distribution of LoKI includes some property
+  functions with truncated distributions (<i>e.g.</i> <tt>boltzmannPopulationRotationalCutoff</tt> and
+  <tt>boltzmannPopulationVibrationalCutoff</tt>, see section <a href="Auxiliary_functions.html#1">5.1</a>),
+  which allow the user to define normalized populations for a subset of the states involved in the complete
+  distribution.</li>
+  </ul>
+If the previous items are not taken into account by the user, the codes produces an error.</p>
+<p><b>The user is advised to initialize the populations of</b> <em>LoKI-B states</em> <b>and</b>
+<em>LoKI-C states</em> <b>adopting distributions collapsed to the corresponding ground-states.</b></p>
+</li>
+<li>In <span class="keyword">iterationSchemes</span> the user can specify the numerical details for the
+different cycles implemented in LoKI-C (<tt>pressure cycle</tt>, <tt>neutrality cycle</tt> and <tt>global
+cycle</tt>). For each cycle, the user can specify the following parameters
+  <ul>
+  <li><span class="keyword">pressureRelError</span>, which defines the convergence threshold for the
+  pressure cycle. This is an optional parameter. By default, its value is set to 2&#10761;<tt>RelTol</tt>,
+  with typical value 10⁻³;</li>
+  <li><span class="keyword">pressureMaxIterations</span>, corresponding to the maximum number of iterations
+  of the pressure cycle. This is a <b>mandatory</b> parameter when the pressure cycle is active, <i>i.e.</i>
+  if the <span class="keyword">totalSccmOutFlow</span> is different from the model <tt>ensureIsobaric</tt>,
+  as defined in the <span class="keyword">workingConditions</span> (see more details in Reference Manual
+  [<a href="References.html#R10">10</a>]). The typical value is 1000;</li>
+  <li><span class="keyword">neutralityRelError</span>, which defines the convergence threshold for the
+  neutrality cycle. This is an optional parameter. By default, its value is set to 2&#10761;<tt>RelTol</tt>,
+  with typical value 10⁻³;</li>
+  <li><span class="keyword">neutralityMaxIterations</span>, corresponding to the maximum number of iterations
+  of the neutrality cycle. This is a <b>mandatory</b> parameter for <i>steady-state simulations</i> (see
+  section <a href="Getting_started.html#5">2.5</a>; for more details, see Reference Manual
+  [<a href="References.html#R10">10</a>]). The typical value is 500;</li>
+  <li><span class="keyword">globalRelError</span>, which defines the convergence threshold for the global
+  cycle. This is an optional parameter. By default, its value is set to 2&#10761;<tt>RelTol</tt>,
+  with typical value 10⁻³;</li>
+  <li><span class="keyword">globalMaxIterations</span>, corresponding to the maximum number of iterations
+  of the global cycle. This is a <b>mandatory</b> parameter for <i>steady-state simulations</i> (see
+  section <a href="Getting_started.html#5">2.5</a>; for more details, see Reference Manual
+  [<a href="References.html#R10">10</a>]). The typical value is 100.</li>
+  </ul>
+  The user can deactivate any of the cycles by setting its maximum number of iterations to 1.<br>
+  Moreover, the neutrality cycle and the global cycle are deactivated when running LoKI-C as standalone
+  tool (this behaviour might change in a future release of the code).
+</li>
+<li>In <span class="keyword">timeIntegrationConf</span>  the user can specify the numerical details of the
+time integration for the rate balance equations with LoKI-C. The available subfields for the configuration
+of this parameter are:
+  <ul>
+  <li><span class="keyword">odeSolver</span>, specifying the ordinary differential equation (ODE) solver
+  [<a href="References.html#R20">20</a>] to adopt in the time integration. This is a <b>mandatory</b>
+  parameter. Presently, we strongly recommend the solver <tt>ode15s</tt>, because it has provided the
+  best results in terms of accuracy and performance for the cases tested.</li>
+  <li><span class="keyword">dischargeTime</span>, corresponding to the final integration time of the
+  rate balance equations with LoKI-C, for active discharges. This is a <b>mandatory</b> parameter for
+  <em>steady-state simulations</em>, and also for <em>post-discharge simulations</em> that begin by
+  running a steady-state case (see section <a href="Getting_started.html#5">2.5</a>; for more details,
+  see Reference Manual [<a href="References.html#R11">11</a>]).<br>
+  Note that, in order to avoid numerical errors and preserve good performance, the <tt>dischargeTime</tt>
+  should not be much longer than the time needed for the system to reach its steady-state situation.
+  The typical value is 10 s.<br>
+  The <span class="keyword">dischargeTime</span> can be set to zero provided that
+  <span class="keyword">postDischargeTime</span> is non-zero (see below). In this case, the discharge
+  phase is skipped and LoKI-GM performs only the <i>post-discharge simulation</i>.</li>
+  <li><span class="keyword">postDischargeTime</span>, corresponding to the final integration time of
+  the rate balance equations with LoKI-C, for a post-discharge. This is a <b>mandatory</b> parameter for
+  <em>post-discharge simulations</em>.<br>
+  <b>This parameter should be set to zero, to deactivate the study of a post-discharge</b> (see
+  section <a href="Getting_started.html#5">2.5</a>).<br>
+  Note that, in order to avoid numerical errors and preserve good performance, the <tt>postDischargeTime</tt>
+  should not be too long. A typical value is 10⁻³ s.</li>
+  <li><span class="keyword">odeSetParameters</span> is an optional field where the user can define specific
+  options for the solver selected in the field <tt>odeSolver</tt>. A detailed description of the different
+  options can be found in the MATLAB® documentation [<a href="References.html#R20">20</a>]. Some examples
+  of useful options are given below
+    <ul>
+    <li><span class="keyword">MaxStep</span>: is the maximum value for the step of the advancing parameter
+    with the <tt>odeSolver</tt> chosen. The typical value is 0.1.</li>
+    <li><span class="keyword">RelTol</span>: is the relative tolerance adopted in the <tt>odeSolver</tt>
+    chosen. The typical value is 5⨉10⁻⁴ (the default MATLAB® value is 10⁻³).</li>
+    <li><span class="keyword">AbsTol</span>: is the absolute tolerance adopted in the <tt>odeSolver</tt>
+    chosen. The typical value is 10⁻¹⁰</li>
+    </ul>
+Inexperience users should <b>not change the values chosen for these parameters</b>, since their wrong
+definition will <b>degrade the performance of the code and the quality of the calculations.</b>
+  </li>
+  </ul>
+</li>
+</ul>
+</div>
+
+<p class="footer">
+<br>
+<a href="https://www.mathworks.com/products/matlab/">Published with MATLAB&reg; R2024b</a>
+<br>
+</p>
+</div>
+</body>
+</html>

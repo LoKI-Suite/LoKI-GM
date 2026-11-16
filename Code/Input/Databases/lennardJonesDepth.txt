@@ -1,38 +1,52 @@
-% Data for neutral transport calculations: Lennard Jones potential depth
+% Data for neutral transport calculations: Lennard-Jones potential depth
 % 
 % Data obtained from:
+% TRANSPORT
 % R. J. Kee, F. M. Rupley, J. A. Miller, M. E. Coltrin, J. F. Grcar, E. Meeks, H. K. Moffat, 
-% A. E. Lutz, G. DixonLewis, M. D. Smooke, J. Warnatz, G. H. Evans, R. S. Larson, 
-% R. E. Mitchell, L. R. Petzold, W. C. Reynolds, M. Caracotsios, W. E. Stewart, P. Glarborg, 
-% C. Wang, and Ola Adigun, CHEMKIN Collection, Release 3.6, 
-% Reaction Design, Inc., San Diego, CA (2000). 
+%  A. E. Lutz, G. Dixon-Lewis, M. D. Smooke, J. Warnatz, G. H. Evans, R. S. Larson, R. E. Mitchell, 
+%  L. R. Petzold, W. C. Reynolds, M. Caracotsios, W. E. Stewart, P. Glarborg, C. Wang, and Ola Adigun
+% CHEMKIN Collection, Release 3.6, Reaction Design, Inc., San Diego, CA (2000). 
 %
-% In order to change to SI units (J) use:
-%                       epsilon(J) = epsilon(K)*1.38064852e-23
+% The following conversion was used to change from kelvin (K) to SI units (J)
+%   epsilon(J) = epsilon(K)*1.38064852e-23
 
+Ar         136.500*1.38064852e-23
+Ar2        136.500*1.38064852e-23 % assumed value
+C           71.400*1.38064852e-23
+C2	    97.530*1.38064852e-23
+CF4	   134.000*1.38064852e-23
+CH4	   141.400*1.38064852e-23
+CO          98.100*1.38064852e-23
+CO2        244.000*1.38064852e-23
+F           80.000*1.38064852e-23
+F2         125.700*1.38064852e-23
+H	   145.000*1.38064852e-23
+H2	    38.000*1.38064852e-23
+H2O	   572.400*1.38064852e-23
+H3	    38.000*1.38064852e-23 % assumed value
+He          10.200*1.38064852e-23
+He2         10.200*1.38064852e-23 % assumed value
 N           71.400*1.38064852e-23
 N2          97.530*1.38064852e-23
-N2H         97.530*1.38064852e-23
-N3          97.530*1.38064852e-23
-N4          97.530*1.38064852e-23
+N2H         71.400*1.38064852e-23
 N2H2        71.400*1.38064852e-23
 N2H3       200.000*1.38064852e-23
 N2H4       205.000*1.38064852e-23
+N2O        232.400*1.38064852e-23
+N3          97.530*1.38064852e-23 % assumed value
+N4          97.530*1.38064852e-23 % assumed value
 NH          80.000*1.38064852e-23
 NH2         80.000*1.38064852e-23
 NH3        481.000*1.38064852e-23
-NH4        481.000*1.38064852e-23
+NH4        481.000*1.38064852e-23 % assumed value
 NO          97.530*1.38064852e-23
 NO2        200.000*1.38064852e-23
 O           80.000*1.38064852e-23
 O2         107.400*1.38064852e-23
 O3         180.000*1.38064852e-23
-C           71.400*1.38064852e-23
-CO          98.100*1.38064852e-23
-CO2        244.000*1.38064852e-23
-He          10.200*1.38064852e-23
-Ar         136.500*1.38064852e-23
-He2         10.200*1.38064852e-23   % assumed value
-H	   145.000*1.38064852e-23
-H2	    38.000*1.38064852e-23
-H3	    38.000*1.38064852e-23
+OH          80.000*1.38064852e-23
+Si        3036.000*1.38064852e-23
+SiH         95.800*1.38064852e-23
+SiH2       133.100*1.38064852e-23
+SiH3       170.300*1.38064852e-23
+SiH4       270.600*1.38064852e-23

@@ -169,12 +169,14 @@ classdef Output < handle
           end
         end
 
-        % The hdfFile name is the setup.info.output.folder with the h5 extension
-        if isfield(setup.info.output, 'folder')
-          hdfFile = [output.folder filesep setup.info.output.folder '.h5'];
-        else
-          hdfFile = [output.folder filesep 'Simulation ' datestr(datetime, 'dd mmm yyyy HHMMSS') '.h5'];
-        end
+        % The hdfFile name is the last component of output.folder with the h5 extension
+        % (e.g. 'Output/a/b' -> 'Output/a/b/b.h5'). This also reuses the timestamp of
+        % the default folder, so folder and file always share the same timestamp.
+        % Trailing separators are stripped so 'a/b/' does not yield an empty name,
+        % and 'ext' is kept so dots in the folder name (e.g. 'run_1.5') are preserved.
+        hdfFolder = regexprep(output.folder, '[\\/]+$', '');
+        [~, folderName, folderExt] = fileparts(hdfFolder);
+        hdfFile = [hdfFolder filesep folderName folderExt '.h5'];
         output.h5file = hdfFile;
 
         % Choose the number of E/N values

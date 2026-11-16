@@ -1,0 +1,154 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+
+<head>
+<META http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<title>The setup file</title>
+<link rel="schema.DC" href="http://purl.org/dc/elements/1.1/">
+<meta name="DC.date" content="2025-03-14">
+<link rel="stylesheet" type="text/css" href="loki.css">
+</head>
+
+<body>
+<div class="content">
+<h1 id="0">3. The setup file</h1>
+<p>The setup file is the main input file of LoKI-GM and serves as the primary user
+Interface (UI) for interacting with the code.</p>
+
+<h2>Contents</h2>
+<nav>
+<ol start="3">
+<li><a href="#0">The setup file</a>
+<ul>
+    <li>3.1 <a href="Working_conditions.html">Working conditions</a>
+    <li>3.2 <a href="Electron_kinetics.html">Electron kinetics</a></li>
+    <li>3.3 <a href="Chemistry.html">Chemistry</a></li>
+    <li>3.4 <a href="GUI.html">Graphical user interface</a></li>
+    <li>3.5 <a href="Output_files.html">Output files</a>
+<!--    <li>3.1 <a href="#1">Working conditions</a>
+    <li>3.2 <a href="#2">Electron kinetics</a></li>
+    <li>3.3 <a href="#3">Chemistry</a></li>
+    <li>3.4 <a href="#4">Graphical user interface</a></li>
+    <li>3.5 <a href="#5">Output files</a>-->
+        <ul>
+            <li>3.5.1 <a href="Output_files.html#1">Datasets in text format</a></li>
+            <li>3.5.2 <a href="Output_files.html#2">Datasets in HDF5 format</a></li>
+        </ul></li>
+</ul></li>
+</ol>
+</nav>
+
+<hr style="display:block;height:0.5px;border-width:0;color:gray;background-color:gray">
+<br>
+
+<p>Setup files can be written either in plain text or JSON format. Currently, JSON input
+is supported only for <i>electron kinetics simulations</i> (using LoKI-B as standalone tool).
+Support for the remaining simulation types available in LoKI-GM is under development.<br>
+In this file, the user can provide / select relevant information, namely
+<ul>
+<li>about physical parameters, <em>e.g.</em>
+    <ul>
+    <li>working conditions</li>
+    <li>kinetic data and schemes</li>
+    <li>atomic and molecular data</li>
+    <li>species populations</li>
+    </ul></li>
+<li>about physical models, <em>e.g.</em>
+    <ul>
+    <li>mode of energy-sharing in ionisation collisions</li>
+    <li>type of growth model for the electron density</li>
+    <li>inclusion of electron-electron collisions</li>
+    <li>inclusion of thermal model</li>
+    </ul></li>
+<li>about numerical details, <em>e.g.</em>
+    <ul>
+    <li>energy grid for LoKI-B</li>
+    <li>nonlinear algorithm(s) to adopt in the simulations</li>
+    <li>convergence criteria for iterative cycles</li>
+    <li>integration times</li>
+    </ul></li>
+</ul>
+</p>
+
+<p>
+<table border=4>
+<tr><td>
+The setup <b>text</b> file is an <b>indentation structured file</b>, <i>i.e.</i> it
+follows the "Off-side rule" [<a href=references.html#R15>15</a>] like in some programming
+languages such as Python.
+This means that it is <b>mandatory</b> that all the subfields within a field share the
+same level of indentation, otherwise the behaviour of the code is undefined.
+</td></tr>
+</table>
+</p>
+
+
+<p>The <b>setup text file</b> is organised according to the following syntax rules.</p>
+<div>
+<ul>
+<li>The setup file can include comments, signaled by the character %.</li>
+<li>Some of the fields in the setup file can accept either one or more values.<br>
+When only one value is to be specified, it can be given in the same line of the
+field, right after the colon, for example:
+<pre class="codeinput">mass: Databases/masses.txt</pre>
+Alternatively, when more than one value are to be specified, one can use several
+lines starting with a dash, for example:
+<!--<pre class="codeinput"><span class="string">LXCatFiles:            </span><span class="comment">% cross section files</span>
+<span class="string">    - Nitrogen/N2_LXCat.txt</span>
+<span class="string">    - Nitrogen/N2_rot_LXCat.txt</span>
+</pre>-->
+<pre class="codeinput">LXCatFiles:            <span class="comment">% cross section files</span>
+    - Nitrogen/N2_LXCat.txt
+    - Nitrogen/N2_rot_LXCat.txt
+</pre>
+</li>
+<li>The setup text file can call either <tv>*.txt</tv> or <tv>*.json</tv> auxiliary
+input files.</li>
+</ul>
+</div>
+
+<p>The <b>setup JSON file</b> (only for simulations using LoKI-B as standalone tool)
+is organised similarly to the setup text file, following the standard JSON syntax
+rules. The following should be noted:
+<ul>
+<li>The calling of functions within the setup JSON file is passed with quotes "."</li>
+<li>The setup JSON file can call either <tv>*.txt</tv> or <tv>*.json</tv> LXCat files.</li>
+</ul>
+</p>
+
+<p>Note that the value(s) of certain fields in the setup file can be defined
+specifying an "auxiliary input file" or a "property function".<br>
+All the "auxiliary input files" (<i>i.e.</i> LXCat files, property files or chemistry
+files) specified in the setup file should be located inside the input folder
+(<tt>[repository folder]/LoKI-GM_26.07/Code/Input</tt>), eventually organised in
+subfolders with self-explanatory names (<i>e.g.</i> <tt>Nitrogen, Databases</tt>;
+see section <a href="Getting_started.html#2">2.2</a>). In this case, the name of
+the subfolder should be specified in the setup file (see examples above for
+<tt>mass</tt> and for <tt>LXCatFiles</tt>). For more information about auxiliary
+input files see section <a href="Auxiliary_input_files.html">4</a>.<br>
+All the "property functions" specified in the setup file should be located in the
+property functions folder (<tt>[repository folder]/LoKI-GM_26.07/Code/PropertyFunctions</tt>;
+see section <a href="Getting_started.html#2">2.2</a>). For more information about
+property functions see section <a href="Auxiliary_functions.html">5.1</a>.</p>
+<p>The setup file is organised into five different main fields, with self-explanatory
+designations:</p>
+<div>
+<ul>
+<li><tt><a href="Working_conditions.html">workingConditions</a></tt></li>
+<li><tt><a href="Electron_kinetics.html">electronKinetics</a></tt></li>
+<li><tt><a href="Chemistry.html">chemistry</a></tt></li>
+<li><tt><a href="GUI.html">gui</a></tt></li>
+<li><tt><a href="Output_files.html">output</a></tt></li>
+</ul>
+</div>
+<p>The next subsections present these fields in detail, using a <b>setup text file</b>
+for nitrogen as example.</p>
+
+<p class="footer">
+<br>
+<a href="https://www.mathworks.com/products/matlab/">Published with MATLAB&reg; R2024b</a>
+<br>
+</p>
+</div>
+</body>
+</html>
