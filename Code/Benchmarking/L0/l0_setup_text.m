@@ -16,10 +16,14 @@ function lines = l0_setup_text(c, mode)
         '      variableGrid: false'
         };
     case 'veg'
+      firstStep = 1e-3;
+      if isfield(c, 'grid') && isfield(c.grid, 'firstEnergyStep')
+        firstStep = c.grid.firstEnergyStep;
+      end
       gridKeys = {
         '      inelCollisions: true'
         '      variableGrid: true'
-        '      firstEnergyStep: 1e-3'
+        sprintf('      firstEnergyStep: %.15g', firstStep)
         };
     otherwise
       error('l0_setup_text:mode', 'Unknown mode "%s" (use ref, uniform or veg).', mode);
