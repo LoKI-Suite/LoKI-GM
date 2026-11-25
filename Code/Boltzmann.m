@@ -2080,9 +2080,9 @@ classdef Boltzmann < handle
                       eedfLocal(2+lmin:2:N)));
                     
                   case 'oneTakesAll'
-                    ionizationIneAux = -gamma*collision.target.density*energyCell(lmin)*...
-                      sum(eedfLocal(lmin:N).*energyCell(lmin:N).*energyStep(lmin:N).*cellCrossSection(lmin:N));
-                    
+                      ionizationIneAux = - gamma*collision.target.density*energyStep*(energyNode(lmin+1)-energyCell(1))*...
+                          sum(eedfLocal(1+lmin:N).*energyCell(1+lmin:N).*cellCrossSection(1+lmin:N));
+
                   case 'usingSDCS'
                     %calculation of the total (integrated) ionization cross section using the SDCS
                     TICS = zeros(size(eedfLocal));
