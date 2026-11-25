@@ -1814,7 +1814,7 @@ classdef Boltzmann < handle
         boltzmann.evaluatePower(false);
         Preference = boltzmann.power.reference;
         Pee = boltzmann.power.electronElectronNet;
-        ratio = abs(Pee/Preference);
+        ratio = Pee/Preference;
         
         % evaluate convergence criteria
         if  max(abs(eedf-eedfOld)./eedfOld)<boltzmann.maxEedfRelError && abs(ratio)<boltzmann.maxPowerBalanceRelError
